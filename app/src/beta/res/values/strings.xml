@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <item name="floris_app_name" translatable="false" type="string">FlorisBoard Beta</item>
+    <!-- Deku Foundation modification (2026-10-25): identify the Deku beta build. -->
+    <item name="floris_app_name" translatable="false" type="string">Deku Keyboard Beta</item>
 </resources>

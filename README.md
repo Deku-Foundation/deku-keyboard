@@ -8,7 +8,7 @@ This repository begins from the [FlorisBoard](https://github.com/florisboard/flo
 
 ## Project status
 
-This is the source-import baseline, not a published stable release. The first goal is to establish a reproducible build and CI. Application identifiers, signing, release distribution, remaining in-app branding, and visual assets will be reviewed before a public Deku release. Do not treat unofficial builds as production releases.
+This is the source-import baseline, not a published stable release. The first goal is to establish a reproducible build and CI. Signing and release distribution will be reviewed before a public Deku release. The Android application ID and primary adaptive icon have been changed; internal namespace/class names and inherited store-listing assets remain subject to targeted compatibility and licensing review. Do not treat unofficial builds as production releases.
 
 ## Baseline capabilities
 
