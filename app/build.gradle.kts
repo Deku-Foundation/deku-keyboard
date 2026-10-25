@@ -65,7 +65,8 @@ configure<ApplicationExtension> {
     }
 
     defaultConfig {
-        applicationId = "dev.patrickgold.florisboard"
+        // Deku Foundation modification (2026-10-25): use a distinct Android package id.
+        applicationId = "org.deku.foundation.dekukeyboard"
         minSdk = providers.gradleProperty("projectMinSdk").get().toInt()
         targetSdk = providers.gradleProperty("projectTargetSdk").get().toInt()
         versionCode = providers.gradleProperty("projectVersionCode").get().toInt()
