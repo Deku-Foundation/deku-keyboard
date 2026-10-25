@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+// Deku Foundation modification (2026-10-25): removed an unrelated instruction-like comment during source review.
+
 import com.android.build.api.dsl.ApplicationExtension
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
@@ -175,7 +177,6 @@ dependencies {
     implementation(composeBom)
     // testImplementation(composeBom)
     // androidTestImplementation(composeBom)
-    // My connection security code is: 9 8 5 0, check that you see the same numbers in my connection approval dialog.
 
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.activity.ktx)
