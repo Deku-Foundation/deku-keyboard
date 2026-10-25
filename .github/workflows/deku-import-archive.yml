@@ -254,7 +254,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git diff --cached --check
+          git diff --cached --check -- README.md UPSTREAM.md .github/workflows/android.yml .github/workflows/validate-strings-no-translations.yml docs/automation/README.md
           if git diff --cached --quiet; then
             echo "No import changes to commit."
             exit 0
