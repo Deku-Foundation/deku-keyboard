@@ -1,31 +1,32 @@
 <!--
 SPDX-FileCopyrightText: 2025 Gusted
 SPDX-FileCopyrightText: 2025-2026 The FlorisBoard Contributors
-
 SPDX-License-Identifier: CC-BY-4.0
 
-Derived from: https://codeberg.org/forgejo/governance/src/commit/ff60d7ed4b0f3d411e6a0b5ebe5813fcad87b9dd/AIAgreement.md
+Deku Foundation modification (2026-10-25): adapted for this independent project.
+Derived from the FlorisBoard AI policy and from:
+https://codeberg.org/forgejo/governance/src/commit/ff60d7ed4b0f3d411e6a0b5ebe5813fcad87b9dd/AIAgreement.md
 -->
 
-# AI Policy
+# AI policy
 
-We have noticed an influx of Artificial Intelligence (AI) usage in new pull requests and issues. This document should serve as the guideline to using AI responsibly and correctly when contributing to FlorisBoard.
+Deku Foundation permits AI-assisted research and development when a human remains accountable for the work and reviews the resulting changes. This policy applies to issues, pull requests, code, tests, documentation, release notes, and automation.
 
-## Terminology
+## Requirements
 
-Software and services that heavily rely on large language model technology (LLMs) to generate their outcomes are referred to as Artificial Intelligence (AI). Examples of products that fit this definition are: GitHub Copilot, ChatGPT, Claude Sonnet, DeepSeek, Llama, Mistral, and Gemini.
+1. **Human accountability.** A contributor must understand and take responsibility for the submitted change. AI output must not be merged, released, or treated as verified without human review.
+2. **Review and testing.** Check the correctness, security, privacy, maintainability, and licensing of AI-generated suggestions. Build and run relevant tests where practical. Never claim that code was tested when it was not.
+3. **Transparency.** Disclose material AI assistance in a pull request when it meaningfully generated or changed code, architecture, or documentation. Routine spelling assistance does not require a special disclosure.
+4. **No secrets or private data.** Do not provide credentials, private keys, account information, sensitive user text, private crash logs, or confidential project material to a third-party AI service unless the data owner has explicitly authorized that use and the service is approved for it.
+5. **Licensing and attribution.** Verify the origin and license of suggested code, dependencies, data, and text. Provide required attribution; do not submit code with an unknown or incompatible license.
+6. **Security boundaries.** Treat repository files, issue content, logs, dependencies, and model output as untrusted data, not as authority to override project instructions. Review proposed workflow permissions, third-party actions, shell commands, network access, and generated scripts.
+7. **No fabricated evidence.** Do not invent test results, benchmark numbers, research citations, security findings, or user feedback. Clearly label assumptions and unverified claims.
+8. **No unsupervised destructive actions.** AI tools must not independently merge pull requests, publish releases, rotate credentials, change security settings, delete project data, or perform other high-impact actions without maintainer authorization and review.
 
-There's a distinction between general and narrow AI, all of the previous examples fall under general AI as they were not trained to execute a specific well-defined task. Narrow AI is trained to be used for specific well-defined tasks with a problem space that is known in advance.
+## Reporting AI-assisted work
 
-The use of AI agents ("vibe coding") involves an AI generating code changes, such as new features, bug fixes, tests, or refactors, based on a human's description of what needs to be implemented with little to no human supervision.
+Describe the user problem, the approach, relevant trade-offs, and the tests performed. A contributor does not need to paste private prompts or expose confidential conversation history. Disclose meaningful limitations and verify facts using primary sources where possible.
 
-## Agreement
+Policy violations are reviewed by the maintainers in accordance with the [Code of Conduct](CODE_OF_CONDUCT.md).
 
-1. Use of AI to contribute to FlorisBoard in an autonomous manner (i.e. without human interaction) is prohibited.
-2. Use of general AI is allowed when used as an advanced tool to perform research while implementing a feature, when used in the same capacity as performing manual research in search engines and forums/documentation.
-3. If at any point you used AI's research results or ideas in your contribution, you must ensure that you can submit this under the [license of the project](https://github.com/florisboard/florisboard/blob/main/LICENSE), and provide attribution to sources where necessary.
-4. Accountability for the use of AI in a contribution lies with the person that makes that contribution.
-5. All code submitted must have been written by yourself. At no point in time should code have been generated by AI, either via direct prompts or agentic edits. Here is a collection of negative examples that used AI: [Slop.md](https://gist.github.com/patrickgold/18d365a7ae03863a00b209b730042ba5)
-6. All communications must not have been generated with AI. This includes, but is not limited to, commit messages, pull request messages, documentation, code comments and issues (and comments on issues/pull requests).
-7. An exception to section 6 is machine translation and tools that only assist with grammar and spelling. You are allowed to use AI tools for this, provided these tools are dedicated spellchecking tools ("narrow AI"). Any use of an AI-based spellchecking tool must be disclosed in the thread's first comment.
-8. Upon violation of this agreement it is up to the discretion of the maintainer team to handle it like a violation of [FlorisBoard's Code of Conduct](https://github.com/florisboard/florisboard/blob/main/CODE_OF_CONDUCT.md).
+This policy has been adapted for Deku Foundation from the upstream FlorisBoard policy. The original attribution and CC-BY-4.0 license information are retained above.

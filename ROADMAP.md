@@ -1,68 +1,42 @@
-# Roadmap
+# Deku Keyboard roadmap
 
-This feature roadmap intents to provide transparency to what is planned to be added to FlorisBoard in the foreseeable future. Note that there are no ETAs for any version milestones down below, experience has shown these won't hold anyway.
+This roadmap describes the work planned for the independent Deku Keyboard repository. It replaces FlorisBoard-specific release milestones; upstream features and implementation details remain credited in [UPSTREAM.md](UPSTREAM.md). Items are priorities, not delivery-date promises.
 
-Each major milestone has associated alpha/beta releases, so if you are interested in previewing features quicker, keep an eye out! Each major 0.x release has also patch releases after the initial major release, which will be published on both the stable and preview tracks.
+## Phase 0 — source baseline and build hygiene
 
-## 0.5 (currently in development)
+- [x] Extract the source archive into the repository root and remove the ZIP-only snapshot.
+- [x] Retain upstream licensing and add an attribution note.
+- [x] Add GitHub Actions for wrapper validation, Android debug builds, artifacts, and base-string validation.
+- [x] Set an initial Deku app label, Android application ID, project name, primary adaptive icon, palette, repository links, and beta label.
+- [x] Record the pre-release privacy and initial import-review status.
+- [ ] Confirm a green CI run for the latest package/icon changes and review test results.
+- [ ] Identify and remove obsolete upstream-only workflows, secrets assumptions, and project integrations.
 
-> [!NOTE]
-> The milestone 0.5 was split, thus the word suggestions now come with version 0.6. The old version 0.6 has been moved down and is now 0.7. The time it takes to implement word suggestions will not change, but we can now release the new theme editor earlier, which would otherwise lie dormant.
+## Phase 1 — independent project foundations
 
-- [x] Theme rework part II / Snygg v2
-  - [x] See https://github.com/florisboard/florisboard/pull/2855
-  - [x] Spaces in URI bug (See https://github.com/florisboard/florisboard/issues/2898)
-  - [x] Re-add time based theme switching (See https://github.com/florisboard/florisboard/pull/2977)
-- [x] Add support for any remaining new features introduced with Android 13 / 14
-- [x] Raise minimum required Android version from Android 7 (SDK level 24) to Android 8 (SDK level 26)
+- [ ] Complete a file-by-file inventory of upstream branding, resource identifiers, package names, licenses, and third-party assets.
+- [ ] Replace remaining internal FlorisBoard package names and resource keys in small, build-tested migrations rather than global search-and-replace.
+- [ ] Review the Android manifest, exported components, permissions, application ID, signing, backup rules, and deep links.
+- [ ] Replace inherited store icons, feature graphics, screenshots, translated listings, and historical changelogs before any store release.
+- [ ] Define a Deku-owned translation workflow before enabling any Crowdin or other translation credentials.
+- [ ] Establish dependency update and vulnerability-review practices.
 
-## 0.6
+## Phase 2 — privacy, security, and reliability
 
-- [ ] Implement predictive text support / spell checking
-- [ ] Add new extension type: Language Pack
-    - Basically groups all locale-relevant data (predictive base model, emoji suggestion data, ...)
-      in a dynamically importable extension file
-- [ ] Proper physical keyboard support (See https://github.com/florisboard/florisboard/issues/1972)
-- [ ] Rework cache manager (See https://github.com/florisboard/florisboard/issues/2870)
+- [ ] Review clipboard handling, extension import/trust boundaries, logs, crash reporting, network requests, and third-party SDKs.
+- [ ] Finalize the privacy notice only after actual app data flows are verified.
+- [ ] Add tests for key input, language layouts, settings persistence, and regression-prone flows.
+- [ ] Validate accessibility, keyboard usability, screen sizes, and Android versions on physical/emulated devices.
+- [ ] Produce repeatable debug builds and document provenance of generated artifacts.
 
-## k3lp
+## Phase 3 — Deku-specific product direction
 
-> [!NOTE]
-> The development of k3lp is not tied to a florisboard version and takes place on [codeberg.org](https://codeberg.org/k3lp/k3lp) simultaneously.
+- [ ] Gather user feedback before committing to major feature work.
+- [ ] Evaluate Arabic and right-to-left typing, punctuation/digit behavior, and multilingual switching as first-class test scenarios.
+- [ ] Review the keyboard layout, theme customization, clipboard, emoji, extension, and suggestion features for usability and privacy.
+- [ ] Decide which upstream features to keep, replace, or remove based on maintenance cost and user needs.
+- [ ] Define release criteria, support policy, versioning, and a signing/release process.
 
-- [ ] New keyboard layout engine + file syntax based on the upcoming Unicode Keyboard v3 standard
-- [ ] Add Tablet mode / Optimizations for landscape input based on new keyboard layout engine
+## Release gate
 
-## 0.7+
-
-> [!NOTE]
-> From 0.6 onwards we plan to have more stable 0.X releases but with at most one large feature per release, thus having a much quicker iteration of new features on the stable track, which is a benefit for everyone involved.
-
-- [ ] Add floating keyboard mode
-- [ ] New text processing logic
-- [ ] Complete rework of the Emoji panel
-  - [ ] Emoji search
-  - [ ] Fully scrollable emoji list (soft category borders)
-  - [ ] Side scrollable emoji list (swipe for next category)
-  - [ ] More granular theming options
-  - [ ] Layout customization (e.g. placement of category buttons)
-  - [ ] Maybe: consider upgrading to emoji2 for better unified system-wide emoji styles
-- [ ] Reimplementation of glide typing with the new layout engine and predictive text core
-- [ ] Prepare FlorisBoard repository and app store presence for public beta release on Google Play (will go live with stable 0.7)
-- [ ] Rework branding images and texts of FlorisBoard for the app stores
-- [ ] Focus on stability and experience improvements of the app and keyboard
-- [ ] Add support for new features introduced with Android 15 / 16
-
-## Backlog / Planned (unassigned)
-
-**Features that MAY be added (even in versions mentioned above) or dismissed**
-
-- Full on-board layout editor which allows users to create their own layouts without writing a JSON file
-- Voice-to-text with Mozilla's open-source voice service (or any other oss voice provider)
-- Text translation
-- Stickers/GIFs
-- Kaomoji panel implementation
-- Implementing additional layouts
-- Support for Tasker/Automate/MacroDroid plugins
-- Support for WearOS/Smartwatches
-- Handwriting
+No stable release should be published until the build is reproducible, inherited store assets are replaced or properly relicensed, privacy behavior is documented accurately, relevant security checks are completed, and the maintainer team has reviewed the release candidate.

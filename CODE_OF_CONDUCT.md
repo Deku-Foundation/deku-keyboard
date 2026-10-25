@@ -1,3 +1,4 @@
+<!-- Deku Foundation modification (2026-10-25): update project-specific enforcement guidance; the Contributor Covenant text is retained. -->
 # Contributor Covenant Code of Conduct
 
 ## Our Pledge

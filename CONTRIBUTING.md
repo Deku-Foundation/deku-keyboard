@@ -1,76 +1,56 @@
-# Contribution guidelines
+# Contributing to Deku Keyboard
 
-Thanks for considering contributing to FlorisBoard!
+Thank you for helping improve Deku Keyboard, an open-source Android keyboard maintained by Deku Foundation.
 
-There are several ways to contribute to FlorisBoard. This document provides some general guidelines for each type of contribution.
+This repository began as an import of the FlorisBoard open-source codebase. Its upstream license and relevant source notices are retained; see [UPSTREAM.md](UPSTREAM.md). Deku Keyboard is an independent derivative, not the official FlorisBoard project.
 
-The FlorisBoard community is international, as such we require all contributions, including issues, pull requests, and participation in the Matrix chat to be in English, follow the [code of conduct](https://github.com/florisboard/florisboard/blob/main/CODE_OF_CONDUCT.md), and adhere to our current [AI Policy](https://github.com/florisboard/florisboard/blob/main/AI_POLICY.md). Contributions not adhering to these requirements will be dismissed. Thanks for making the FlorisBoard community an inclusive and safe space for everyone!
+## Current status
 
-## Non-code contributions
+This is a development baseline, not a stable release. The Android app identity has been started, but internal package/class names, some upstream integrations, translated store listings, screenshots, and other inherited assets are still being reviewed. Do not upload Fastlane metadata or publish builds as stable releases yet; see [fastlane/README.md](fastlane/README.md), [PRIVACY.md](PRIVACY.md), and [SECURITY_REVIEW.md](SECURITY_REVIEW.md).
 
-### Translations
+## Issues and proposals
 
-To make FlorisBoard accessible in as many languages as possible, the platform [Crowdin](https://crowdin.florisboard.org) is used to crowdsource and manage translations.  The list of languages in Crowdin covers a good range of languages, but feel free to email [florisboard@patrickgold.dev](mailto:florisboard@patrickgold.dev) to request a new language.
+Before filing an issue, search the [existing issues](https://github.com/Deku-Foundation/deku-keyboard/issues) to avoid duplicates. Use the repository's issue templates for bugs, crashes, and feature requests. Include the app version, Android version, device details, and precise reproduction steps when relevant. Remove personal information and secrets from logs before sharing them.
 
-> [!IMPORTANT]
-> This is the only source of translations - **PRs that add/update translations are not accepted.**
+For feature proposals, describe the user problem and expected behavior first. Larger changes should start with a discussion in an issue so the implementation can be reviewed before substantial work begins.
 
-### Bug reporting
+## Development environment
 
-Allows us to see where FlorisBoard has flaws and should be improved to maximize stability and user experience. To make this process as smooth as possible, please use the pre-made [bug report template](https://github.com/florisboard/florisboard/issues/new?template=bug_report.yml). This makes it easy for us to understand what the bug is and how to solve it.
+The imported project currently uses the following toolchain:
 
-#### Capturing error logs
+- JDK 17
+- Android SDK and NDK compatible with the versions declared by the Gradle project
+- CMake and Ninja
+- Git
+- Rust toolchain for the native components
+- Python 3 for some optional repository utilities
 
-Logs are captured by FlorisBoard's crash handler, which gives you the ability to copy it to the clipboard and paste it in the crash report [issue template](https://github.com/florisboard/florisboard/issues/new?template=crash_report.yml). This is the preferred way to capture logs.
+Open the repository in Android Studio, or configure the Android SDK/NDK locally, then run:
 
-Alternatively, you can also use ADB (Android Debug Bridge) to capture the error log. This is recommended for experienced users only.
+```bash
+./gradlew clean assembleDebug
+```
 
-### Feature proposals
+The CI workflow builds a debug APK and publishes it as an artifact. Pull requests should include test evidence for the changes they affect. Run relevant unit tests where available; do not claim tests passed unless you ran them or have a successful CI result.
 
-Use the feature proposal [issue template](https://github.com/florisboard/florisboard/issues/new?template=feature_request.yml) to suggest a new idea or improvement for this project.
+## Code and review expectations
 
-### Feedback
+- Keep changes focused and explain the reason for each change.
+- Preserve upstream copyright notices and third-party license requirements.
+- Do not commit credentials, private keys, user data, or real crash logs containing personal information.
+- Do not add new network services, analytics, telemetry, or external integrations without reviewing privacy implications and documenting the behavior.
+- Avoid broad automated renames of internal package names, resource identifiers, or extension formats. Coordinate a targeted migration and test it.
+- Use [the AI policy](AI_POLICY.md) for research and AI-assisted changes.
+- Follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 
-You can [give general feedback](https://github.com/florisboard/florisboard/discussions/new?category=feedback) directly here on GitHub. This is the preferred way to give feedback, as it allows not only for me to read and respond to feedback, but for everyone in this community.
+## Translations
 
-## Code contributions
+The imported localization workflow is not yet configured for a Deku-owned translation service. The current validation workflow rejects direct edits to translated `values-*/strings.xml` files. Until a supported process is documented, change base-language strings only and discuss translation-process changes separately.
 
-You are always welcome to contribute new features or work on existing issues, there are a lot to choose from :) It is always best to quickly ask if someone is already working on this issue to avoid duplicate issues.
+## Security reports
 
-> [!NOTE]
-> If you intend to implement a bigger feature please coordinate with us so we can prevent that there's a major difference in expected implementation.
+Do not post credentials, personal data, or unpatched vulnerability details in a public issue. Follow the reporting guidance in [SECURITY_REVIEW.md](SECURITY_REVIEW.md) and use a verified private contact path for sensitive reports.
 
-If you are overwhelmed by the code don't hesitate to ask for help in the [dev chat](https://matrix.to/#/#florisboard-dev:matrix.org) or the discussions tab! Some issues are also marked as good first issue, which are easy to do tasks.
+---
 
-### System requirements for development
-
-- Desktop PC with Linux or WSL2 (Windows)
-  - MacOS and Windows without WSL2 probably works too however there's no official support
-- At least 16GB of RAM (because of Android Studio / IntelliJ)
-- The following tools must be installed:
-  - Android Studio (bundles SDK and NDK) or IntelliJ with Android and Compose plugin
-  - Java 17
-  - CMake 3.22+
-  - Clang 15+
-  - Git
-  - [Rust](https://www.rust-lang.org/tools/install)
-- Utilities (optional)
-  - Python 3.10+
-  - Bash, realpath, grep, ...
-
-> [!IMPORTANT]
-> If using IntelliJ IDEA you have to enable `Future AGP Versions` otherwise AGP 9.0.0 will not work with your IDE.
-> How to do this is described in this [comment on YouTrack](https://youtrack.jetbrains.com/issue/IDEA-348937/2024.1-Beta-missing-option-to-enable-sync-with-future-AGP-versions#focus=Comments-27-11721710.0-0)
-
-### Manual build without Android Studio
-
-If you want to manually build the project without Android Studio you must ensure that the Android SDK and NDK are properly installed on your system. Then issue
-
-```./gradlew clean && ./gradlew assembleDebug```
-
-and Gradle should take care of every build task.
-
-## Donating
-
-You can also show your support by buying me a coffee, so I can stay up all night and chase away bugs or add new cool stuff :)
-See the `Sponsors` button for available options!
+This contribution guide is maintained by Deku Foundation and replaces the upstream project-specific contribution instructions for this repository.
