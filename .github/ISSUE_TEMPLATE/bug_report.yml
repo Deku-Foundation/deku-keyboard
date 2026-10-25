@@ -8,12 +8,12 @@ body:
       value: |
         Thank you for your help in making Deku Keyboard better!
         Guide to a good bug-report:
-        • Please search existing bug/crash reports reports to avoid creating duplicates.
+        • Please search existing bug/crash reports to avoid creating duplicates.
         • Give your bug report a good name (no generics like "Error" or "Crash"), so others can easily identify the topic of your issue.
         • Describe the bug in a short but concise way.
         • If you have a screenshot or screen recording of the bug, link them at the end of this issue.
         • Also make sure to fill out the environment information. This info is valuable when trying to fix your described bug.
-        • Always test if the bug is present in the [latest preview version](https://github.com/Deku-Foundation/deku-keyboard/releases).
+        • Always test if the bug is present in the [latest available debug artifact](https://github.com/Deku-Foundation/deku-keyboard/actions/workflows/android.yml).
   - type: textarea
     id: description
     attributes:
@@ -70,7 +70,7 @@ body:
       options:
         - label: "I made sure that there are *no existing issues* - [open](https://github.com/Deku-Foundation/deku-keyboard/issues) or [closed](https://github.com/Deku-Foundation/deku-keyboard/issues?q=is%3Aissue+is%3Aclosed) - which I could contribute my information to."
           required: true
-        - label: "I made sure that the bug is present in the [latest preview version](https://github.com/Deku-Foundation/deku-keyboard/releases)."
+        - label: "I made sure that the bug is present in the [latest available debug artifact](https://github.com/Deku-Foundation/deku-keyboard/actions/workflows/android.yml)."
           required: true
         - label: "I have read and understood the [contribution guidelines](https://github.com/Deku-Foundation/deku-keyboard/blob/main/CONTRIBUTING.md)."
           required: true
