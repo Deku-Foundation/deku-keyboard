@@ -1,6 +1,6 @@
 # Deku Keyboard
 
-**Deku Keyboard** is an open-source Android keyboard project maintained by [Deku Foundation](https://github.com/Deku-Foundation).
+**Deku Keyboard** is an open-source Android keyboard project maintained by [Deku Foundation](https://github.com/Deku-Foundation). This README is maintained by Deku Foundation and replaces the upstream project overview for this independent repository.
 
 This repository begins from the [FlorisBoard](https://github.com/florisboard/florisboard) open-source codebase and will be developed independently. The current baseline retains upstream implementation and third-party components; the project will be rebranded and modernized in reviewed stages rather than by indiscriminate search-and-replace.
 
@@ -24,6 +24,10 @@ Requirements and toolchain details are defined by the Gradle wrapper and the CI 
 
 The debug APK is generated at app/build/outputs/apk/debug/app-debug.apk when the build succeeds.
 
+## Privacy and security
+
+The privacy notice is currently a [pre-release draft](PRIVACY.md), not a final policy. The [initial security review](SECURITY_REVIEW.md) documents completed import-stage checks and the remaining audit work. Neither document claims that the full application has been audited.
+
 ## Attribution and licensing
 
-This project is derived from FlorisBoard and retains its upstream license, copyright statements, and applicable third-party notices. See [LICENSE](LICENSE) and [UPSTREAM.md](UPSTREAM.md). Deku Keyboard is an independent project and is not the official FlorisBoard project.
+This project is derived from FlorisBoard and retains its upstream license, copyright statements, and applicable third-party notices. See [LICENSE](LICENSE) and [UPSTREAM.md](UPSTREAM.md). Deku Keyboard is an independent project and is not the official FlorisBoard project. The app label, repository links, and Gradle project name have been updated; internal package names, app identifiers, icon assets, upstream integration points, and other remaining references will be changed only after targeted compatibility and licensing reviews.
