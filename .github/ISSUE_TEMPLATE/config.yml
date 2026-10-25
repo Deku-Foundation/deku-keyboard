@@ -1,8 +1,5 @@
 blank_issues_enabled: false
 contact_links:
-  - name: 💬 Matrix
-    url: https://matrix.to/#/#florisboard:matrix.org
-    about: General chat about FlorisBoard and quick Q/A
-  - name: ❓ Questions / Feedback
-    url: https://github.com/florisboard/florisboard/discussions/new/choose
-    about: Post your questions or feedback in the discussions panel
+  - name: Questions / Feedback
+    url: https://github.com/Deku-Foundation/deku-keyboard/issues
+    about: Ask questions or share feedback in the Deku Keyboard issue tracker.

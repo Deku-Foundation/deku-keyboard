@@ -1,19 +1,19 @@
 name: 🐛 Bug Report
-description: Create a report to help FlorisBoard improve
+description: Create a report to help Deku Keyboard improve
 labels:
   - "bug"
 body:
   - type: markdown
     attributes:
       value: |
-        Thank you for your help in making FlorisBoard better!
+        Thank you for your help in making Deku Keyboard better!
         Guide to a good bug-report:
         • Please search existing bug/crash reports reports to avoid creating duplicates.
         • Give your bug report a good name (no generics like "Error" or "Crash"), so others can easily identify the topic of your issue.
         • Describe the bug in a short but concise way.
         • If you have a screenshot or screen recording of the bug, link them at the end of this issue.
         • Also make sure to fill out the environment information. This info is valuable when trying to fix your described bug.
-        • Always test if the bug is present in the [latest preview version](https://github.com/florisboard/florisboard/releases).
+        • Always test if the bug is present in the [latest preview version](https://github.com/Deku-Foundation/deku-keyboard/releases).
   - type: textarea
     id: description
     attributes:
@@ -33,9 +33,9 @@ body:
     validations:
       required: true
   - type: input
-    id: florisversion
+    id: dekukeyboardversion
     attributes:
-      label: FlorisBoard Version
+      label: Deku Keyboard Version
       placeholder: e.g. 0.X.X
     validations:
       required: true
@@ -44,10 +44,9 @@ body:
     attributes:
       label: Install Source
       options:
-        - Google PlayStore
-        - F-Droid (F-Droid Main)
-        - F-Droid (IzzyOnDroid)
-        - GitHub
+        - GitHub Actions debug artifact
+        - Built from source
+        - Other
     validations:
       required: true
   - type: input
@@ -69,13 +68,13 @@ body:
     attributes:
       label: "Checklist"
       options:
-        - label: "I made sure that there are *no existing issues* - [open](https://github.com/florisboard/florisboard/issues) or [closed](https://github.com/florisboard/florisboard/issues?q=is%3Aissue+is%3Aclosed) - which I could contribute my information to."
+        - label: "I made sure that there are *no existing issues* - [open](https://github.com/Deku-Foundation/deku-keyboard/issues) or [closed](https://github.com/Deku-Foundation/deku-keyboard/issues?q=is%3Aissue+is%3Aclosed) - which I could contribute my information to."
           required: true
-        - label: "I made sure that the bug is present in the [latest preview version](https://github.com/florisboard/florisboard/releases)."
+        - label: "I made sure that the bug is present in the [latest preview version](https://github.com/Deku-Foundation/deku-keyboard/releases)."
           required: true
-        - label: "I have read and understood the [contribution guidelines](https://github.com/florisboard/florisboard/blob/main/CONTRIBUTING.md)."
+        - label: "I have read and understood the [contribution guidelines](https://github.com/Deku-Foundation/deku-keyboard/blob/main/CONTRIBUTING.md)."
           required: true
-        - label: "I have read and understood the [AI policy](https://github.com/florisboard/florisboard/blob/main/AI_POLICY.md)."
+        - label: "I have read and understood the [AI policy](https://github.com/Deku-Foundation/deku-keyboard/blob/main/AI_POLICY.md)."
           required: true
         - label: "I have taken the time to fill in all the required details. I understand that the bug report will be dismissed otherwise."
           required: true

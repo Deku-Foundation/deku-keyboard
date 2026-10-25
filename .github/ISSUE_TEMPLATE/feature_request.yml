@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thank you for your help in making FlorisBoard better!
+        Thank you for your help in making Deku Keyboard better!
 
         Guide to a good feature-request:
         • Please search existing proposals to avoid creating duplicates.
@@ -25,11 +25,11 @@ body:
     attributes:
       label: "Checklist"
       options:
-        - label: "I made sure that there are *no existing issues* - [open](https://github.com/florisboard/florisboard/issues) or [closed](https://github.com/florisboard/florisboard/issues?q=is%3Aissue+is%3Aclosed) - which I could contribute my information to."
+        - label: "I made sure that there are *no existing issues* - [open](https://github.com/Deku-Foundation/deku-keyboard/issues) or [closed](https://github.com/Deku-Foundation/deku-keyboard/issues?q=is%3Aissue+is%3Aclosed) - which I could contribute my information to."
           required: true
-        - label: "I have read and understood the [contribution guidelines](https://github.com/florisboard/florisboard/blob/main/CONTRIBUTING.md)."
+        - label: "I have read and understood the [contribution guidelines](https://github.com/Deku-Foundation/deku-keyboard/blob/main/CONTRIBUTING.md)."
           required: true
-        - label: "I have read and understood the [AI policy](https://github.com/florisboard/florisboard/blob/main/AI_POLICY.md)."
+        - label: "I have read and understood the [AI policy](https://github.com/Deku-Foundation/deku-keyboard/blob/main/AI_POLICY.md)."
           required: true
         - label: "I have taken the time to fill in all the required details. I understand that the feature request will be dismissed otherwise."
           required: true
