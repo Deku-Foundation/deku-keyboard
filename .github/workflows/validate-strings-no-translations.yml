@@ -1,0 +1,43 @@
+name: Deku Keyboard - validate base string resources
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check changed localization files
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const changedFiles = await github.paginate(
+              github.rest.pulls.listFiles,
+              {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.issue.number,
+                per_page: 100,
+              },
+            );
+
+            const invalid = changedFiles
+              .map((file) => file.filename)
+              .filter((filename) => /^app\/src\/main\/res\/values-.+\/strings\.xml$/.test(filename));
+
+            if (invalid.length > 0) {
+              core.setFailed(
+                [
+                  "Translated strings.xml files should not be edited directly.",
+                  "Update the base strings and use the project's translation workflow instead:",
+                  ...invalid.map((filename) => ` - ${filename}`),
+                ].join("\n"),
+              );
+            } else {
+              core.info("No disallowed translated strings.xml changes detected.");
+            }
