@@ -154,7 +154,11 @@ private class DekuScreenScopeImpl : DekuScreenScope {
             }
             onDispose {
                 lifecycleOwner.lifecycle.removeObserver(observer)
-                previewFieldController?.isVisible = false
+                // A leaving NavHost entry can be disposed after the entering entry resumed.
+                // Only this still-resumed entry may hide the shared preview field.
+                if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+                    previewFieldController?.isVisible = false
+                }
             }
         }
 

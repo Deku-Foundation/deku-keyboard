@@ -60,8 +60,8 @@ fun DekuDropdownLikeButton(
                     is PressInteraction.Release -> {
                         if (activePress == interaction.press) {
                             currentOnClick()
+                            activePress = null
                         }
-                        activePress = null
                     }
                     is PressInteraction.Cancel -> {
                         if (activePress == interaction.press) {
