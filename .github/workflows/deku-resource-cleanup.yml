@@ -32,60 +32,66 @@ jobs:
           import re
 
           root = Path.cwd()
-          keys = (
+          obsolete_keys = (
               "ext__home__info",
               "ext__home__visit_store",
               "ext__update_box__internet_permission_hint",
           )
 
-          def replace_text(text, key, value):
+          def update_value(text, key, value):
+              pattern = re.compile(
                   r'(<string\b(?=[^>]*\bname="' + re.escape(key) +
                   r'")[^>]*>).*?(</string>)',
-                  r'["\\\'])[^>]*>).*?(</string>)',
                   re.DOTALL,
               )
-              return pattern.sub(lambda m: m.group(1) + value + m.group(2), text, count=1)
+              updated, count = pattern.subn(
+                  lambda match: match.group(1) + value + match.group(2),
+                  text,
+                  count=1,
+              )
+              if count != 1:
+                  raise RuntimeError(f"Expected exactly one base resource for {key}; found {count}")
+              return updated
+
+          def remove_value(text, key):
+              pattern = re.compile(
+                  r'^[ \t]*<string\b(?=[^>]*\bname="' + re.escape(key) +
+                  r'")[^>]*>.*?</string>[ \t]*(?:\r?\n|$)',
+                  re.MULTILINE | re.DOTALL,
+              )
+              return pattern.subn("", text)
 
           base = root / "app/src/main/res/values/strings.xml"
           base_text = base.read_text(encoding="utf-8")
-          base_text = replace_text(
+          base_text = update_value(
               base_text,
               "ext__home__info",
               "Import extension files from sources you trust. The Deku online add-ons service is not available yet.",
           )
-          base_text = replace_text(
+          base_text = update_value(
               base_text,
               "ext__update_box__internet_permission_hint",
               "Until Deku offers an online extension update service, check releases from the extension publisher before updating manually.",
           )
-
-          for key in ("ext__home__visit_store",):
-                  r'^[ \t]*<string\b(?=[^>]*\bname="' + re.escape(key) +
-                  r'")[^>]*>.*?</string>[ \t]*(?:\r?\n|$)',
-                  r'["\\\'])[^>]*>.*?</string>[ \\t]*(?:\\r?\\n|$)',
-                  re.MULTILINE | re.DOTALL,
-              )
-              base_text = pattern.sub("", base_text)
-
+          base_text, removed_store_button = remove_value(base_text, "ext__home__visit_store")
+          if removed_store_button != 1:
+              raise RuntimeError(f"Expected to remove one unused base store button string; removed {removed_store_button}")
           base.write_text(base_text, encoding="utf-8")
 
           removed = 0
+          modified = 0
           for file in (root / "app/src/main/res").glob("values-*/strings.xml"):
-              text = file.read_text(encoding="utf-8")
-              before = text
-              for key in keys:
-                      r'^[ \t]*<string\b(?=[^>]*\bname="' + re.escape(key) +
-                      r'")[^>]*>.*?</string>[ \t]*(?:\r?\n|$)',
-                      r'["\\\'])[^>]*>.*?</string>[ \\t]*(?:\\r?\\n|$)',
-                      re.MULTILINE | re.DOTALL,
-                  )
-                  text, count = pattern.subn("", text)
+              content = file.read_text(encoding="utf-8")
+              before = content
+              for key in obsolete_keys:
+                  content, count = remove_value(content, key)
                   removed += count
-              if text != before:
-                  file.write_text(text, encoding="utf-8")
+              if content != before:
+                  file.write_text(content, encoding="utf-8")
+                  modified += 1
                   print(f"Updated {file.relative_to(root)}")
 
-          print(f"Updated base strings and removed {removed} obsolete localized store strings.")
+          print(f"Updated base resources, removed {removed} obsolete localized strings from {modified} files.")
           PY
 
       - name: Commit localization cleanup
