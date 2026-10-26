@@ -350,18 +350,26 @@ fun ClipboardInputLayout(
                     )
                 }
             } else {
-                val text = item.stringRepresentation()
+                // Rendering arbitrarily large clipboard payloads in every grid cell can stall the
+                // IME and trigger memory pressure. Keep the actual ClipboardItem untouched so taps
+                // and Paste still deliver the full content; bound only the non-interactive preview.
+                val displayText = item.displayText()
+                val previewText = if (contentScrollInsteadOfClip) {
+                    displayText
+                } else {
+                    clipboardTextPreview(displayText)
+                }
                 Column {
                     ClipTextItemDescription(
                         elementName = DekuImeUi.ClipboardItemDescription.elementName,
                         attributes = attributes,
-                        text = text,
+                        text = previewText,
                     )
                     SnyggText(
                         modifier = Modifier
                             .fillMaxWidth()
                             .run { if (contentScrollInsteadOfClip) this.dekuVerticalScroll() else this },
-                        text = item.displayText(),
+                        text = previewText,
                     )
                 }
             }
