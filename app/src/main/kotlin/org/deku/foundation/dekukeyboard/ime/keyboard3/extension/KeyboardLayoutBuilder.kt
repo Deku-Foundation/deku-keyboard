@@ -13,6 +13,7 @@ private const val DEFAULT_CHARACTER_LAYOUT = "qwerty"
 internal fun resolveCharacterLayoutId(
     localizationManifestJson: String,
     languageTag: String,
+    preferredCharacterLayoutId: String? = null,
 ): String {
     val presets = runCatching {
         Json.parseToJsonElement(localizationManifestJson)
@@ -37,7 +38,11 @@ internal fun resolveCharacterLayoutId(
     val byLanguage = presets.firstOrNull { (tag, _) ->
         Locale.forLanguageTag(tag).language.equals(requestedLanguage, ignoreCase = true)
     }
-    val selected = exact?.second ?: byLanguage?.second ?: DEFAULT_CHARACTER_LAYOUT
+    val knownLayoutIds = presets.map { it.second }.toSet()
+    val preferred = preferredCharacterLayoutId?.takeIf {
+        it.matches(Regex("[A-Za-z0-9_-]+")) && it in knownLayoutIds
+    }
+    val selected = preferred ?: exact?.second ?: byLanguage?.second ?: DEFAULT_CHARACTER_LAYOUT
     return selected.takeIf { it.matches(Regex("[A-Za-z0-9_-]+")) } ?: DEFAULT_CHARACTER_LAYOUT
 }
 

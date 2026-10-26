@@ -80,7 +80,11 @@ suspend fun loadFoundationKeyboard(imeController: ImeController, storage: Storag
 
     app.subtypeManager.value.activeSubtypeFlow.collectLatest { subtype ->
         val languageTag = subtype.primaryLocale.languageTag()
-        val layoutId = resolveCharacterLayoutId(localizationManifest, languageTag)
+        val layoutId = resolveCharacterLayoutId(
+            localizationManifest,
+            languageTag,
+            subtype.characterLayoutId,
+        )
         val layoutJson = if (layoutId == DEFAULT_CHARACTER_LAYOUT) {
             fallbackLayoutJson
         } else {

@@ -8,31 +8,53 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
-/**
- * Localization manifest shipped in the APK. Android's system Locale list is device-dependent and
- * may omit supported keyboard layouts, so the language picker must merge this stable bundled list.
- */
+/** Bundled localization manifest path inside the APK. */
 internal const val BUNDLED_LOCALIZATION_MANIFEST =
     "ime/keyboard/org.deku.foundation.dekukeyboard.localization/extension.json"
 
-/**
- * Extract unique, valid language presets from the bundled extension manifest.
- *
- * Invalid individual records are ignored defensively; malformed top-level JSON returns an empty
- * list and lets the caller retain the platform-provided locales. The CI validation separately
- * enforces that the production manifest contains presets and all declared character layouts.
- */
+internal data class BundledLocalePreset(
+    val sourceLanguageTag: String,
+    val locale: DekuLocale,
+    val characterLayoutId: String,
+)
+
+private val CHARACTER_LAYOUT_ID_PATTERN = Regex("[A-Za-z0-9_-]+")
+
+internal fun parseBundledLocalePresets(manifestJson: String): List<BundledLocalePreset> {
+    val presets = runCatching {
+        Json.parseToJsonElement(manifestJson).jsonObject["subtypePresets"]?.jsonArray
+    }.getOrNull() ?: return emptyList()
+
+    return presets.mapNotNull { preset ->
+        runCatching {
+            val obj = preset.jsonObject
+            val sourceTag = obj["languageTag"]?.jsonPrimitive?.contentOrNull
+                ?.takeIf { it.isNotBlank() } ?: return@runCatching null
+            val locale = DekuLocale.fromTag(sourceTag)
+            if (locale.language.isBlank() || locale.language == "und") return@runCatching null
+            val layoutRef = obj["preferred"]?.jsonObject
+                ?.get("characters")?.jsonPrimitive?.contentOrNull
+                ?: return@runCatching null
+            val layoutId = layoutRef.substringAfterLast(':')
+                .takeIf { it.matches(CHARACTER_LAYOUT_ID_PATTERN) }
+                ?: return@runCatching null
+            BundledLocalePreset(sourceTag, locale, layoutId)
+        }.getOrNull()
+    }.distinctBy {
+        it.locale.languageTag().lowercase(Locale.ROOT) + "|" + it.characterLayoutId.lowercase(Locale.ROOT)
+    }
+}
+
+/** Locale-only view retained for callers that don't need to display layout variants. */
 internal fun parseBundledPresetLocales(manifestJson: String): List<DekuLocale> {
     val presets = runCatching {
-        Json.parseToJsonElement(manifestJson)
-            .jsonObject["subtypePresets"]
-            ?.jsonArray
+        Json.parseToJsonElement(manifestJson).jsonObject["subtypePresets"]?.jsonArray
     }.getOrNull() ?: return emptyList()
 
     return presets.mapNotNull { preset ->
         runCatching {
             val tag = preset.jsonObject["languageTag"]?.jsonPrimitive?.contentOrNull
-                ?: return@runCatching null
+                ?.takeIf { it.isNotBlank() } ?: return@runCatching null
             val locale = DekuLocale.fromTag(tag)
             locale.takeIf { it.language.isNotBlank() && it.language != "und" }
         }.getOrNull()

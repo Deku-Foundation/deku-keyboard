@@ -28,6 +28,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -43,19 +44,32 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import java.util.Locale
 import org.deku.foundation.dekukeyboard.R
-import kotlinx.serialization.json.Json
 import org.deku.foundation.dekukeyboard.app.DekuPreferenceStore
 import org.deku.foundation.dekukeyboard.app.LocalNavController
 import org.deku.foundation.dekukeyboard.ime.core.DisplayLanguageNamesIn
 import org.deku.foundation.dekukeyboard.lib.DekuLocale
 import org.deku.foundation.dekukeyboard.lib.compose.DekuScreen
 import dev.patrickgold.jetpref.datastore.model.collectAsState
-import dev.patrickgold.jetpref.material.ui.JetPrefListItem
 import org.deku.foundation.dekukeyboard.lib.compose.dekuScrollbar
 import org.deku.foundation.dekukeyboard.lib.compose.stringRes
 
 const val SelectLocaleScreenResultLanguageTag = "SelectLocaleScreen.languageTag"
+const val SelectLocaleScreenResultCharacterLayoutId = "SelectLocaleScreen.characterLayoutId"
+
+private data class LocaleOption(
+    val locale: DekuLocale,
+    val characterLayoutId: String?,
+    val sourceLanguageTag: String?,
+) {
+    val stableKey: String
+        get() = locale.languageTag().lowercase(Locale.ROOT) + ":" +
+            (characterLayoutId ?: "automatic").lowercase(Locale.ROOT)
+}
+
+private fun layoutDisplayName(layoutId: String): String =
+    layoutId.replace('_', ' ').replaceFirstChar { it.titlecase(Locale.ROOT) }
 
 @Composable
 fun SelectLocaleScreen() = DekuScreen {
@@ -65,41 +79,57 @@ fun SelectLocaleScreen() = DekuScreen {
     val prefs by DekuPreferenceStore
     val navController = LocalNavController.current
     val context = LocalContext.current
-
     val displayLanguageNamesIn by prefs.localization.displayLanguageNamesIn.collectAsState()
     var searchTermValue by remember { mutableStateOf(TextFieldValue()) }
 
-    // Android's installed Locale list can omit languages shipped with this APK. Include the
-    // repository's own locale presets so every bundled language/layout can actually be selected.
-    val bundledPresetLocales: List<DekuLocale> = remember(context) {
+    // Keep locale and layout separate. Some legacy manifest tags encode layout variants that are
+    // not valid BCP-47 locale variants, so normalizing the locale must not lose the selected layout.
+    val bundledPresets: List<BundledLocalePreset> = remember(context) {
         runCatching {
             context.assets.open(BUNDLED_LOCALIZATION_MANIFEST)
                 .bufferedReader(Charsets.UTF_8)
-                .use { reader -> parseBundledPresetLocales(reader.readText()) }
+                .use { reader -> parseBundledLocalePresets(reader.readText()) }
         }.getOrDefault(emptyList())
     }
-    val systemLocales = remember(displayLanguageNamesIn, bundledPresetLocales) {
-        (DekuLocale.extendedAvailableLocales() + bundledPresetLocales)
-            .distinctBy { locale -> locale.languageTag().lowercase() }
-            .sortedBy { locale ->
-                when (displayLanguageNamesIn) {
-                    DisplayLanguageNamesIn.SYSTEM_LOCALE -> locale.displayName()
-                    DisplayLanguageNamesIn.NATIVE_LOCALE -> locale.displayName(locale)
-                }.lowercase()
-            }
+
+    val localeOptions = remember(displayLanguageNamesIn, bundledPresets) {
+        val presetOptions = bundledPresets.map { preset ->
+            LocaleOption(preset.locale, preset.characterLayoutId, preset.sourceLanguageTag)
+        }
+        val bundledLocaleTags = presetOptions.map {
+            it.locale.languageTag().lowercase(Locale.ROOT)
+        }.toSet()
+        val systemOnlyOptions = DekuLocale.extendedAvailableLocales()
+            .distinctBy { it.languageTag().lowercase(Locale.ROOT) }
+            .filterNot { it.languageTag().lowercase(Locale.ROOT) in bundledLocaleTags }
+            .map { LocaleOption(it, null, it.languageTag()) }
+
+        (presetOptions + systemOnlyOptions)
+            .distinctBy { it.stableKey }
+            .sortedWith(
+                compareBy<LocaleOption> {
+                    when (displayLanguageNamesIn) {
+                        DisplayLanguageNamesIn.SYSTEM_LOCALE -> it.locale.displayName()
+                        DisplayLanguageNamesIn.NATIVE_LOCALE -> it.locale.displayName(it.locale)
+                    }.lowercase(Locale.ROOT)
+                }.thenBy { it.characterLayoutId.orEmpty().lowercase(Locale.ROOT) }
+                    .thenBy { it.locale.languageTag().lowercase(Locale.ROOT) }
+            )
     }
 
-    val filteredSystemLocales = remember(searchTermValue) {
-        if (searchTermValue.text.isBlank()) {
-            systemLocales
+    val filteredLocaleOptions = remember(searchTermValue, localeOptions) {
+        val term = searchTermValue.text.trim().lowercase(Locale.ROOT)
+        if (term.isBlank()) {
+            localeOptions
         } else {
-            val term = searchTermValue.text.trim().lowercase()
-            systemLocales.filter { locale ->
-                locale.displayName().lowercase().contains(term) ||
-                    locale.displayName(locale).lowercase().contains(term) ||
-                    locale.displayName(DekuLocale.ENGLISH).lowercase().contains(term) ||
-                    locale.languageTag().lowercase().startsWith(term) ||
-                    locale.localeTag().lowercase().startsWith(term)
+            localeOptions.filter { option ->
+                option.locale.displayName().lowercase(Locale.ROOT).contains(term) ||
+                    option.locale.displayName(option.locale).lowercase(Locale.ROOT).contains(term) ||
+                    option.locale.displayName(DekuLocale.ENGLISH).lowercase(Locale.ROOT).contains(term) ||
+                    option.locale.languageTag().lowercase(Locale.ROOT).startsWith(term) ||
+                    option.locale.localeTag().lowercase(Locale.ROOT).startsWith(term) ||
+                    option.sourceLanguageTag.orEmpty().lowercase(Locale.ROOT).startsWith(term) ||
+                    option.characterLayoutId.orEmpty().lowercase(Locale.ROOT).contains(term)
             }
         }
     }
@@ -113,10 +143,7 @@ fun SelectLocaleScreen() = DekuScreen {
                 onValueChange = { searchTermValue = it },
                 placeholder = { Text(stringRes(R.string.settings__localization__subtype_search_locale_placeholder)) },
                 leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = null,
-                    )
+                    Icon(imageVector = Icons.Default.Search, contentDescription = null)
                 },
                 singleLine = true,
                 shape = RectangleShape,
@@ -126,7 +153,7 @@ fun SelectLocaleScreen() = DekuScreen {
                     disabledIndicatorColor = Color.Transparent,
                 ),
             )
-            if (filteredSystemLocales.isEmpty()) {
+            if (filteredLocaleOptions.isEmpty()) {
                 Text(
                     modifier = Modifier
                         .padding(16.dp)
@@ -144,17 +171,37 @@ fun SelectLocaleScreen() = DekuScreen {
                     .dekuScrollbar(state, isVertical = true),
                 state = state,
             ) {
-                items(filteredSystemLocales) { systemLocale ->
-                    JetPrefListItem(
-                        modifier = Modifier.clickable {
-                            navController.previousBackStackEntry
-                                ?.savedStateHandle
-                                ?.set(SelectLocaleScreenResultLanguageTag, systemLocale.languageTag())
-                            navController.popBackStack()
-                        },
-                        text = when (displayLanguageNamesIn) {
-                            DisplayLanguageNamesIn.SYSTEM_LOCALE -> systemLocale.displayName()
-                            DisplayLanguageNamesIn.NATIVE_LOCALE -> systemLocale.displayName(systemLocale)
+                items(filteredLocaleOptions, key = { it.stableKey }) { option ->
+                    val localeName = when (displayLanguageNamesIn) {
+                        DisplayLanguageNamesIn.SYSTEM_LOCALE -> option.locale.displayName()
+                        DisplayLanguageNamesIn.NATIVE_LOCALE -> option.locale.displayName(option.locale)
+                    }
+                    ListItem(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                navController.previousBackStackEntry
+                                    ?.savedStateHandle
+                                    ?.set(SelectLocaleScreenResultLanguageTag, option.locale.languageTag())
+                                navController.previousBackStackEntry
+                                    ?.savedStateHandle
+                                    ?.set(
+                                        SelectLocaleScreenResultCharacterLayoutId,
+                                        option.characterLayoutId.orEmpty(),
+                                    )
+                                navController.popBackStack()
+                            },
+                        headlineContent = { Text(localeName) },
+                        supportingContent = {
+                            Text(
+                                buildString {
+                                    append(option.locale.languageTag())
+                                    option.characterLayoutId?.let {
+                                        append(" · ")
+                                        append(layoutDisplayName(it))
+                                    }
+                                }
+                            )
                         },
                     )
                 }

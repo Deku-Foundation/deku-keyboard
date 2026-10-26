@@ -72,6 +72,9 @@ fun SubtypeEditorScreen(id: Long?) = DekuScreen {
     var selectedLanguageTag by rememberSaveable(id) {
         mutableStateOf(existingSubtype?.primaryLocale?.languageTag().orEmpty())
     }
+    var selectedCharacterLayoutId by rememberSaveable(id) {
+        mutableStateOf(existingSubtype?.characterLayoutId.orEmpty())
+    }
     var errorMessageId by rememberSaveable { mutableStateOf<Int?>(null) }
 
     LaunchedEffect(existingSubtype?.id) {
@@ -86,14 +89,25 @@ fun SubtypeEditorScreen(id: Long?) = DekuScreen {
     val localeResult = editorBackStackEntry
         ?.savedStateHandle
         ?.getLiveData<String>(SelectLocaleScreenResultLanguageTag)
+    val layoutResult = editorBackStackEntry
+        ?.savedStateHandle
+        ?.getLiveData<String>(SelectLocaleScreenResultCharacterLayoutId)
 
-    DisposableEffect(localeResult, lifecycleOwner) {
-        val observer = Observer<String> { languageTag ->
+    DisposableEffect(localeResult, layoutResult, lifecycleOwner) {
+        val localeObserver = Observer<String> { languageTag ->
             selectedLanguageTag = languageTag
             errorMessageId = null
         }
-        localeResult?.observe(lifecycleOwner, observer)
-        onDispose { localeResult?.removeObserver(observer) }
+        val layoutObserver = Observer<String> { layoutId ->
+            selectedCharacterLayoutId = layoutId
+            errorMessageId = null
+        }
+        localeResult?.observe(lifecycleOwner, localeObserver)
+        layoutResult?.observe(lifecycleOwner, layoutObserver)
+        onDispose {
+            localeResult?.removeObserver(localeObserver)
+            layoutResult?.removeObserver(layoutObserver)
+        }
     }
 
     content {
@@ -149,11 +163,16 @@ fun SubtypeEditorScreen(id: Long?) = DekuScreen {
                         return@Button
                     }
 
-                    val candidate = current?.copy(primaryLocale = locale) ?: Subtype(
+                    val layoutId = selectedCharacterLayoutId.takeIf { it.isNotBlank() }
+                    val candidate = current?.copy(
+                        primaryLocale = locale,
+                        characterLayoutId = layoutId,
+                    ) ?: Subtype(
                         id = 0L,
                         primaryLocale = locale,
                         secondaryLocales = emptyList(),
                         nlpProviders = Subtype.DEFAULT.nlpProviders,
+                        characterLayoutId = layoutId,
                     )
                     val duplicate = subtypeManager.subtypes.any { other ->
                         other.id != id && other.equalsExcludingId(candidate)

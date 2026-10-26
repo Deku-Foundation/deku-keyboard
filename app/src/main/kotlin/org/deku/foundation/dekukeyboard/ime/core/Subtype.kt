@@ -28,6 +28,8 @@ import kotlinx.serialization.Serializable
  * @property primaryLocale The primary locale of this subtype.
  * @property secondaryLocales The secondary locales of this subtype. May be an empty list.
  * @property nlpProviders The NLP provider map to instantiate the correct provider for each category.
+ * @property characterLayoutId Optional bundled character-layout choice; null preserves automatic
+ * locale-based selection for older saved preferences and backups.
  */
 @Serializable
 data class Subtype(
@@ -35,6 +37,7 @@ data class Subtype(
     val primaryLocale: DekuLocale,
     val secondaryLocales: List<DekuLocale>,
     val nlpProviders: SubtypeNlpProviderMap = SubtypeNlpProviderMap(),
+    val characterLayoutId: String? = null,
 ) {
     companion object {
         /**
@@ -70,6 +73,7 @@ data class Subtype(
         if (other.primaryLocale != primaryLocale) return false
         if (other.secondaryLocales != secondaryLocales) return false
         if (other.nlpProviders != nlpProviders) return false
+        if (other.characterLayoutId != characterLayoutId) return false
 
         return true
     }
