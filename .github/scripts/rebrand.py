@@ -302,7 +302,7 @@ for path in ROOT.rglob("*.xml"):
 
 stale_paths = []
 for path in ROOT.rglob("*"):
-    if path.exists():
+    if path.is_file():
         rel = path.relative_to(ROOT).as_posix()
         if any(token in rel for token in ("dev/patrickgold/florisboard", "org/florisboard")):
             stale_paths.append(rel)
