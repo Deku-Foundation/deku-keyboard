@@ -62,6 +62,7 @@ private data class LocaleOption(
     val locale: DekuLocale,
     val characterLayoutId: String?,
     val sourceLanguageTag: String?,
+    val displayName: String? = null,
 ) {
     val stableKey: String
         get() = locale.languageTag().lowercase(Locale.ROOT) + ":" +
@@ -94,7 +95,7 @@ fun SelectLocaleScreen() = DekuScreen {
 
     val localeOptions = remember(displayLanguageNamesIn, bundledPresets) {
         val presetOptions = bundledPresets.map { preset ->
-            LocaleOption(preset.locale, preset.characterLayoutId, preset.sourceLanguageTag)
+            LocaleOption(preset.locale, preset.characterLayoutId, preset.sourceLanguageTag, preset.displayName)
         }
         val bundledLocaleTags = presetOptions.map {
             it.locale.languageTag().lowercase(Locale.ROOT)
@@ -123,7 +124,8 @@ fun SelectLocaleScreen() = DekuScreen {
             localeOptions
         } else {
             localeOptions.filter { option ->
-                option.locale.displayName().lowercase(Locale.ROOT).contains(term) ||
+                option.displayName.orEmpty().lowercase(Locale.ROOT).contains(term) ||
+                    option.locale.displayName().lowercase(Locale.ROOT).contains(term) ||
                     option.locale.displayName(option.locale).lowercase(Locale.ROOT).contains(term) ||
                     option.locale.displayName(DekuLocale.ENGLISH).lowercase(Locale.ROOT).contains(term) ||
                     option.locale.languageTag().lowercase(Locale.ROOT).startsWith(term) ||
@@ -172,7 +174,7 @@ fun SelectLocaleScreen() = DekuScreen {
                 state = state,
             ) {
                 items(filteredLocaleOptions, key = { it.stableKey }) { option ->
-                    val localeName = when (displayLanguageNamesIn) {
+                    val localeName = option.displayName ?: when (displayLanguageNamesIn) {
                         DisplayLanguageNamesIn.SYSTEM_LOCALE -> option.locale.displayName()
                         DisplayLanguageNamesIn.NATIVE_LOCALE -> option.locale.displayName(option.locale)
                     }

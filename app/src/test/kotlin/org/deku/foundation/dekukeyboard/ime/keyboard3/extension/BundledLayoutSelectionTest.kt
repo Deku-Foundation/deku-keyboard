@@ -24,6 +24,23 @@ class BundledLayoutSelectionTest : FunSpec({
             listOf("ar" to "arabic", "ar" to "arabic_pc", "ar-DZ" to "arabic_dz")
     }
 
+    test("uses canonical locale metadata for legacy tags and custom labels for non-language layouts") {
+        val manifest = """
+            {
+              "subtypePresets": [
+                {"languageTag":"en-UK","localeTag":"en-GB","preferred":{"characters":"org.deku.foundation.dekukeyboard.layouts:qwerty"}},
+                {"languageTag":"fa-FA","localeTag":"fa-IR","preferred":{"characters":"org.deku.foundation.dekukeyboard.layouts:persian"}},
+                {"languageTag":"IPA-IPA","displayName":"International Phonetic Alphabet","preferred":{"characters":"org.deku.foundation.dekukeyboard.layouts:ipa"}}
+              ]
+            }
+        """.trimIndent()
+
+        val presets = parseBundledLocalePresets(manifest)
+        presets.map { it.locale.languageTag() } shouldBe listOf("en-GB", "fa-IR", "ipa")
+        presets.map { it.characterLayoutId } shouldBe listOf("qwerty", "persian", "ipa")
+        presets.map { it.displayName } shouldBe listOf(null, null, "International Phonetic Alphabet")
+    }
+
     test("prefers a valid explicit layout over the locale default") {
         val manifest = """
             {

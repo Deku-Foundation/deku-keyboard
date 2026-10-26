@@ -16,6 +16,7 @@ internal data class BundledLocalePreset(
     val sourceLanguageTag: String,
     val locale: DekuLocale,
     val characterLayoutId: String,
+    val displayName: String? = null,
 )
 
 private val CHARACTER_LAYOUT_ID_PATTERN = Regex("[A-Za-z0-9_-]+")
@@ -30,7 +31,9 @@ internal fun parseBundledLocalePresets(manifestJson: String): List<BundledLocale
             val obj = preset.jsonObject
             val sourceTag = obj["languageTag"]?.jsonPrimitive?.contentOrNull
                 ?.takeIf { it.isNotBlank() } ?: return@runCatching null
-            val locale = DekuLocale.fromTag(sourceTag)
+            val canonicalTag = obj["localeTag"]?.jsonPrimitive?.contentOrNull
+                ?.takeIf { it.isNotBlank() } ?: sourceTag
+            val locale = DekuLocale.fromTag(canonicalTag)
             if (locale.language.isBlank() || locale.language == "und") return@runCatching null
             val layoutRef = obj["preferred"]?.jsonObject
                 ?.get("characters")?.jsonPrimitive?.contentOrNull
@@ -38,7 +41,9 @@ internal fun parseBundledLocalePresets(manifestJson: String): List<BundledLocale
             val layoutId = layoutRef.substringAfterLast(':')
                 .takeIf { it.matches(CHARACTER_LAYOUT_ID_PATTERN) }
                 ?: return@runCatching null
-            BundledLocalePreset(sourceTag, locale, layoutId)
+            val displayName = obj["displayName"]?.jsonPrimitive?.contentOrNull
+                ?.trim()?.takeIf { it.isNotEmpty() }
+            BundledLocalePreset(sourceTag, locale, layoutId, displayName)
         }.getOrNull()
     }.distinctBy {
         it.locale.languageTag().lowercase(Locale.ROOT) + "|" + it.characterLayoutId.lowercase(Locale.ROOT)
@@ -53,8 +58,12 @@ internal fun parseBundledPresetLocales(manifestJson: String): List<DekuLocale> {
 
     return presets.mapNotNull { preset ->
         runCatching {
-            val tag = preset.jsonObject["languageTag"]?.jsonPrimitive?.contentOrNull
-                ?.takeIf { it.isNotBlank() } ?: return@runCatching null
+            val obj = preset.jsonObject
+            val tag = obj["localeTag"]?.jsonPrimitive?.contentOrNull
+                ?.takeIf { it.isNotBlank() }
+                ?: obj["languageTag"]?.jsonPrimitive?.contentOrNull
+                    ?.takeIf { it.isNotBlank() }
+                ?: return@runCatching null
             val locale = DekuLocale.fromTag(tag)
             locale.takeIf { it.language.isNotBlank() && it.language != "und" }
         }.getOrNull()

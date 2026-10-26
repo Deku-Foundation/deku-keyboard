@@ -94,6 +94,7 @@
     },
     {
       "languageTag": "en-UK",
+      "localeTag": "en-GB",
       "composer": "org.deku.foundation.dekukeyboard.composers:appender",
       "currencySet": "org.deku.foundation.dekukeyboard.currencysets:pound",
       "popupMapping": "org.deku.foundation.dekukeyboard.localization:en",
@@ -148,6 +149,7 @@
     },
     {
       "languageTag": "de-DE-neobone",
+      "localeTag": "de-DE",
       "composer": "org.deku.foundation.dekukeyboard.composers:appender",
       "currencySet": "org.deku.foundation.dekukeyboard.currencysets:euro",
       "popupMapping": "org.deku.foundation.dekukeyboard.localization:de-DE-neobone",
@@ -321,6 +323,7 @@
     },
     {
       "languageTag": "fa-FA",
+      "localeTag": "fa-IR",
       "composer": "org.deku.foundation.dekukeyboard.composers:appender",
       "currencySet": "org.deku.foundation.dekukeyboard.currencysets:rial",
       "popupMapping": "org.deku.foundation.dekukeyboard.localization:fa",
@@ -333,6 +336,7 @@
     },
     {
       "languageTag": "fa-FA",
+      "localeTag": "fa-IR",
       "composer": "org.deku.foundation.dekukeyboard.composers:appender",
       "currencySet": "org.deku.foundation.dekukeyboard.currencysets:rial",
       "popupMapping": "org.deku.foundation.dekukeyboard.localization:fa2",
@@ -345,6 +349,7 @@
     },
     {
       "languageTag": "fa-FA",
+      "localeTag": "fa-IR",
       "composer": "org.deku.foundation.dekukeyboard.composers:appender",
       "currencySet": "org.deku.foundation.dekukeyboard.currencysets:rial",
       "popupMapping": "org.deku.foundation.dekukeyboard.localization:fa3",
@@ -516,6 +521,7 @@
     },
     {
       "languageTag": "iw-IL",
+      "localeTag": "he-IL",
       "composer": "org.deku.foundation.dekukeyboard.composers:appender",
       "currencySet": "org.deku.foundation.dekukeyboard.currencysets:israeli_new_shekel",
       "popupMapping": "org.deku.foundation.dekukeyboard.localization:iw",
@@ -582,6 +588,7 @@
     },
     {
       "languageTag": "IPA-IPA",
+      "displayName": "International Phonetic Alphabet",
       "composer": "org.deku.foundation.dekukeyboard.composers:appender",
       "currencySet": "org.deku.foundation.dekukeyboard.currencysets:dollar",
       "preferred": {
@@ -637,6 +644,7 @@
     },
     {
       "languageTag": "ja-JP-jis",
+      "localeTag": "ja-JP",
       "composer": "org.deku.foundation.dekukeyboard.composers:kana-unicode",
       "currencySet": "org.deku.foundation.dekukeyboard.currencysets:yen",
       "popupMapping": "org.deku.foundation.dekukeyboard.localization:ja-JP-jis",
@@ -649,6 +657,7 @@
     },
     {
       "languageTag": "th-kd",
+      "localeTag": "th-TH",
       "composer": "org.deku.foundation.dekukeyboard.composers:appender",
       "currencySet": "org.deku.foundation.dekukeyboard.currencysets:thai_baht",
       "preferred": {
@@ -702,6 +711,7 @@
     },
     {
       "languageTag": "zh-CN-zhengma",
+      "localeTag": "zh-CN",
       "composer": "org.deku.foundation.dekukeyboard.composers:appender",
       "nlpProviders": {
         "spelling": "org.deku.foundation.dekukeyboard.nlp.providers.han.shape",
