@@ -148,46 +148,46 @@ private fun replaceTouchLayerRows(
     existingKeyIdByOutput: Map<String, String>,
 ): String {
     val layerPattern = Regex("""(<layer\s+id="$layerId">)([\s\S]*?)(</layer>)""")
-    require(layerPattern.containsMatchIn(xml)) { "K3 touch layout has no '$layerId' layer" }
-    return layerPattern.replaceFirst(xml) { layerMatch ->
-        val rowPattern = Regex("""<row\s+keys="[^"]*"\s*/>""")
-        val oldRows = rowPattern.findAll(layerMatch.groupValues[2]).toList()
-        require(oldRows.size >= 4) { "K3 '$layerId' layer must have three character rows and a control row" }
-        var rowIndex = 0
-        val newBody = rowPattern.replace(layerMatch.groupValues[2]) { oldRow ->
-            if (rowIndex >= 3) {
-                rowIndex++
-                if (isRtl) {
-                    val keysPattern = Regex("""keys="([^"]*)"""")
-                    val keysMatch = keysPattern.find(oldRow.value)
-                    if (keysMatch != null) {
-                        val reversedKeys = keysMatch.groupValues[1].split(Regex("\\s+")).reversed()
-                        """<row keys="${reversedKeys.joinToString(" ")}" />"""
-                    } else {
-                        oldRow.value
-                    }
+    val layerMatch = layerPattern.find(xml)
+        ?: throw IllegalArgumentException("K3 touch layout has no '$layerId' layer")
+    val rowPattern = Regex("""<row\s+keys="[^"]*"\s*/>""")
+    val oldRows = rowPattern.findAll(layerMatch.groupValues[2]).toList()
+    require(oldRows.size >= 4) { "K3 '$layerId' layer must have three character rows and a control row" }
+    var rowIndex = 0
+    val newBody = rowPattern.replace(layerMatch.groupValues[2]) { oldRow ->
+        if (rowIndex >= 3) {
+            rowIndex++
+            if (isRtl) {
+                val keysPattern = Regex("""keys="([^"]*)"""")
+                val keysMatch = keysPattern.find(oldRow.value)
+                if (keysMatch != null) {
+                    val reversedKeys = keysMatch.groupValues[1].split(Regex("\\s+")).reversed()
+                    """<row keys="\${reversedKeys.joinToString(" ")}" />"""
                 } else {
                     oldRow.value
                 }
             } else {
-                val ids = layoutRows[rowIndex].mapIndexed { column, label ->
-                    resolveLayoutKeyId(
-                        label, rowIndex, column, shifted, languageTag, existingKeyIdByOutput
-                    )
-                }
-                val keys = when {
-                    rowIndex == 2 && isRtl ->
-                        listOf("bksp") + ids + if (shifted) "shift-to-base" else "base-to-shift"
-                    rowIndex == 2 ->
-                        listOf(if (shifted) "shift-to-base" else "base-to-shift") + ids + "bksp"
-                    else -> ids
-                }
-                rowIndex++
-                "            <row keys=\"${keys.joinToString(" ")}\" />"
+                oldRow.value
             }
+        } else {
+            val ids = layoutRows[rowIndex].mapIndexed { column, label ->
+                resolveLayoutKeyId(
+                    label, rowIndex, column, shifted, languageTag, existingKeyIdByOutput
+                )
+            }
+            val keys = when {
+                rowIndex == 2 && isRtl ->
+                    listOf("bksp") + ids + if (shifted) "shift-to-base" else "base-to-shift"
+                rowIndex == 2 ->
+                    listOf(if (shifted) "shift-to-base" else "base-to-shift") + ids + "bksp"
+                else -> ids
+            }
+            rowIndex++
+            "            <row keys=\"\${keys.joinToString(" ")}\" />"
         }
-        layerMatch.groupValues[1] + newBody + layerMatch.groupValues[3]
     }
+    val replacement = layerMatch.groupValues[1] + newBody + layerMatch.groupValues[3]
+    return xml.replaceRange(layerMatch.range, replacement)
 }
 
 
