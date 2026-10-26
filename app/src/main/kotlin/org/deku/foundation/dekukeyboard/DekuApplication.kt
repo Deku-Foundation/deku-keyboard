@@ -49,7 +49,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
-import org.deku.foundation.dekukeyboard.lib.kotlin.io.deleteContentsRecursively
 import org.deku.foundation.dekukeyboard.lib.kotlin.tryOrNull
 import org.deku.foundation.dekukeyboard.libnative.dummyAdd
 import java.lang.ref.WeakReference
@@ -115,7 +114,6 @@ class DekuApplication : Application() {
             flogError { "dummy result: ${dummyAdd(3,4)}" }
 
             if (!UserManagerCompat.isUserUnlocked(this)) {
-                cacheDir?.deleteContentsRecursively()
                 registerReceiver(BootComplete(), IntentFilter(Intent.ACTION_USER_UNLOCKED))
                 return
             }
@@ -133,7 +131,9 @@ class DekuApplication : Application() {
     }
 
     fun init() {
-        cacheDir?.deleteContentsRecursively()
+        // cacheDir is disposable and managed by Android. Avoid a recursive synchronous purge
+        // during Application initialization; components that own temporary caches should manage
+        // those entries asynchronously and within their own cache subdirectories.
         scope.launch {
             val result = DekuPreferenceStore.initAndroid(
                 context = this@DekuApplication,
