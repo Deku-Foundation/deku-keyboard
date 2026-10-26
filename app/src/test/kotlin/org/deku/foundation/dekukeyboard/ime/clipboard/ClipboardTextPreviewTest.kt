@@ -9,6 +9,12 @@ class ClipboardTextPreviewTest : FunSpec({
         clipboardTextPreview("Arabic مرحبًا") shouldBe "Arabic مرحبًا"
     }
 
+    test("does not append an ellipsis when text fits exactly") {
+        val source = "x".repeat(CLIPBOARD_TILE_PREVIEW_MAX_CODE_POINTS)
+
+        clipboardTextPreview(source) shouldBe source
+    }
+
     test("caps enormous text previews by Unicode code point and preserves the ellipsis") {
         val source = "a".repeat(CLIPBOARD_TILE_PREVIEW_MAX_CODE_POINTS + 500)
         val preview = clipboardTextPreview(source)
