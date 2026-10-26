@@ -92,6 +92,7 @@ internal fun buildKeyboard3Xml(
 
     xml = replaceTouchLayerRows(xml, "base", rows, shifted = false)
     xml = replaceTouchLayerRows(xml, "shift", rows, shifted = true)
+    xml = applyLanguageSpecificLabels(xml, languageTag)
     return xml
 }
 
@@ -125,6 +126,16 @@ private fun replaceTouchLayerRows(
             }
         }
         layerMatch.groupValues[1] + newBody + layerMatch.groupValues[3]
+    }
+}
+
+
+private fun applyLanguageSpecificLabels(xml: String, languageTag: String): String {
+    // Keep the established Arabic label convention requested by users of Arabic layouts.
+    if (!Locale.forLanguageTag(languageTag).language.equals("ar", ignoreCase = true)) return xml
+    val pattern = Regex("""(<string\\s+id="symbol_1_display"\\s+value=")[^"]*(")""")
+    return pattern.replaceFirst(xml) { match ->
+        match.groupValues[1] + "٣٢١؟" + match.groupValues[2]
     }
 }
 
