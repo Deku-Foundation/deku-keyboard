@@ -74,6 +74,8 @@ suspend fun loadFoundationKeyboard(imeController: ImeController, storage: Storag
 
     val baseKeyboardXml = loadAssetText("extensions/$FOUNDATION_EXTENSION_ID/keyboard/qwertz.xml")
     val localizationManifest = loadAssetText("ime/keyboard/$LOCALIZATION_EXTENSION_ID/extension.json")
+    val layoutManifest = loadAssetText("ime/keyboard/$LAYOUT_EXTENSION_ID/extension.json")
+    val availableCharacterLayoutIds = parseCharacterLayoutIds(layoutManifest)
     val fallbackLayoutJson = loadAssetText(
         "ime/keyboard/$LAYOUT_EXTENSION_ID/layouts/characters/$DEFAULT_CHARACTER_LAYOUT.json"
     )
@@ -84,6 +86,7 @@ suspend fun loadFoundationKeyboard(imeController: ImeController, storage: Storag
             localizationManifest,
             languageTag,
             subtype.characterLayoutId,
+            availableCharacterLayoutIds,
         )
         val layoutJson = if (layoutId == DEFAULT_CHARACTER_LAYOUT) {
             fallbackLayoutJson
