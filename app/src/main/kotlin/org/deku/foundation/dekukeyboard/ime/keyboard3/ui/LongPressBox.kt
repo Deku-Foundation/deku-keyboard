@@ -66,17 +66,13 @@ fun LongPressBox(
         }
     }
 
-    AnimatedVisibility(
-        visible = showSimplePopup,
-        modifier = modifier.layoutNormalized(longPress.simpleBounds),
-        enter = fadeIn(animationSpec = tween(90)) +
-            scaleIn(initialScale = 0.94f, animationSpec = tween(90)),
-        exit = ExitTransition.None,
-    ) {
+    // Keep the ordinary key preview immediate; animate only the larger long-press panel below
+    // so animation never delays visual feedback while the user types rapidly.
+    if (showSimplePopup) {
         SnyggBox(
             elementName = DekuImeUi.KeyPopupBox.elementName,
             attributes = attributes,
-            modifier = Modifier.fillMaxSize(),
+            modifier = modifier.layoutNormalized(longPress.simpleBounds),
         ) {
             Box(Modifier.layoutNormalized(longPress.anchorBounds.localTo(longPress.simpleBounds))) {
                 Display3(
