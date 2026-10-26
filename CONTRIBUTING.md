@@ -6,7 +6,7 @@ This repository began as an import of the FlorisBoard open-source codebase. Its 
 
 ## Current status
 
-This is a development baseline, not a stable release. The app/package rebrand has been applied. The post-migration build is being checked, while the live upstream add-ons integration and inherited store listings/screenshots still need a Deku-owned replacement or explicit approval. Do not upload Fastlane metadata or publish builds as stable releases yet; see [fastlane/README.md](fastlane/README.md), [PRIVACY.md](PRIVACY.md), and [SECURITY_REVIEW.md](SECURITY_REVIEW.md).
+This is a development baseline, not a stable release. The app/package rebrand has been applied. The package rebrand is complete and post-migration CI is being checked. The upstream add-ons endpoint is disabled until Deku has its own reviewed service; inherited store listings/screenshots still need replacement or explicit licensing review. Do not upload Fastlane metadata or publish builds as stable releases yet; see [fastlane/README.md](fastlane/README.md), [PRIVACY.md](PRIVACY.md), and [SECURITY_REVIEW.md](SECURITY_REVIEW.md).
 
 ## Issues and proposals
 

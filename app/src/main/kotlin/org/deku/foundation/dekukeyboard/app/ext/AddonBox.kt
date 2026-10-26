@@ -31,7 +31,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import org.deku.foundation.dekukeyboard.BuildConfig
 import org.deku.foundation.dekukeyboard.R
 import org.deku.foundation.dekukeyboard.app.LocalNavController
 import org.deku.foundation.dekukeyboard.app.Routes
@@ -45,7 +44,6 @@ import org.deku.foundation.dekukeyboard.lib.kotlin.curlyFormat
 
 @Composable
 fun ImportExtensionBox(navController: NavController) {
-    val context = LocalContext.current
     DekuOutlinedBox(
         modifier = Modifier.defaultDekuOutlinedBox(),
     ) {
@@ -59,13 +57,6 @@ fun ImportExtensionBox(navController: NavController) {
                 .fillMaxWidth()
                 .padding(horizontal = 6.dp),
         ) {
-            DekuTextButton(
-                onClick = {
-                    context.launchUrl("https://${BuildConfig.DEKU_ADDONS_STORE_URL}/")
-                },
-                icon = Icons.Default.Shop,
-                text = stringRes(id = R.string.ext__home__visit_store),
-            )
             Spacer(modifier = Modifier.weight(1f))
             DekuTextButton(
                 onClick = {
@@ -94,13 +85,20 @@ fun UpdateBox(extensionIndex: ExtensionIndex) {
                 .fillMaxWidth()
                 .padding(horizontal = 6.dp),
         ) {
-            DekuTextButton(
-                onClick = {
-                    context.launchUrl(extensionIndex.generateUpdateUrl())
-                },
-                icon = Icons.Outlined.FileDownload,
-                text = stringRes(id = R.string.ext__update_box__search_for_updates)
-            )
+            val updateUrl = extensionIndex.generateUpdateUrl()
+            if (updateUrl.isNotBlank()) {
+                DekuTextButton(
+                    onClick = { context.launchUrl(updateUrl) },
+                    icon = Icons.Outlined.FileDownload,
+                    text = stringRes(id = R.string.ext__update_box__search_for_updates),
+                )
+            } else {
+                Text(
+                    modifier = Modifier.padding(vertical = 8.dp),
+                    text = stringRes(id = R.string.ext__update_box__store_not_configured),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
             Spacer(modifier = Modifier.weight(1f))
         }
     }

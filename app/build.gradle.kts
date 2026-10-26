@@ -76,7 +76,7 @@ configure<ApplicationExtension> {
 
         buildConfigField("String", "BUILD_COMMIT_HASH", "\"${getGitCommitHash().get()}\"")
         buildConfigField("String", "DEKU_ADDONS_API_VERSION", "\"v~draft2\"")
-        buildConfigField("String", "DEKU_ADDONS_STORE_URL", "\"beta.addons.florisboard.org\"")
+        buildConfigField("String", "DEKU_ADDONS_STORE_URL", "\"\"")
 
         sourceSets {
             maybeCreate("main").apply {

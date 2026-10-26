@@ -40,6 +40,8 @@ class ExtensionIndex(
         version: String = BuildConfig.DEKU_ADDONS_API_VERSION,
         host: String = BuildConfig.DEKU_ADDONS_STORE_URL,
     ): String {
+        // Do not send update metadata to the upstream store. Deku has no owned update service yet.
+        if (host.isBlank()) return ""
         return Uri.Builder().run {
             scheme("https")
             authority(host)
