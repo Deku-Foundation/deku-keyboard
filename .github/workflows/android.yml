@@ -123,6 +123,15 @@ jobs:
           }
           if not declared_character_layouts:
               raise SystemExit("The character-layout extension manifest declares no layouts.")
+          missing_declared_layout_files = sorted(
+              layout_id for layout_id in declared_character_layouts
+              if not (layout_root / f"{layout_id}.json").is_file()
+          )
+          if missing_declared_layout_files:
+              raise SystemExit(
+                  "Declared character layouts are missing JSON assets:\\n"
+                  + "\\n".join(missing_declared_layout_files)
+              )
           missing_layouts = []
           for preset in presets:
               locale_tag = preset.get("languageTag", "<missing-language-tag>")
