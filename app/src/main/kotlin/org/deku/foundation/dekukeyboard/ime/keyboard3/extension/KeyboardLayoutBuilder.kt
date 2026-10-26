@@ -75,8 +75,9 @@ internal fun buildKeyboard3Xml(
         "A touch character layout must contain at least three non-empty rows"
     }
 
-    val isRtl = isRightToLeftLanguage(languageTag)
-    val effectiveRows = if (isRtl) rows.map { it.reversed() } else rows
+    // Layout JSON is ordered by physical screen position from left to right. The language's
+    // text direction must not mirror key positions or modifier/control placement.
+    val effectiveRows = rows
 
     val existingKeyIds = Regex("""<key\s+id="([^"]+)"""")
         .findAll(baseXml)
@@ -137,8 +138,8 @@ internal fun buildKeyboard3Xml(
             localeMatch.groupValues[2],
     )
 
-    xml = replaceTouchLayerRows(xml, "base", effectiveRows, shifted = false, isRtl = isRtl, languageTag = languageTag, existingKeyIdByOutput = existingKeyIdByOutput)
-    xml = replaceTouchLayerRows(xml, "shift", effectiveRows, shifted = true, isRtl = isRtl, languageTag = languageTag, existingKeyIdByOutput = existingKeyIdByOutput)
+    xml = replaceTouchLayerRows(xml, "base", effectiveRows, shifted = false, languageTag = languageTag, existingKeyIdByOutput = existingKeyIdByOutput)
+    xml = replaceTouchLayerRows(xml, "shift", effectiveRows, shifted = true, languageTag = languageTag, existingKeyIdByOutput = existingKeyIdByOutput)
     xml = applyLanguageSpecificLabels(xml, languageTag)
     return xml
 }
@@ -148,7 +149,6 @@ private fun replaceTouchLayerRows(
     layerId: String,
     layoutRows: List<List<String>>,
     shifted: Boolean,
-    isRtl: Boolean,
     languageTag: String,
     existingKeyIdByOutput: Map<String, String>,
 ): String {
@@ -161,31 +161,20 @@ private fun replaceTouchLayerRows(
     var rowIndex = 0
     val newBody = rowPattern.replace(layerMatch.groupValues[2]) { oldRow ->
         if (rowIndex >= 3) {
+            // Keep the bottom control row exactly as declared by the base keyboard. Locale
+            // direction changes text rendering, not physical modifier/control key positions.
             rowIndex++
-            if (isRtl) {
-                val keysPattern = Regex("""keys="([^"]*)"""")
-                val keysMatch = keysPattern.find(oldRow.value)
-                if (keysMatch != null) {
-                    val reversedKeys = keysMatch.groupValues[1].split(Regex("\\s+")).reversed()
-                    """<row keys="${reversedKeys.joinToString(" ")}" />"""
-                } else {
-                    oldRow.value
-                }
-            } else {
-                oldRow.value
-            }
+            oldRow.value
         } else {
             val ids = layoutRows[rowIndex].mapIndexed { column, label ->
                 resolveLayoutKeyId(
                     label, rowIndex, column, shifted, languageTag, existingKeyIdByOutput
                 )
             }
-            val keys = when {
-                rowIndex == 2 && isRtl ->
-                    listOf("bksp") + ids + if (shifted) "shift-to-base" else "base-to-shift"
-                rowIndex == 2 ->
-                    listOf(if (shifted) "shift-to-base" else "base-to-shift") + ids + "bksp"
-                else -> ids
+            val keys = if (rowIndex == 2) {
+                listOf(if (shifted) "shift-to-base" else "base-to-shift") + ids + "bksp"
+            } else {
+                ids
             }
             rowIndex++
             "            <row keys=\"${keys.joinToString(" ")}\" />"
@@ -195,11 +184,6 @@ private fun replaceTouchLayerRows(
     return xml.replaceRange(layerMatch.range, replacement)
 }
 
-
-private fun isRightToLeftLanguage(languageTag: String): Boolean {
-    return Locale.forLanguageTag(languageTag).language.lowercase(Locale.ROOT) in
-        setOf("ar", "fa", "ur", "he", "iw", "ckb", "ku")
-}
 
 private fun applyLanguageSpecificLabels(xml: String, languageTag: String): String {
     // Keep the established Arabic label convention requested by users of Arabic layouts.
