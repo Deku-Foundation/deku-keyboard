@@ -95,12 +95,27 @@ class SubtypeManager(context: Context) {
      *  that the subtype already exists.
      */
     fun addSubtype(subtype: Subtype): Boolean {
-        val subtypeToAdd = subtype.copy(id = System.currentTimeMillis())
         val subtypeList = subtypes
-        if (subtypeList.find { it.equalsExcludingId(subtype) } != null) {
+        if (subtypeList.any { it.equalsExcludingId(subtype) }) {
             return false
         }
-        val newSubtypeList = subtypeList + subtypeToAdd
+
+        // English is the default fallback keyboard, so make it an ordinary selectable subtype when
+        // the user adds their first non-English language. This preserves English instead of silently
+        // replacing it with the first language the user configures.
+        var nextId = maxOf(
+            System.currentTimeMillis(),
+            (subtypeList.maxOfOrNull { it.id } ?: -1L) + 1L,
+        )
+        val defaultEnglish = if (
+            subtypeList.isEmpty() && subtype.primaryLocale != Subtype.DEFAULT.primaryLocale
+        ) {
+            Subtype.DEFAULT.copy(id = nextId++)
+        } else {
+            null
+        }
+        val subtypeToAdd = subtype.copy(id = nextId)
+        val newSubtypeList = subtypeList + listOfNotNull(defaultEnglish, subtypeToAdd)
         persistNewSubtypeList(newSubtypeList)
         return true
     }
