@@ -1,1 +1,1 @@
-Beta of FlorisBoard, the open-source keyboard which respects your privacy.
+Beta of Deku Keyboard, the open-source keyboard which respects your privacy.

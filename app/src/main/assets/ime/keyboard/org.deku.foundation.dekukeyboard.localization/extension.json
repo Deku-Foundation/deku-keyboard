@@ -1,0 +1,777 @@
+{
+  "$": "ime.extension.keyboard",
+  "meta": {
+    "id": "org.deku.foundation.dekukeyboard.localization",
+    "version": "0.2.0",
+    "title": "Default subtype presets / popup mappings",
+    "description": "Default subtype presets and popup mappings which are always available.",
+    "maintainers": [ "patrickgold <patrick@patrickgold.dev>" ],
+    "license": "apache-2.0"
+  },
+  "dependencies": [
+    "org.deku.foundation.dekukeyboard.composers",
+    "org.deku.foundation.dekukeyboard.currencysets",
+    "org.deku.foundation.dekukeyboard.layouts"
+  ],
+  "punctuationRules": [
+    {
+      "id": "default",
+      "label": "Default",
+      "symbolsPrecedingAutoSpace": ".,?‽!\"&%)]}»",
+      "symbolsFollowingAutoSpace": "",
+      "symbolsPrecedingPhantomSpace": ".,;:?‽!&%)]}»©®™",
+      "symbolsFollowingPhantomSpace": "¿⸘¡([{",
+      "symbolsTerminatingSentence": ".?‽!"
+    }
+  ],
+  "popupMappings": [
+    { "id": "default", "authors": [ "patrickgold" ] },
+    { "id": "ar", "authors": [ "HeiWiper" ] },
+    { "id": "ast", "authors": [ "Softastur" ] },
+    { "id": "bg", "authors": [ "iorvethe" ] },
+    { "id": "bn-unijoy", "authors": [ "RHJihan" ] },
+    { "id": "ca", "authors": [ "mikelloc" ] },
+    { "id": "cjk", "authors": [ "moonbeamcelery" ] },
+    { "id": "ckb", "authors": [ "GoRaN" ] },
+    { "id": "cs", "authors": [ "stefan-misik" ] },
+    { "id": "da", "authors": [ "patrickgold" ] },
+    { "id": "de", "authors": [ "patrickgold" ] },
+    { "id": "de-DE-neobone", "authors": [ "ostrya" ] },
+    { "id": "el", "authors": [ "tsiflimagas" ] },
+    { "id": "en", "authors": [ "patrickgold" ] },
+    { "id": "eo", "authors": [ "jeremiah-miller" ] },
+    { "id": "es", "authors": [ "patrickgold" ] },
+    { "id": "et", "authors": [ "OneSheepy" ] },
+    { "id": "fa", "authors": [ "PHELAT" ] },
+    { "id": "fa2", "authors": [ "M-Koushan" ] },
+    { "id": "fa3", "authors": [ "SaeID-Rz" ] },
+    { "id": "fi", "authors": [ "patrickgold" ] },
+    { "id": "fo", "authors": [ "BinFlush" ] },
+    { "id": "fr", "authors": [ "patrickgold" ] },
+    { "id": "hi-IN", "authors": [ "npnpatidar" ] },
+    { "id": "hr", "authors": [ "hedidnothingwrong" ] },
+    { "id": "hu", "authors": [ "zoli111, gabik65" ] },
+    { "id": "hy", "authors": [ "PJTSearch" ] },
+    { "id": "id", "authors": [ "Linerly" ] },
+    { "id": "is", "authors": [ "patrickgold" ] },
+    { "id": "it", "authors": [ "patrickgold" ] },
+    { "id": "iw", "authors": [ "Antony" ] },
+    { "id": "ja-JP-jis", "authors": [ "waelwindows" ] },
+    { "id": "ka-std", "authors": [ "nE" ] },
+    { "id": "kab", "authors": [ "yanis867" ] },
+    { "id": "ko", "authors": [ "patrickgold", "Hayleia" ] },
+    { "id": "ko-KR", "authors": [ "Shunnuo" ] },
+    { "id": "ku", "authors": [ "GoRaN" ] },
+    { "id": "lt", "authors": [ "patrickgold" ] },
+    { "id": "lv", "authors": [ "patrickgold", "eandersons" ] },
+    { "id": "nb", "authors": [ "patrickgold" ] },
+    { "id": "nn", "authors": [ "patrickgold" ] },
+    { "id": "pl", "authors": [ "Mikołaj Biel" ] },
+    { "id": "pt", "authors": [ "patrickgold" ] },
+    { "id": "pt-BR", "authors": [ "rickym7" ] },
+    { "id": "ro", "authors": [ "bertin0" ] },
+    { "id": "ru", "authors": [ "williamtheaker", "33kk" ] },
+    { "id": "rue", "authors": [ "svvvst" ] },
+    { "id": "sk", "authors": [ "stefan-misik", "majso" ] },
+    { "id": "sr", "authors": [ "hedidnothingwrong", "GrbavaCigla" ] },
+    { "id": "sv", "authors": [ "patrickgold" ] },
+    { "id": "tr", "authors": [ "kisekinopureya", "patrickgold", "dvrnynr" ] },
+    { "id": "udm", "authors": [ "vorgoron" ] },
+    { "id": "uk", "authors": [ "williamtheaker", "33kk", "honsiorovskyi" ] },
+    { "id": "uk-cyr-ext", "authors": [ "williamtheaker", "33kk", "honsiorovskyi" ] },
+    { "id": "ur-PK", "authors": [ "mubashir-rehman", "mirfatif" ] },
+    { "id": "vi-VN", "authors": [ "patrickgold", "Hayleia" ] }
+  ],
+  "subtypePresets": [
+    {
+      "languageTag": "en-US",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:dollar",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:en",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:qwerty"
+      }
+    },
+    {
+      "languageTag": "en-UK",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:pound",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:en",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:qwerty"
+      }
+    },
+    {
+      "languageTag": "en-CA",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:dollar",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:en",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:qwerty"
+      }
+    },
+    {
+      "languageTag": "en-AU",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:dollar",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:en",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:qwerty"
+      }
+    },
+    {
+      "languageTag": "de-DE",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:euro",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:de",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:qwertz"
+      }
+    },
+    {
+      "languageTag": "de-AT",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:euro",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:de",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:qwertz"
+      }
+    },
+    {
+      "languageTag": "de-CH",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:euro",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:de",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:swiss_german"
+      }
+    },
+    {
+      "languageTag": "de-DE-neobone",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:euro",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:de-DE-neobone",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:neo2",
+        "symbols": "org.deku.foundation.dekukeyboard.layouts:neo2",
+        "numericRow": "org.deku.foundation.dekukeyboard.layouts:neo2"
+      }
+    },
+    {
+      "languageTag": "fr-FR",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:euro",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:fr",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:azerty"
+      }
+    },
+    {
+      "languageTag": "fr-CA",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:dollar",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:fr",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:canadian_french"
+      }
+    },
+    {
+      "languageTag": "fr-CH",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:euro",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:fr",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:swiss_french"
+      }
+    },
+    {
+      "languageTag": "it-IT",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:euro",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:it",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:qwerty"
+      }
+    },
+    {
+      "languageTag": "it-CH",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:euro",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:it",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:swiss_italian"
+      }
+    },
+    {
+      "languageTag": "es-ES",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:euro",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:es",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:spanish"
+      }
+    },
+    {
+      "languageTag": "es-US",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:dollar",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:es",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:spanish"
+      }
+    },
+    {
+      "languageTag": "es-419",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:dollar",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:es",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:spanish"
+      }
+    },
+    {
+      "languageTag": "pt-PT",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:euro",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:pt",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:qwerty"
+      }
+    },
+    {
+      "languageTag": "pt-BR",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:dollar",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:pt-BR",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:qwerty"
+      }
+    },
+    {
+      "languageTag": "nb-NO",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:dollar",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:nb",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:norwegian"
+      }
+    },
+    {
+      "languageTag": "nn-NO",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:dollar",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:nn",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:norwegian"
+      }
+    },
+    {
+      "languageTag": "sv-SE",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:dollar",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:sv",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:swedish_finnish"
+      }
+    },
+    {
+      "languageTag": "fi-FI",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:euro",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:fi",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:swedish_finnish"
+      }
+    },
+    {
+      "languageTag": "da-DK",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:dollar",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:da",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:danish"
+      }
+    },
+    {
+      "languageTag": "id",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:dollar",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:id",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:qwerty"
+      }
+    },
+    {
+      "languageTag": "is-IS",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:dollar",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:is",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:icelandic"
+      }
+    },
+    {
+      "languageTag": "fo",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:dollar",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:fo",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:faroese"
+      }
+    },
+    {
+      "languageTag": "fa-FA",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:rial",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:fa",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:persian",
+        "symbols": "org.deku.foundation.dekukeyboard.layouts:persian",
+        "symbols2": "org.deku.foundation.dekukeyboard.layouts:persian",
+        "numericRow": "org.deku.foundation.dekukeyboard.layouts:persian"
+      }
+    },
+    {
+      "languageTag": "fa-FA",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:rial",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:fa2",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:persian2",
+        "symbols": "org.deku.foundation.dekukeyboard.layouts:persian",
+        "symbols2": "org.deku.foundation.dekukeyboard.layouts:persian",
+        "numericRow": "org.deku.foundation.dekukeyboard.layouts:persian"
+      }
+    },
+    {
+      "languageTag": "fa-FA",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:rial",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:fa3",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:persian3",
+        "symbols": "org.deku.foundation.dekukeyboard.layouts:persian",
+        "symbols2": "org.deku.foundation.dekukeyboard.layouts:persian",
+        "numericRow": "org.deku.foundation.dekukeyboard.layouts:western_arabic"
+      }
+    },
+    {
+      "languageTag": "ar",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:rial",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:ar",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:arabic",
+        "symbols": "org.deku.foundation.dekukeyboard.layouts:eastern",
+        "symbols2": "org.deku.foundation.dekukeyboard.layouts:eastern",
+        "numericRow": "org.deku.foundation.dekukeyboard.layouts:eastern_arabic"
+      }
+    },
+    {
+      "languageTag": "az",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:azerbaijani_manat",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:tr",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:azerbaijani"
+      }
+    },
+    {
+      "languageTag": "hu",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:euro",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:hu",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:hungarian"
+      }
+    },
+    {
+      "languageTag": "eo",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:dollar",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:eo",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:esperanto"
+      }
+    },
+    {
+      "languageTag": "hr",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:euro",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:hr",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:qwertz"
+      }
+    },
+    {
+      "languageTag": "hy",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:armenian_dram",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:hy",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:armenian_alt_phonetic",
+        "symbols": "org.deku.foundation.dekukeyboard.layouts:armenian"
+      }
+    },
+    {
+      "languageTag": "hy",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:armenian_dram",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:hy",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:western_armenian",
+        "symbols": "org.deku.foundation.dekukeyboard.layouts:armenian"
+      }
+    },
+    {
+      "languageTag": "hy",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:armenian_dram",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:hy",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:eastern_armenian",
+        "symbols": "org.deku.foundation.dekukeyboard.layouts:armenian"
+      }
+    },
+    {
+      "languageTag": "ka-GE",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:georgian_lari",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:ka-std",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:georgian_standard"
+      }
+    },
+    {
+      "languageTag": "ru",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:russian_ruble",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:ru",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:jcuken_russian"
+      }
+    },
+    {
+      "languageTag": "rue",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:euro",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:rue",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:rusyn"
+      }
+    },
+    {
+      "languageTag": "uk",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:ukrainian_hryvnia",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:uk",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:jcuken_ukrainian"
+      }
+    },
+    {
+      "languageTag": "el",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:euro",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:el",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:greek"
+      }
+    },
+    {
+      "languageTag": "ro",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:euro",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:ro",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:qwerty"
+      }
+    },
+    {
+      "languageTag": "pl",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:euro",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:pl",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:qwerty"
+      }
+    },
+    {
+      "languageTag": "bg-bg",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:dollar",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:bg",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:bulgarian_phonetic"
+      }
+    },
+    {
+      "languageTag": "tr",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:turkish_lira",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:tr",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:qwerty"
+      }
+    },
+    {
+      "languageTag": "iw-IL",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:israeli_new_shekel",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:iw",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:hebrew"
+      }
+    },
+    {
+      "languageTag": "ckb",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:dollar",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:ckb",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:kurdish",
+        "symbols": "org.deku.foundation.dekukeyboard.layouts:eastern",
+        "symbols2": "org.deku.foundation.dekukeyboard.layouts:eastern",
+        "numericRow": "org.deku.foundation.dekukeyboard.layouts:eastern_arabic"
+      }
+    },
+    {
+      "languageTag": "sr-RS",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:dollar",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:sr",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:serbian_cyrillic"
+      }
+    },
+    {
+      "languageTag": "sl-SI",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:euro",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:sl-SI",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:slovenian"
+      }
+    },
+    {
+      "languageTag": "lv-LV",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:euro",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:lv",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:qwerty"
+      }
+    },
+    {
+      "languageTag": "ku",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:dollar",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:ku",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:kurdish_kurmanci"
+      }
+    },
+    {
+      "languageTag": "ca",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:euro",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:ca",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:catalan"
+      }
+    },
+    {
+      "languageTag": "IPA-IPA",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:dollar",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:ipa",
+        "symbols": "org.deku.foundation.dekukeyboard.layouts:ipa",
+        "symbols2": "org.deku.foundation.dekukeyboard.layouts:ipa"
+      }
+    },
+    {
+      "languageTag": "sk",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:euro",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:sk",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:qwertz"
+      }
+    },
+    {
+      "languageTag": "cs",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:euro",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:cs",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:qwertz"
+      }
+    },
+    {
+      "languageTag": "ko",
+      "composer": "org.deku.foundation.dekukeyboard.composers:hangul-unicode",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:south_korean_won",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:ko",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:korean"
+      }
+    },
+    {
+      "languageTag": "ko-KR",
+      "composer": "org.deku.foundation.dekukeyboard.composers:hangul-unicode",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:south_korean_won",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:ko",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:korean_phonetic"
+      }
+    },
+    {
+      "languageTag": "lt-LT",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:euro",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:lt",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:qwerty"
+      }
+    },
+    {
+      "languageTag": "ja-JP-jis",
+      "composer": "org.deku.foundation.dekukeyboard.composers:kana-unicode",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:yen",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:ja-JP-jis",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:jis",
+        "symbols": "org.deku.foundation.dekukeyboard.layouts:cjk",
+        "symbols2": "org.deku.foundation.dekukeyboard.layouts:cjk",
+        "numericRow": "org.deku.foundation.dekukeyboard.layouts:cjk"
+      }
+    },
+    {
+      "languageTag": "th-kd",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:thai_baht",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:thai_kedmanee",
+        "numericRow": "org.deku.foundation.dekukeyboard.layouts:thai"
+      }
+    },
+    {
+      "languageTag": "vi-VN",
+      "composer": "org.deku.foundation.dekukeyboard.composers:telex",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:vietnamese_dong",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:vi-VN",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:qwerty"
+      }
+    },
+    {
+      "languageTag": "ig-NG",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:nigerian_naira",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:igbo"
+      }
+    },
+    {
+      "languageTag": "hoc",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:indian_rupee",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:warang_citi",
+        "numericRow": "org.deku.foundation.dekukeyboard.layouts:warang_citi"
+      }
+    },
+    {
+      "languageTag": "udm",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:russian_ruble",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:udm",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:udmurt_extended"
+      }
+    },
+    {
+      "languageTag": "ur-PK",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:pakistani_rupee",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:ur-PK",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:urdu_phonetic"
+      }
+    },
+    {
+      "languageTag": "zh-CN-zhengma",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "nlpProviders": {
+        "spelling": "org.deku.foundation.dekukeyboard.nlp.providers.han.shape",
+        "suggestion": "org.deku.foundation.dekukeyboard.nlp.providers.han.shape"
+      },
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:yen",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:cjk",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:qwerty",
+        "symbols": "org.deku.foundation.dekukeyboard.layouts:cjk",
+        "symbols2": "org.deku.foundation.dekukeyboard.layouts:cjk"
+      }
+    },
+	  {
+      "languageTag": "bn-BD",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:bangladeshi_taka",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:bn-unijoy",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:bengali_unijoy",
+        "numericRow": "org.deku.foundation.dekukeyboard.layouts:bengali",
+        "numericAdvanced": "org.deku.foundation.dekukeyboard.layouts:bengali"
+      }
+    },
+    {
+      "languageTag": "bn-IN",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:indian_rupee",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:bn-unijoy",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:bengali_unijoy",
+        "numericRow": "org.deku.foundation.dekukeyboard.layouts:bengali",
+        "numericAdvanced": "org.deku.foundation.dekukeyboard.layouts:bengali"
+      }
+    },
+    {
+      "languageTag": "hi-IN",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:indian_rupee",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:hi-IN",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:hindi_in",
+        "numericRow": "org.deku.foundation.dekukeyboard.layouts:devanagari"
+      }
+    },
+    {
+      "languageTag": "ast",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:euro",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:ast",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:qwerty"
+      }
+    },
+    {
+      "languageTag": "ta-lk",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:indian_rupee",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:tamil"
+      }
+    },
+    {
+      "languageTag": "kab",
+      "composer": "org.deku.foundation.dekukeyboard.composers:appender",
+      "currencySet": "org.deku.foundation.dekukeyboard.currencysets:euro",
+      "popupMapping": "org.deku.foundation.dekukeyboard.localization:kab",
+      "preferred": {
+        "characters": "org.deku.foundation.dekukeyboard.layouts:qwerty"
+      }
+    }
+  ]
+}

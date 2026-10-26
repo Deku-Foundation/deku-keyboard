@@ -1,1 +1,1 @@
-Detailed changelog: https://github.com/florisboard/florisboard/releases/tag/v0.4.0-beta01
+Detailed changelog: https://github.com/Deku-Foundation/deku-keyboard/releases/tag/v0.4.0-beta01

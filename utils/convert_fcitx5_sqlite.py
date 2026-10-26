@@ -159,7 +159,7 @@ for x in file_list:
     conf = parse_fcitx_table(x[:-4] + '.conf.in')
     conf = {k: {x[0]: x[1] for x in v} for k, v in conf.items()}
     tables[schema]['.conf.in'] = conf
-    tables[schema]['FlorisLocale'] = f"{conf['InputMethod']['LangCode']}_{schema}"
+    tables[schema]['DekuLocale'] = f"{conf['InputMethod']['LangCode']}_{schema}"
 
 # Fixing
 if 'wubi98_pinyin' in tables:
@@ -197,7 +197,7 @@ if True:
             print(f'Exists unclaimed: ' + ''.join(sorted(keycode_real - keycode)))
 
 # Writing
-language_pack = [dict(id=table['FlorisLocale'], hanShapeBasedKeyCode=table['KeyCode']) for schema, table in tables.items()]
+language_pack = [dict(id=table['DekuLocale'], hanShapeBasedKeyCode=table['KeyCode']) for schema, table in tables.items()]
 with open('./extension-draft.json', 'wt') as f:
     json.dump({'$': 'ime.extension.languagepack', 'items': sorted(language_pack, key=lambda x: x['id'])}, f, indent=2)
 database = './han.sqlite3'
@@ -205,7 +205,7 @@ if os.path.exists(database):
     os.remove(database)
 for schema, table in tables.items():
     put_table(database, schema, table)
-    # put_table(database, table['FlorisLocale'], table)
+    # put_table(database, table['DekuLocale'], table)
 print({schema: table['KeyCode'] for schema, table in tables.items()})
 
 # Final display

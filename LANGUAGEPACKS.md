@@ -12,5 +12,5 @@ Stub.
 This page should describe how language packs work, how to import them, and point to the location of downloadable
 language packs.
 
-The homepage of default language packs included in FlorisBoard should link to this page.
+The homepage of default language packs included in Deku Keyboard should link to this page.
 

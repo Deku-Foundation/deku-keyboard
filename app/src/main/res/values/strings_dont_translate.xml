@@ -1,14 +1,14 @@
 <resources>
     <!-- Deku Foundation modification (2026-10-25): point project links to the independent repository. -->
-    <item name="floris_app_name" translatable="false" type="string">@string/app_name</item>
+    <item name="deku_app_name" translatable="false" type="string">@string/app_name</item>
 
-    <string name="florisboard__repo_url" translatable="false">https://github.com/Deku-Foundation/deku-keyboard</string>
-    <string name="florisboard__issue_tracker_url" translatable="false">https://github.com/Deku-Foundation/deku-keyboard/issues</string>
-    <string name="florisboard__privacy_policy_url" translatable="false">https://github.com/Deku-Foundation/deku-keyboard/blob/main/PRIVACY.md</string>
-    <string name="florisboard__changelog_url" translatable="false">https://github.com/Deku-Foundation/deku-keyboard/releases/tag/v{version}</string>
-    <string name="florisboard__commit_by_hash_url" translatable="false">https://github.com/Deku-Foundation/deku-keyboard/commit/{hash}</string>
-    <string name="florisboard__internal_key_codes_url" translatable="false">https://github.com/Deku-Foundation/deku-keyboard/blob/main/app/src/main/kotlin/dev/patrickgold/florisboard/ime/text/key/KeyCode.kt</string>
-    <string name="florisboard__character_key_codes_url" translatable="false">https://unicode-table.com/en</string>
+    <string name="dekukeyboard__repo_url" translatable="false">https://github.com/Deku-Foundation/deku-keyboard</string>
+    <string name="dekukeyboard__issue_tracker_url" translatable="false">https://github.com/Deku-Foundation/deku-keyboard/issues</string>
+    <string name="dekukeyboard__privacy_policy_url" translatable="false">https://github.com/Deku-Foundation/deku-keyboard/blob/main/PRIVACY.md</string>
+    <string name="dekukeyboard__changelog_url" translatable="false">https://github.com/Deku-Foundation/deku-keyboard/releases/tag/v{version}</string>
+    <string name="dekukeyboard__commit_by_hash_url" translatable="false">https://github.com/Deku-Foundation/deku-keyboard/commit/{hash}</string>
+    <string name="dekukeyboard__internal_key_codes_url" translatable="false">https://github.com/Deku-Foundation/deku-keyboard/blob/main/app/src/main/kotlin/org/deku/foundation/dekukeyboard/ime/text/key/KeyCode.kt</string>
+    <string name="dekukeyboard__character_key_codes_url" translatable="false">https://unicode-table.com/en</string>
 
     <string name="general__system_string_placeholder" translatable="false">%s</string>
     <string name="general__empty_string" translatable="false"/>

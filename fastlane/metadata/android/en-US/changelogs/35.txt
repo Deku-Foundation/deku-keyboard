@@ -8,4 +8,4 @@
 
 Note that this release does a one-time reset of your subtypes, this is because the internal structure has changed.
 
-Detailed changelog: https://github.com/florisboard/florisboard/releases/tag/v0.3.10
+Detailed changelog: https://github.com/Deku-Foundation/deku-keyboard/releases/tag/v0.3.10

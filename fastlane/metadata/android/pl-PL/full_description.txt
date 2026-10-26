@@ -1,5 +1,5 @@
-<p><i>FlorisBoard</i> to klawiatura typu open source, której celem jest zapewnienie łatwego sposobu pisania przy jednoczesnym poszanowaniu Twojej prywatności.</p>
-<p><b>Uwaga:</b> ten projekt jest obecnie we wczesnej fazie beta. Jeśli chcesz zobaczyć implementację funkcji lub zgłosić błąd, odwiedź repozytorium tego projektu (link na końcu opisu) na GitHub i zgłoś problem. Dzięki temu FlorisBoard staje się jeszcze lepszy! Dziękuję!</p>
+<p><i>Deku Keyboard</i> to klawiatura typu open source, której celem jest zapewnienie łatwego sposobu pisania przy jednoczesnym poszanowaniu Twojej prywatności.</p>
+<p><b>Uwaga:</b> ten projekt jest obecnie we wczesnej fazie beta. Jeśli chcesz zobaczyć implementację funkcji lub zgłosić błąd, odwiedź repozytorium tego projektu (link na końcu opisu) na GitHub i zgłoś problem. Dzięki temu Deku Keyboard staje się jeszcze lepszy! Dziękuję!</p>
 <p><b>Aktualnie zaimplementowane i w pełni działające funkcje:</b></p>
 <ul>
      <li>Ogromna różnorodność układów klawiatury łacińskiej</li>

@@ -1,3 +1,3 @@
-This release reworks the audio and haptic feedback of FlorisBoard and fixes a lot of bugs.
+This release reworks the audio and haptic feedback of Deku Keyboard and fixes a lot of bugs.
 
-Detailed changelog: https://github.com/florisboard/florisboard/releases/tag/v0.3.13-beta09
+Detailed changelog: https://github.com/Deku-Foundation/deku-keyboard/releases/tag/v0.3.13-beta09

@@ -4,7 +4,7 @@ SPDX-FileCopyrightText: 2025-2026 The FlorisBoard Contributors
 SPDX-License-Identifier: CC-BY-4.0
 
 Deku Foundation modification (2026-10-25): adapted for this independent project.
-Derived from the FlorisBoard AI policy and from:
+Derived from the Deku Keyboard AI policy and from:
 https://codeberg.org/forgejo/governance/src/commit/ff60d7ed4b0f3d411e6a0b5ebe5813fcad87b9dd/AIAgreement.md
 -->
 
@@ -29,4 +29,4 @@ Describe the user problem, the approach, relevant trade-offs, and the tests perf
 
 Policy violations are reviewed by the maintainers in accordance with the [Code of Conduct](CODE_OF_CONDUCT.md).
 
-This policy has been adapted for Deku Foundation from the upstream FlorisBoard policy. The original attribution and CC-BY-4.0 license information are retained above.
+This policy has been adapted from the upstream FlorisBoard policy for Deku Foundation. The original attribution and CC-BY-4.0 license information are retained above.

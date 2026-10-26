@@ -54,7 +54,7 @@ kotlin {
 }
 
 configure<ApplicationExtension> {
-    namespace = "dev.patrickgold.florisboard"
+    namespace = "org.deku.foundation.dekukeyboard"
     compileSdk = providers.gradleProperty("projectCompileSdk").get().toInt()
     buildToolsVersion = tools.versions.buildTools.get()
     ndkVersion = tools.versions.ndk.get()
@@ -75,8 +75,8 @@ configure<ApplicationExtension> {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("String", "BUILD_COMMIT_HASH", "\"${getGitCommitHash().get()}\"")
-        buildConfigField("String", "FLADDONS_API_VERSION", "\"v~draft2\"")
-        buildConfigField("String", "FLADDONS_STORE_URL", "\"beta.addons.florisboard.org\"")
+        buildConfigField("String", "DEKU_ADDONS_API_VERSION", "\"v~draft2\"")
+        buildConfigField("String", "DEKU_ADDONS_STORE_URL", "\"beta.addons.florisboard.org\"")
 
         sourceSets {
             maybeCreate("main").apply {
@@ -87,7 +87,7 @@ configure<ApplicationExtension> {
 
     bundle {
         language {
-            // We disable language split because FlorisBoard does not use
+            // We disable language split because DekuKeyboard does not use
             // runtime Google Play Service APIs and thus cannot dynamically
             // request to download the language resources for a specific locale.
             enableSplit = false

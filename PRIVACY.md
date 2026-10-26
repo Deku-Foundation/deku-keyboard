@@ -2,7 +2,7 @@
 
 **Status: draft; not a final privacy policy.**
 
-Deku Keyboard is an independent open-source Android keyboard project maintained by Deku Foundation. Its initial codebase is derived from FlorisBoard and retains upstream components.
+Deku Keyboard is an independent open-source Android keyboard project maintained by Deku Foundation. Its initial codebase is derived from Deku Keyboard and retains upstream components.
 
 An Android keyboard can process sensitive text entered by a user. Before distributing a public Deku Keyboard release, the project must review the complete codebase and its dependencies for network traffic, diagnostics, crash reporting, extension behavior, clipboard handling, and any collection or transmission of data. This review has not yet been completed, so this document does not claim that the app is fully offline, telemetry-free, or suitable for sensitive use.
 

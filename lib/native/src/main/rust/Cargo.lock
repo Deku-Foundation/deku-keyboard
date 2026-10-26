@@ -35,7 +35,7 @@ name = "dummy"
 version = "0.1.0"
 
 [[package]]
-name = "fl_native_rust"
+name = "deku_native_rust"
 version = "0.1.0"
 dependencies = [
  "dummy",

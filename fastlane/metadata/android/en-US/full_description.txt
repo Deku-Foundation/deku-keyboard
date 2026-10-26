@@ -1,3 +1,3 @@
 <p><b>Deku Keyboard</b> is an open-source Android keyboard under development by Deku Foundation.</p>
-<p>This is a pre-release development build derived from the FlorisBoard open-source codebase. App identity, functionality, compatibility, and privacy behavior are being reviewed. This listing is a draft, not a stable release announcement.</p>
+<p>This is a pre-release development build derived from the Deku Keyboard open-source codebase. App identity, functionality, compatibility, and privacy behavior are being reviewed. This listing is a draft, not a stable release announcement.</p>
 <p>Project source and issue tracking: <a href="https://github.com/Deku-Foundation/deku-keyboard">Deku Keyboard on GitHub</a>.</p>

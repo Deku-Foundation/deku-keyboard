@@ -5,4 +5,4 @@
 - User dictionary max size (#898)
 - Space bar text too large (#862)
 
-Detailed changelog: https://github.com/florisboard/florisboard/releases/tag/v0.3.13-beta02
+Detailed changelog: https://github.com/Deku-Foundation/deku-keyboard/releases/tag/v0.3.13-beta02

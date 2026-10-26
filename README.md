@@ -2,7 +2,7 @@
 
 **Deku Keyboard** is an open-source Android keyboard project maintained by [Deku Foundation](https://github.com/Deku-Foundation). This README is maintained by Deku Foundation and replaces the upstream project overview for this independent repository.
 
-This repository begins from the [FlorisBoard](https://github.com/florisboard/florisboard) open-source codebase and will be developed independently. The current baseline retains upstream implementation and third-party components; the project will be rebranded and modernized in reviewed stages rather than by indiscriminate search-and-replace.
+This independent project began from the FlorisBoard open-source codebase. It is now being adapted and maintained independently by Deku Foundation; see [UPSTREAM.md](UPSTREAM.md) for attribution and license context.
 
 [![Deku Keyboard CI](https://github.com/Deku-Foundation/deku-keyboard/actions/workflows/android.yml/badge.svg?branch=main)](https://github.com/Deku-Foundation/deku-keyboard/actions/workflows/android.yml)
 

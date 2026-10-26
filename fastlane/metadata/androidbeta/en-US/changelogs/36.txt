@@ -5,4 +5,4 @@
 - Fix Persian & French layouts
 - Fix ThemeManager crashing when service uninitialized
 
-Detailed changelog: https://github.com/florisboard/florisboard/releases/tag/v0.3.11-beta01
+Detailed changelog: https://github.com/Deku-Foundation/deku-keyboard/releases/tag/v0.3.11-beta01

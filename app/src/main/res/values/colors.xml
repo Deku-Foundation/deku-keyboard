@@ -16,5 +16,5 @@
     <color name="navigationBarColor">#000000</color>
     <color name="toolbarForegroundColor">#000000</color>
     <color name="windowBackground">#FAFAFA</color>
-    <color name="florisApp_windowBackground">#FFFFFFFF</color>
+    <color name="dekuApp_windowBackground">#FFFFFFFF</color>
 </resources>

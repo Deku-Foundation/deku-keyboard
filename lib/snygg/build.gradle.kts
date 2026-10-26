@@ -30,7 +30,7 @@ plugins {
 
 kotlin {
     android {
-        namespace = "org.florisboard.lib.snygg"
+        namespace = "org.deku.foundation.dekukeyboard.lib.snygg"
         compileSdk = providers.gradleProperty("projectCompileSdk").get().toInt()
         minSdk = providers.gradleProperty("projectMinSdk").get().toInt()
 
@@ -92,7 +92,7 @@ tasks.register<JavaExec>("generateJsonSchema") {
     description = "Generate the JSON schema for Snygg themes"
     group = "Generation"
     dependsOn("compileAndroidMain")
-    mainClass.set("org.florisboard.lib.snygg.SnyggJsonSchemaGenerator")
+    mainClass.set("org.deku.foundation.dekukeyboard.lib.snygg.SnyggJsonSchemaGenerator")
     val debugRuntime = configurations.named("androidRuntimeClasspath")
     val compileTask = tasks.named<KotlinCompile>("compileAndroidMain")
     val debugRuntimeArtifactView = debugRuntime.get().incoming.artifactView {

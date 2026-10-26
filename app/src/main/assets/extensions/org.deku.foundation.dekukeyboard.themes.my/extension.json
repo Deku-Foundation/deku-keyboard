@@ -1,0 +1,49 @@
+{
+  "$": "ime.extension.theme",
+  "meta": {
+    "id": "org.deku.foundation.dekukeyboard.themes.my",
+    "version": "0.2.0",
+    "title": "Deku Keyboard default themes (Material You)",
+    "description": "Default Material You themes (both day and night) for the keyboard UI",
+    "maintainers": [ "patrickgold <patrick@patrickgold.dev>", "lm41 <lm41@lm41.xyz>" ],
+    "license": "apache-2.0"
+  },
+  "themes": [
+    {
+      "id": "deku_day_my",
+      "label": "Deku Day (Material You)",
+      "authors": [ "lm41" ],
+      "isNight": false
+    },
+    {
+      "id": "deku_day_my_borderless",
+      "label": "Deku Day Borderless (Material You)",
+      "authors": [ "lm41" ],
+      "isNight": false
+    },
+    {
+      "id": "deku_night_my",
+      "label": "Deku Night (Material You)",
+      "authors": [ "lm41" ],
+      "isNight": true
+    },
+    {
+      "id": "deku_night_my_borderless",
+      "label": "Deku Night Borderless (Material You)",
+      "authors": [ "lm41" ],
+      "isNight": true
+    },
+    {
+      "id": "deku_pure_night_my",
+      "label": "Deku Pure Night (Material You)",
+      "authors": [ "lm41" ],
+      "isNight": true
+    },
+    {
+      "id": "deku_pure_night_my_borderless",
+      "label": "Deku Pure Night Borderless (Material You)",
+      "authors": [ "lm41" ],
+      "isNight": true
+    }
+  ]
+}

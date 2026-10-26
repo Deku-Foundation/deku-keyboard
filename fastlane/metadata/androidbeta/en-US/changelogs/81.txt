@@ -2,4 +2,4 @@ This release is a major rework of the editor instance handling and should reduce
 
 Please note that the minimum required Android version has been raised from Android 6 to Android 7, see the detailed changelog for the reason why this step was necessary.
 
-Detailed changelog: https://github.com/florisboard/florisboard/releases/tag/v0.3.16-beta01
+Detailed changelog: https://github.com/Deku-Foundation/deku-keyboard/releases/tag/v0.3.16-beta01

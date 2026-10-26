@@ -20,7 +20,7 @@ plugins {
 }
 
 android {
-    namespace = "dev.patrickgold.florisboard.benchmark"
+    namespace = "org.deku.foundation.dekukeyboard.benchmark"
     compileSdk = 34
 
     compileOptions {

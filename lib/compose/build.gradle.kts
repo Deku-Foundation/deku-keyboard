@@ -33,7 +33,7 @@ kotlin {
 }
 
 configure<LibraryExtension> {
-    namespace = "org.florisboard.lib.compose"
+    namespace = "org.deku.foundation.dekukeyboard.lib.compose"
     compileSdk = providers.gradleProperty("projectCompileSdk").get().toInt()
 
     defaultConfig {

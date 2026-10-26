@@ -2,7 +2,7 @@
 
 Thank you for helping improve Deku Keyboard, an open-source Android keyboard maintained by Deku Foundation.
 
-This repository began as an import of the FlorisBoard open-source codebase. Its upstream license and relevant source notices are retained; see [UPSTREAM.md](UPSTREAM.md). Deku Keyboard is an independent derivative, not the official FlorisBoard project.
+This repository began as an import of the Deku Keyboard open-source codebase. Its upstream license and relevant source notices are retained; see [UPSTREAM.md](UPSTREAM.md). Deku Keyboard is an independent derivative, not the official Deku Keyboard project.
 
 ## Current status
 

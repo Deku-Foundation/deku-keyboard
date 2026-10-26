@@ -2,4 +2,4 @@
 - Add border customizations for themes
 - Fix a lot of theme-related issues
 
-Detailed changelog: https://github.com/florisboard/florisboard/releases/tag/v0.3.14-beta12
+Detailed changelog: https://github.com/Deku-Foundation/deku-keyboard/releases/tag/v0.3.14-beta12

@@ -1,0 +1,49 @@
+{
+  "$": "ime.extension.theme",
+  "meta": {
+    "id": "org.deku.foundation.dekukeyboard.themes",
+    "version": "0.2.0",
+    "title": "Deku Keyboard default themes",
+    "description": "Default themes (both day and night) for the keyboard UI",
+    "maintainers": [ "patrickgold <patrick@patrickgold.dev>", "lm41 <lm41@lm41.xyz>" ],
+    "license": "apache-2.0"
+  },
+  "themes": [
+    {
+      "id": "deku_day",
+      "label": "Deku Day",
+      "authors": [ "patrickgold" ],
+      "isNight": false
+    },
+    {
+      "id": "deku_day_borderless",
+      "label": "Deku Day (Borderless)",
+      "authors": [ "patrickgold" ],
+      "isNight": false
+    },
+    {
+      "id": "deku_night",
+      "label": "Deku Night",
+      "authors": [ "patrickgold" ],
+      "isNight": true
+    },
+    {
+      "id": "deku_night_borderless",
+      "label": "Deku Night (Borderless)",
+      "authors": [ "patrickgold" ],
+      "isNight": true
+    },
+    {
+      "id": "deku_pure_night",
+      "label": "Deku Pure Night",
+      "authors": [ "serebit" ],
+      "isNight": true
+    },
+    {
+      "id": "deku_pure_night_borderless",
+      "label": "Deku Pure Night (Borderless)",
+      "authors": [ "serebit" ],
+      "isNight": true
+    }
+  ]
+}

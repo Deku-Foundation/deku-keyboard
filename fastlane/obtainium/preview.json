@@ -1,7 +1,7 @@
 {
-  "id": "dev.patrickgold.florisboard.beta",
-  "url": "https://github.com/florisboard/florisboard",
-  "author": "florisboard",
-  "name": "FlorisBoard Preview",
+  "id": "org.deku.foundation.dekukeyboard.beta",
+  "url": "https://github.com/Deku-Foundation/deku-keyboard",
+  "author": "dekukeyboard",
+  "name": "Deku Keyboard Preview",
   "additionalSettings": "{\"includePrereleases\":true,\"fallbackToOlderReleases\":true,\"apkFilterRegEx\":\"preview\"}"
 }

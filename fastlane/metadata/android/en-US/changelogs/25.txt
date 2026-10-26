@@ -4,7 +4,7 @@
 - Add Kurdish layout (#271) (thanks @kurdikeyboard)
 - Add Serbian layouts (#275) (thanks @GrbavaCigla)
 - Add Trukish extended popups for QWERTY (#247) (thanks @kisekinopureya)
-- Add Floris Black and Floris Black Borderless themes (#297) (thanks @serebit)
+- Add Deku Black and Deku Black Borderless themes (#297) (thanks @serebit)
 - Improve moving gestures detection and UX
 - Improve key hint label style (#213)
 - Improve bottom offset feature (#58)

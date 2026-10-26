@@ -28,7 +28,7 @@ kotlin {
 }
 
 configure<LibraryExtension> {
-    namespace = "org.florisboard.libnative"
+    namespace = "org.deku.foundation.dekukeyboard.libnative"
     compileSdk = providers.gradleProperty("projectCompileSdk").get().toInt()
     ndkVersion = tools.versions.ndk.get()
 
@@ -37,7 +37,7 @@ configure<LibraryExtension> {
 
         externalNativeBuild {
             cmake {
-                targets("fl_native")
+                targets("deku_native")
                 arguments(
                     "-DCMAKE_ANDROID_API=$minSdk",
                 )

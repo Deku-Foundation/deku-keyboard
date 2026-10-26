@@ -149,8 +149,8 @@ for t in "${SHOWCASE_TEXT[@]}"; do
 done
 
 ICON_SHOWCASE_TEXT=(
-  "icon-preview.png:FlorisBoard Preview\nGet all (stable, beta and rc) updates"
-  "icon-stable.png:FlorisBoard Stable\nGet all stable updates"
+  "icon-preview.png:Deku Keyboard Preview\nGet all (stable, beta and rc) updates"
+  "icon-stable.png:Deku Keyboard Stable\nGet all stable updates"
 )
 for t in "${ICON_SHOWCASE_TEXT[@]}"; do
   echo "Generating $t"

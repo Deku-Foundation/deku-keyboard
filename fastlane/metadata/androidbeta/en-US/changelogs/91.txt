@@ -2,4 +2,4 @@
 - Add several new keyboard layouts
 - Remove glide typing -> will be re-implemented with word suggestions/new keyboard layout engine
 
-Detailed changelog: https://github.com/florisboard/florisboard/releases/tag/v0.4.0-alpha05
+Detailed changelog: https://github.com/Deku-Foundation/deku-keyboard/releases/tag/v0.4.0-alpha05

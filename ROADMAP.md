@@ -1,6 +1,6 @@
 # Deku Keyboard roadmap
 
-This roadmap describes the work planned for the independent Deku Keyboard repository. It replaces FlorisBoard-specific release milestones; upstream features and implementation details remain credited in [UPSTREAM.md](UPSTREAM.md). Items are priorities, not delivery-date promises.
+This roadmap describes the work planned for the independent Deku Keyboard repository. It replaces Deku Keyboard-specific release milestones; upstream features and implementation details remain credited in [UPSTREAM.md](UPSTREAM.md). Items are priorities, not delivery-date promises.
 
 ## Phase 0 — source baseline and build hygiene
 
@@ -15,7 +15,7 @@ This roadmap describes the work planned for the independent Deku Keyboard reposi
 ## Phase 1 — independent project foundations
 
 - [ ] Complete a file-by-file inventory of upstream branding, resource identifiers, package names, licenses, and third-party assets.
-- [ ] Replace remaining internal FlorisBoard package names and resource keys in small, build-tested migrations rather than global search-and-replace.
+- [ ] Replace remaining internal Deku Keyboard package names and resource keys in small, build-tested migrations rather than global search-and-replace.
 - [ ] Review the Android manifest, exported components, permissions, application ID, signing, backup rules, and deep links.
 - [ ] Replace inherited store icons, feature graphics, screenshots, translated listings, and historical changelogs before any store release.
 - [ ] Define a Deku-owned translation workflow before enabling any Crowdin or other translation credentials.

@@ -4,4 +4,4 @@ This version is a major release containing a lot of bug fixes and some additions
 - Fixes in keyboard logic and initialization
 - Lots of layout additions/changes by external contributors <3
 
-Detailed changelog: https://github.com/florisboard/florisboard/releases/tag/v0.3.15
+Detailed changelog: https://github.com/Deku-Foundation/deku-keyboard/releases/tag/v0.3.15
