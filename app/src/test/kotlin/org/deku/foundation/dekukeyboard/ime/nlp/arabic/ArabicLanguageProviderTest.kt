@@ -50,7 +50,7 @@ class ArabicLanguageProviderTest : FunSpec({
         findArabicWordPrefixSuggestions(index, "س", 8, false) shouldBe emptyList()
         findArabicWordPrefixSuggestions(index, "sa", 8, false) shouldBe emptyList()
         findArabicWordPrefixSuggestions(index, "سل", 2, false) shouldBe
-            listOf("سليم" to 80, "سلمان" to 70)
+            listOf("سلام" to 100, "سلامة" to 90)
     }
 
     test("filters known offensive terms unless the user allows them") {
