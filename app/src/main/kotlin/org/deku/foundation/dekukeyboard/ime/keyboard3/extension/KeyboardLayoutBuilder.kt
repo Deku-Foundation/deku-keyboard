@@ -73,11 +73,11 @@ internal fun buildKeyboard3Xml(
     val isRtl = isRightToLeftLanguage(languageTag)
     val effectiveRows = if (isRtl) rows.map { it.reversed() } else rows
 
-    val existingKeyIds = Regex("""<key\\s+id="([^"]+)"""")
+    val existingKeyIds = Regex("""<key\s+id="([^"]+)"""")
         .findAll(baseXml)
         .map { it.groupValues[1] }
         .toSet()
-    val existingKeyIdByOutput = Regex("""<key\\s+id="([^"]+)"[^>]*\\boutput="([^"]*)"[^>]*/>""")
+    val existingKeyIdByOutput = Regex("""<key\\s+id="([^"]+)"[^>]*\boutput="([^"]*)"[^>]*/>""")
         .findAll(baseXml)
         .mapNotNull { match ->
             val output = unescapeXmlAttribute(match.groupValues[2])
