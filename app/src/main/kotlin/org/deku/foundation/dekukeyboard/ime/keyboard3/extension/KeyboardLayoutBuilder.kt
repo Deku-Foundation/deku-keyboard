@@ -179,7 +179,7 @@ private fun replaceTouchLayerRows(
                     else -> ids
                 }
                 rowIndex++
-                """            <row keys="\${keys.joinToString(" ")}" />"""
+                "            <row keys=\"${keys.joinToString(" ")}\" />"
             }
         }
         layerMatch.groupValues[1] + newBody + layerMatch.groupValues[3]
