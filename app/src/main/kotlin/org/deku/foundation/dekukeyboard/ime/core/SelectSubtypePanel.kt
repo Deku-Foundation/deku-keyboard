@@ -50,8 +50,11 @@ fun SelectSubtypePanel(modifier: Modifier = Modifier) {
 
     val listState = rememberLazyListState()
     val subtypes by subtypeManager.subtypesFlow.collectAsState()
+    val activeSubtype by subtypeManager.activeSubtypeFlow.collectAsState()
 
-    val currentlySelected = subtypeManager.activeSubtype.id
+    // Observe activeSubtypeFlow instead of reading the current value once; otherwise the selected
+    // language indicator can remain stale after fast language switches.
+    val currentlySelected = activeSubtype.id
 
     SnyggColumn(DekuImeUi.SubtypePanel.elementName, modifier = modifier.safeDrawingPadding()) {
         SnyggRow(
