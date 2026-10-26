@@ -98,16 +98,19 @@ class DekuLocale private constructor(val base: Locale) {
          *
          * @return A new [DekuLocale].
          */
-        fun fromTag(str: String) = when {
-            str.contains(DELIMITER_SPLITTER) -> {
-                val lc = str.split(DELIMITER_SPLITTER)
-                if (lc.size >= 3) {
-                    from(lc[0], lc[1], lc[2])
-                } else {
-                    from(lc[0], lc[1])
-                }
+        /**
+         * Parses a BCP-47 language tag (or the legacy underscore-separated spelling accepted by
+         * older saved preferences). Using the platform parser preserves script subtags such as
+         * `sr-Latn-RS` instead of incorrectly treating the script as a region.
+         */
+        fun fromTag(str: String): DekuLocale {
+            val normalizedTag = str.replace('_', '-')
+            val locale = Locale.forLanguageTag(normalizedTag)
+            return if (locale.language.isBlank() || locale.language == "und") {
+                ROOT
+            } else {
+                from(locale)
             }
-            else -> from(str)
         }
 
         /**
