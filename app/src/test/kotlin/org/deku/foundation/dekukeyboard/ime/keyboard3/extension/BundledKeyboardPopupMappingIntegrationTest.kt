@@ -7,6 +7,11 @@ import java.io.File
 import java.io.StringReader
 import javax.xml.parsers.DocumentBuilderFactory
 import org.xml.sax.InputSource
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 
 private fun assertBundledKeyboardXmlIsWellFormed(xml: String) {
     DocumentBuilderFactory.newInstance()
@@ -57,4 +62,30 @@ class BundledKeyboardPopupMappingIntegrationTest : FunSpec({
         xml shouldContain """<key id="deku-layout-r1-k5-popup-1" output="آ" />"""
         xml shouldContain """<key id="deku-layout-r1-k5-popup-2" output="ء" />"""
     }
+
+    test("every declared popup mapping points to a valid bundled JSON asset") {
+        val assetRoot = File("src/main/assets")
+        val manifestFile = File(
+            assetRoot,
+            "ime/keyboard/org.deku.foundation.dekukeyboard.localization/extension.json",
+        )
+        val manifest = Json.parseToJsonElement(manifestFile.readText(Charsets.UTF_8)).jsonObject
+        val mappingIds = manifest["popupMappings"]?.jsonArray.orEmpty().mapNotNull { item ->
+            item.jsonObject["id"]?.jsonPrimitive?.contentOrNull
+        }
+        mappingIds.isNotEmpty() shouldBe true
+        mappingIds.distinct().size shouldBe mappingIds.size
+
+        for (id in mappingIds) {
+            id.matches(Regex("[A-Za-z0-9_-]+")) shouldBe true
+            val mappingFile = File(
+                assetRoot,
+                "ime/keyboard/org.deku.foundation.dekukeyboard.localization/popupMappings/$id.json",
+            )
+            mappingFile.isFile shouldBe true
+            val mapping = Json.parseToJsonElement(mappingFile.readText(Charsets.UTF_8)).jsonObject
+            mapping["all"]?.jsonObject?.isNotEmpty() shouldBe true
+        }
+    }
+
 })
