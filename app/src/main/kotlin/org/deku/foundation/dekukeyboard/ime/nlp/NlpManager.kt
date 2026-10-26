@@ -47,6 +47,19 @@ import org.k3lp.runtime.K3TextRange
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.properties.Delegates
 
+internal fun <T> selectSuggestionsForSession(
+    isPrivateSession: Boolean,
+    suggestionsFromCurrentSession: List<T>,
+    suggestionsWereGeneratedPrivately: Boolean,
+    clipboardSuggestions: List<T>,
+): List<T> = when {
+    isPrivateSession ->
+        if (suggestionsWereGeneratedPrivately) suggestionsFromCurrentSession else emptyList()
+    clipboardSuggestions.isNotEmpty() -> clipboardSuggestions
+    suggestionsWereGeneratedPrivately -> emptyList()
+    else -> suggestionsFromCurrentSession
+}
+
 private const val BLANK_STR_PATTERN = "^\\s*$"
 
 class NlpManager(context: Context) {
@@ -72,7 +85,18 @@ class NlpManager(context: Context) {
     private val providersForceSuggestionOn = mutableMapOf<String, Boolean>()
 
     private val internalSuggestionsGuard = Mutex()
-    private var internalSuggestions by Delegates.observable(SystemClock.uptimeMillis() to listOf<SuggestionCandidate>()) { _, _, _ ->
+    private data class InternalSuggestionSnapshot(
+        val requestTime: Long,
+        val candidates: List<SuggestionCandidate>,
+        val isPrivateSession: Boolean,
+    )
+    private var internalSuggestions by Delegates.observable(
+        InternalSuggestionSnapshot(
+            requestTime = SystemClock.uptimeMillis(),
+            candidates = emptyList(),
+            isPrivateSession = false,
+        ),
+    ) { _, _, _ ->
         scope.launch { assembleCandidates() }
     }
 
@@ -185,7 +209,7 @@ class NlpManager(context: Context) {
             followingWords = followingWords,
             maxSuggestionCount = maxSuggestionCount,
             allowPossiblyOffensive = !prefs.suggestion.blockPossiblyOffensive.get(),
-            isPrivateSession = false// TODO keyboardManager.activeState.isIncognitoMode,
+            isPrivateSession = imeController.snapshotState().flags.isIncognitoMode,
         )
     }
 
@@ -214,6 +238,7 @@ class NlpManager(context: Context) {
 
     fun suggest(subtype: Subtype, content: K3Content) {
         val reqTime = SystemClock.uptimeMillis()
+        val isPrivateSession = imeController.snapshotState().flags.isIncognitoMode
         scope.launch {
             val emojiSuggestions = when {
                 prefs.emoji.suggestionEnabled.get() -> {
@@ -222,7 +247,7 @@ class NlpManager(context: Context) {
                         content = content,
                         maxCandidateCount = prefs.emoji.suggestionCandidateMaxCount.get(),
                         allowPossiblyOffensive = !prefs.suggestion.blockPossiblyOffensive.get(),
-                        isPrivateSession = false // TODO keyboardManager.activeState.isIncognitoMode,
+                        isPrivateSession = isPrivateSession,
                     )
                 }
                 else -> emptyList()
@@ -237,16 +262,20 @@ class NlpManager(context: Context) {
                         content = content,
                         maxCandidateCount = 8,
                         allowPossiblyOffensive = !prefs.suggestion.blockPossiblyOffensive.get(),
-                        isPrivateSession = false // TODO keyboardManager.activeState.isIncognitoMode,
+                        isPrivateSession = isPrivateSession,
                     )
                 }
             }
             internalSuggestionsGuard.withLock {
-                if (internalSuggestions.first < reqTime) {
-                    internalSuggestions = reqTime to buildList {
-                        addAll(emojiSuggestions)
-                        addAll(suggestions)
-                    }
+                if (internalSuggestions.requestTime < reqTime) {
+                    internalSuggestions = InternalSuggestionSnapshot(
+                        requestTime = reqTime,
+                        candidates = buildList {
+                            addAll(emojiSuggestions)
+                            addAll(suggestions)
+                        },
+                        isPrivateSession = isPrivateSession,
+                    )
                 }
             }
         }
@@ -255,14 +284,26 @@ class NlpManager(context: Context) {
     fun suggestDirectly(suggestions: List<SuggestionCandidate>) {
         val reqTime = SystemClock.uptimeMillis()
         runBlocking {
-            internalSuggestions = reqTime to suggestions
+            internalSuggestionsGuard.withLock {
+                internalSuggestions = InternalSuggestionSnapshot(
+                    requestTime = reqTime,
+                    candidates = suggestions,
+                    isPrivateSession = imeController.snapshotState().flags.isIncognitoMode,
+                )
+            }
         }
     }
 
     fun clearSuggestions() {
         val reqTime = SystemClock.uptimeMillis()
         runBlocking {
-            internalSuggestions = reqTime to emptyList()
+            internalSuggestionsGuard.withLock {
+                internalSuggestions = InternalSuggestionSnapshot(
+                    requestTime = reqTime,
+                    candidates = emptyList(),
+                    isPrivateSession = imeController.snapshotState().flags.isIncognitoMode,
+                )
+            }
         }
     }
 
@@ -295,23 +336,31 @@ class NlpManager(context: Context) {
 
     private fun assembleCandidates() {
         runBlocking {
-            val candidates = when {
-                isSuggestionOn() -> {
-                    clipboardSuggestionProvider.suggest(
-                        subtype = Subtype.DEFAULT,
-                        content = imeController.snapshotState().content,
-                        maxCandidateCount = 8,
-                        allowPossiblyOffensive = !prefs.suggestion.blockPossiblyOffensive.get(),
-                        isPrivateSession = false // TODO keyboardManager.activeState.isIncognitoMode,
-                    ).ifEmpty {
-                        buildList {
-                            internalSuggestionsGuard.withLock {
-                                addAll(internalSuggestions.second)
-                            }
-                        }
-                    }
+            val imeSnapshot = imeController.snapshotState()
+            val isPrivateSession = imeSnapshot.flags.isIncognitoMode
+            val clipboardCandidates = if (isPrivateSession) {
+                emptyList()
+            } else {
+                clipboardSuggestionProvider.suggest(
+                    subtype = Subtype.DEFAULT,
+                    content = imeSnapshot.content,
+                    maxCandidateCount = 8,
+                    allowPossiblyOffensive = !prefs.suggestion.blockPossiblyOffensive.get(),
+                    isPrivateSession = false,
+                )
+            }
+            val candidates = if (isSuggestionOn()) {
+                internalSuggestionsGuard.withLock {
+                    val storedSuggestions = internalSuggestions
+                    selectSuggestionsForSession(
+                        isPrivateSession = isPrivateSession,
+                        suggestionsFromCurrentSession = storedSuggestions.candidates,
+                        suggestionsWereGeneratedPrivately = storedSuggestions.isPrivateSession,
+                        clipboardSuggestions = clipboardCandidates,
+                    )
                 }
-                else -> emptyList()
+            } else {
+                emptyList()
             }
             activeCandidates = candidates
             autoExpandCollapseSmartbarActions(candidates, NlpInlineAutofill.suggestions.value)
@@ -385,8 +434,9 @@ class NlpManager(context: Context) {
             allowPossiblyOffensive: Boolean,
             isPrivateSession: Boolean,
         ): List<SuggestionCandidate> {
-            // Check if enabled
-            if (!prefs.clipboard.suggestionEnabled.get()) return emptyList()
+            // Clipboard contents are user data, not learned language-model data.
+            // Do not surface clipboard candidates in an incognito/private input session.
+            if (isPrivateSession || !prefs.clipboard.suggestionEnabled.get()) return emptyList()
 
             val text = buildString {
                 // TODO hack

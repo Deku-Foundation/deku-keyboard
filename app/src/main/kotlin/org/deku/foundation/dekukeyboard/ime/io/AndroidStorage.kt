@@ -17,6 +17,7 @@
 package org.deku.foundation.dekukeyboard.ime.io
 
 import android.content.Context
+import java.io.IOException
 import kotlinx.io.RawSink
 import kotlinx.io.RawSource
 import kotlinx.io.asSource
@@ -45,7 +46,14 @@ class AndroidStorage(
         }
 
         override fun exists(ref: DekuRef): Boolean {
-            TODO("Not yet implemented")
+            val path = ref.relativePath
+            if (path.isEmpty()) return true
+
+            return try {
+                context.assets.open(path).use { true }
+            } catch (_: IOException) {
+                context.assets.list(path)?.isNotEmpty() == true
+            }
         }
 
         override fun list(ref: DekuRef): List<DekuRef> {

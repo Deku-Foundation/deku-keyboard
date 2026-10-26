@@ -491,7 +491,9 @@ class ImeController(
                     .getSurroundingText(charsBefore = 0, charsAfter = 2)
                     .textAfter
                 val newSurroundingText = state.content.surroundingText.copy(
-                    textAfter = removeLeadingCodePoint(liveTextAfterCursor),
+                    // Preserve the entire cached context; the live two-unit probe is only used to
+                    // choose the correct deletion API and must not truncate prediction context.
+                    textAfter = removeLeadingCodePoint(state.content.surroundingText.textAfter),
                 )
                 state = state.copy(
                     content = state.content.copy(
