@@ -1,6 +1,6 @@
 # Deku Keyboard roadmap
 
-This roadmap describes the work planned for the independent Deku Keyboard repository. It replaces Deku Keyboard-specific release milestones; upstream features and implementation details remain credited in [UPSTREAM.md](UPSTREAM.md). Items are priorities, not delivery-date promises.
+This roadmap describes work planned for the independent Deku Keyboard repository. It replaces the upstream FlorisBoard release milestones; upstream implementation and third-party contributions remain credited in [UPSTREAM.md](UPSTREAM.md). Items are priorities, not delivery-date promises.
 
 ## Phase 0 — source baseline and build hygiene
 
@@ -9,13 +9,13 @@ This roadmap describes the work planned for the independent Deku Keyboard reposi
 - [x] Add GitHub Actions for wrapper validation, Android debug builds, artifacts, and base-string validation.
 - [x] Set an initial Deku app label, Android application ID, project name, primary adaptive icon, palette, repository links, and beta label.
 - [x] Record the pre-release privacy and initial import-review status.
-- [ ] Confirm a green CI run for the latest package/icon changes and review test results.
-- [ ] Identify and remove obsolete upstream-only workflows, secrets assumptions, and project integrations.
+- [ ] Confirm a green CI run for the complete package/resource/JNI migration and review test results.
+- [x] Remove the one-time migration workflow and script after running them; keep upstream Crowdin configuration disabled pending a Deku-owned setup.
 
 ## Phase 1 — independent project foundations
 
-- [ ] Complete a file-by-file inventory of upstream branding, resource identifiers, package names, licenses, and third-party assets.
-- [ ] Replace remaining internal Deku Keyboard package names and resource keys in small, build-tested migrations rather than global search-and-replace.
+- [ ] Complete a file-by-file inventory of remaining upstream branding, store assets, service endpoints, license notices, and third-party resources.
+- [x] Migrate application and library package names, source paths, Android components, JNI symbols, built-in extension IDs, and internal resource identifiers to Deku names.
 - [ ] Review the Android manifest, exported components, permissions, application ID, signing, backup rules, and deep links.
 - [ ] Replace inherited store icons, feature graphics, screenshots, translated listings, and historical changelogs before any store release.
 - [ ] Define a Deku-owned translation workflow before enabling any Crowdin or other translation credentials.
