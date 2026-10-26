@@ -10,7 +10,7 @@ The bundled manifest is:
 
 `app/src/main/assets/ime/keyboard/org.deku.foundation.dekukeyboard.localization/extension.json`
 
-Its `subtypePresets` map BCP-47 language tags to preferred layout IDs. The locale picker merges those presets with system locales and keeps the layout choice separate from the displayed locale. The keyboard loader then resolves the active subtype's layout, loads its JSON asset on `Dispatchers.IO`, builds K3 XML, and compiles the resulting model. Missing or invalid layout data falls back to QWERTY and logs a warning.
+Its `subtypePresets` map BCP-47 language tags to preferred layout IDs. The locale picker merges those presets with system locales. The subtype editor now exposes a separate searchable character-layout picker backed by the character-layout extension manifest, so users can select layouts such as Colemak, Dvorak, Workman, and alternative layouts without treating each layout as a separate language. The keyboard loader validates explicit selections against all IDs declared in the layout manifest, loads the selected JSON asset on `Dispatchers.IO`, builds K3 XML, and compiles the resulting model. Missing or invalid layout data falls back to QWERTY and logs a warning. CI also verifies that every declared character layout has a matching JSON asset.
 
 The current manifest includes an Arabic preset and the bundled `arabic.json` character layout. This is layout support, not Arabic spell-check or Arabic word prediction.
 
