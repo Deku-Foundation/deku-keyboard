@@ -135,6 +135,7 @@
     <string name="settings__localization__language_pack_summary" comment="Summary of preference item for adding a new language pack">Experimental: manage extensions that add support for specific languages (shape-based Chinese input for now)</string>
     <string name="settings__localization__language_pack_info">Standard typing languages and character layouts are bundled with Deku Keyboard and configured in Languages &amp; layouts. Language packs are optional extensions for specialized input methods. Import only language packs from sources you trust.</string>
     <string name="settings__localization__active_language">Active language</string>
+    <string name="settings__localization__loading">Loading language settings…</string>
 
     <string name="settings__localization__subtype_edit_title" comment="Title of subtype dialog when editing an existing subtype">Edit subtype</string>
     <string name="settings__localization__subtype_locale" comment="Label for locale dropdown in subtype dialog">Primary language</string>
