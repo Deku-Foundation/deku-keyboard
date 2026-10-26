@@ -84,7 +84,13 @@ class BundledKeyboardPopupMappingIntegrationTest : FunSpec({
             )
             mappingFile.isFile shouldBe true
             val mapping = Json.parseToJsonElement(mappingFile.readText(Charsets.UTF_8)).jsonObject
-            mapping["all"]?.jsonObject?.isNotEmpty() shouldBe true
+            // Some valid maps intentionally apply only to a scoped input context (for example,
+            // URI/domain suggestions for the Neo2 layout). Validate that at least one supported
+            // group exists, rather than requiring a general "all" group in every map.
+            (
+                mapping["all"]?.jsonObject?.isNotEmpty() == true ||
+                    mapping["uri"]?.jsonObject?.isNotEmpty() == true
+            ) shouldBe true
         }
     }
 
