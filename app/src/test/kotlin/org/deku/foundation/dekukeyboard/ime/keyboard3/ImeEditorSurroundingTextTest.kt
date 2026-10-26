@@ -38,9 +38,16 @@ class ImeEditorSurroundingTextTest : FunSpec({
         result?.textAfter shouldBe "bc"
     }
 
-    test("rejects invalid selection offsets so the caller can use the compatibility fallback") {
+    test("supports a reversed selection") {
+        val result = splitSurroundingText("abcde", 4, 1)
+
+        result?.textBefore shouldBe "a"
+        result?.textSelected shouldBe "bcd"
+        result?.textAfter shouldBe "e"
+    }
+
+    test("rejects offsets outside the returned text so the caller can use the compatibility fallback") {
         splitSurroundingText("abc", -1, 2) shouldBe null
-        splitSurroundingText("abc", 2, 1) shouldBe null
         splitSurroundingText("abc", 0, 4) shouldBe null
     }
 })

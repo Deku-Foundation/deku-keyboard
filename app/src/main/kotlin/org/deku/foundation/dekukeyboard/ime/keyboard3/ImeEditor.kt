@@ -64,13 +64,17 @@ internal fun splitSurroundingText(
     selectionStart: Int,
     selectionEnd: Int,
 ): K3SurroundingText? {
-    if (selectionStart !in 0..text.length || selectionEnd !in selectionStart..text.length) {
+    if (selectionStart !in 0..text.length || selectionEnd !in 0..text.length) {
         return null
     }
+    // InputConnection permits reversed selections; split by the actual text offsets rather than
+    // assuming the selection anchor is always the lower index.
+    val selectionMin = minOf(selectionStart, selectionEnd)
+    val selectionMax = maxOf(selectionStart, selectionEnd)
     return K3SurroundingText(
-        textBefore = text.substring(0, selectionStart),
-        textSelected = text.substring(selectionStart, selectionEnd),
-        textAfter = text.substring(selectionEnd),
+        textBefore = text.substring(0, selectionMin),
+        textSelected = text.substring(selectionMin, selectionMax),
+        textAfter = text.substring(selectionMax),
     )
 }
 
