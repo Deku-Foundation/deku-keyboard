@@ -286,10 +286,6 @@ class DekuImeService : LifecycleInputMethodService() {
 
         WindowCompat.setDecorFitsSystemWindows(window.window!!, false)
         windowController.onConfigurationChanged(resources.configuration)
-        windowController.activeWindowConfig.collectLatestIn(lifecycleScope) {
-            // TODO update inputMethod state
-        }
-
         combine(
             systemLocalesFlow,
             subtypeManager.activeSubtypeFlow,

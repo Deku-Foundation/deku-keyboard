@@ -18,6 +18,7 @@ package org.deku.foundation.dekukeyboard.ime.keyboard3
 
 import android.content.ClipDescription
 import android.content.ContentUris
+import android.os.Build
 import android.os.SystemClock
 import android.view.KeyCharacterMap
 import android.view.KeyEvent
@@ -54,6 +55,25 @@ internal fun removeLeadingCodePoint(text: String): String {
     return text.substring(text.offsetByCodePoints(0, 1))
 }
 
+/**
+ * Splits the text and selection indices returned by InputConnection.getSurroundingText().
+ * Invalid indices are rejected so callers can safely fall back to individual cursor queries.
+ */
+internal fun splitSurroundingText(
+    text: String,
+    selectionStart: Int,
+    selectionEnd: Int,
+): K3SurroundingText? {
+    if (selectionStart !in 0..text.length || selectionEnd !in selectionStart..text.length) {
+        return null
+    }
+    return K3SurroundingText(
+        textBefore = text.substring(0, selectionStart),
+        textSelected = text.substring(selectionStart, selectionEnd),
+        textAfter = text.substring(selectionEnd),
+    )
+}
+
 open class ImeEditor(
     val ic: WeakReference<InputConnection>,
     val info: DekuEditorInfo,
@@ -67,21 +87,26 @@ open class ImeEditor(
 
     fun getSurroundingText(charsBefore: Int, charsAfter: Int): K3SurroundingText {
         val ic = ic.get() ?: return K3SurroundingText.Empty
-        // TODO maybe use eet for getSurroundingText??
-//        val eet = ic.getExtractedText(
-//            ExtractedTextRequest().apply {
-//                token = -1
-//                flags = 0
-//                hintMaxLines = 10
-//                hintMaxChars = 10000
-//            },
-//            0,
-//        )
-//        eet.
-        val textBeforeCursor = ic.getTextBeforeCursor(charsBefore, 0) ?: return K3SurroundingText.Empty
-        val textAfterCursor = ic.getTextAfterCursor(charsAfter, 0) ?: return K3SurroundingText.Empty
+        // Android 12+ can return one consistent surrounding-text snapshot in one IPC call.
+        // Some host InputConnections do not implement the protocol, so retain the legacy fallback.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val snapshot = runCatching {
+                ic.getSurroundingText(charsBefore, charsAfter, 0)
+            }.getOrNull()
+            snapshot?.let {
+                splitSurroundingText(
+                    text = it.text.toString(),
+                    selectionStart = it.selectionStart,
+                    selectionEnd = it.selectionEnd,
+                )
+            }?.let { return it }
+        }
+
+        val textBeforeCursor = ic.getTextBeforeCursor(charsBefore, 0)
+            ?: return K3SurroundingText.Empty
+        val textAfterCursor = ic.getTextAfterCursor(charsAfter, 0)
+            ?: return K3SurroundingText.Empty
         val textSelected = ic.getSelectedText(0) ?: ""
-        //val surroundingText = TextUtils.concat(textBeforeCursor, textSelected, textAfterCursor)
         return K3SurroundingText(
             textBefore = textBeforeCursor.toString(),
             textSelected = textSelected.toString(),
