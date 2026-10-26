@@ -39,8 +39,8 @@ jobs:
           )
 
           def replace_text(text, key, value):
-              pattern = re.compile(
-                  r'(<string\\b(?=[^>]*\\bname=["\\\']' + re.escape(key) +
+                  r'(<string\b(?=[^>]*\bname="' + re.escape(key) +
+                  r'")[^>]*>).*?(</string>)',
                   r'["\\\'])[^>]*>).*?(</string>)',
                   re.DOTALL,
               )
@@ -60,8 +60,8 @@ jobs:
           )
 
           for key in ("ext__home__visit_store",):
-              pattern = re.compile(
-                  r'^[ \\t]*<string\\b(?=[^>]*\\bname=["\\\']' + re.escape(key) +
+                  r'^[ \t]*<string\b(?=[^>]*\bname="' + re.escape(key) +
+                  r'")[^>]*>.*?</string>[ \t]*(?:\r?\n|$)',
                   r'["\\\'])[^>]*>.*?</string>[ \\t]*(?:\\r?\\n|$)',
                   re.MULTILINE | re.DOTALL,
               )
@@ -74,8 +74,8 @@ jobs:
               text = file.read_text(encoding="utf-8")
               before = text
               for key in keys:
-                  pattern = re.compile(
-                      r'^[ \\t]*<string\\b(?=[^>]*\\bname=["\\\']' + re.escape(key) +
+                      r'^[ \t]*<string\b(?=[^>]*\bname="' + re.escape(key) +
+                      r'")[^>]*>.*?</string>[ \t]*(?:\r?\n|$)',
                       r'["\\\'])[^>]*>.*?</string>[ \\t]*(?:\\r?\\n|$)',
                       re.MULTILINE | re.DOTALL,
                   )
