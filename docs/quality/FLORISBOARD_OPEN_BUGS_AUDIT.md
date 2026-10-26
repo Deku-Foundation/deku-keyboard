@@ -140,7 +140,7 @@ Do not close issues in the upstream FlorisBoard repository from this independent
 
 ## Source-review findings
 
-- **[#3335 — Large selection truncated by Smartbar Copy](https://github.com/florisboard/florisboard/issues/3335):** the Smartbar Copy path used `state.content.surroundingText.textSelected`, a cached selection snapshot. The current `dev` patch now reads the selection directly from the active `InputConnection` at the moment Copy is invoked, preserving the internal-only clipboard path and avoiding fallback to stale cached text. A focused JVM test covers a 128 KiB selection returned by the live connection. Status: **patch committed; waiting for CI and manual reproduction in Joplin/Obsidian or equivalent editors**.
+- **[#3335 — Large selection truncated by Smartbar Copy](https://github.com/florisboard/florisboard/issues/3335):** the Smartbar Copy and Cut paths used `state.content.surroundingText.textSelected`, a cached selection snapshot. The current `dev` patch reads the selection directly from the active `InputConnection` at action time, preserving the internal-only clipboard path and avoiding fallback to stale cached text. A focused JVM test covers a 128 KiB selection returned by the live connection. Status: **patch committed; waiting for CI and manual reproduction in Joplin/Obsidian or equivalent editors**.
 
 ## Completion criteria
 
