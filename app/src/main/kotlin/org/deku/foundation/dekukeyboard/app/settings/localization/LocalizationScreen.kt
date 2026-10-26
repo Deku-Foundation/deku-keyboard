@@ -42,6 +42,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import org.deku.foundation.dekukeyboard.R
+import org.deku.foundation.dekukeyboard.app.DekuPreferenceStore
 import org.deku.foundation.dekukeyboard.app.LocalNavController
 import org.deku.foundation.dekukeyboard.app.Routes
 import org.deku.foundation.dekukeyboard.app.enumDisplayEntriesOf
@@ -76,6 +77,7 @@ fun LocalizationScreen() = DekuScreen {
 
     val navController = LocalNavController.current
     val context = LocalContext.current
+    val prefs by DekuPreferenceStore
     val subtypeManager by context.subtypeManager()
     val displayLanguageNamesIn by prefs.localization.displayLanguageNamesIn.collectAsState()
     val subtypesReady by subtypeManager.isInitializedFlow.collectAsState()
