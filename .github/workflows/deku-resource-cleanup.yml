@@ -1,0 +1,104 @@
+name: One-time localization cleanup for Deku
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/deku-resource-cleanup.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: deku-keyboard-localization-cleanup
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    if: github.repository == 'Deku-Foundation/deku-keyboard'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: true
+
+      - name: Remove obsolete add-ons-store copy from localized resources
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          root = Path.cwd()
+          keys = (
+              "ext__home__info",
+              "ext__home__visit_store",
+              "ext__update_box__internet_permission_hint",
+          )
+
+          def replace_text(text, key, value):
+              pattern = re.compile(
+                  r'(<string\\b(?=[^>]*\\bname=["\\\']' + re.escape(key) +
+                  r'["\\\'])[^>]*>).*?(</string>)',
+                  re.DOTALL,
+              )
+              return pattern.sub(lambda m: m.group(1) + value + m.group(2), text, count=1)
+
+          base = root / "app/src/main/res/values/strings.xml"
+          base_text = base.read_text(encoding="utf-8")
+          base_text = replace_text(
+              base_text,
+              "ext__home__info",
+              "Import extension files from sources you trust. The Deku online add-ons service is not available yet.",
+          )
+          base_text = replace_text(
+              base_text,
+              "ext__update_box__internet_permission_hint",
+              "Until Deku offers an online extension update service, check releases from the extension publisher before updating manually.",
+          )
+
+          for key in ("ext__home__visit_store",):
+              pattern = re.compile(
+                  r'^[ \\t]*<string\\b(?=[^>]*\\bname=["\\\']' + re.escape(key) +
+                  r'["\\\'])[^>]*>.*?</string>[ \\t]*(?:\\r?\\n|$)',
+                  re.MULTILINE | re.DOTALL,
+              )
+              base_text = pattern.sub("", base_text)
+
+          base.write_text(base_text, encoding="utf-8")
+
+          removed = 0
+          for file in (root / "app/src/main/res").glob("values-*/strings.xml"):
+              text = file.read_text(encoding="utf-8")
+              before = text
+              for key in keys:
+                  pattern = re.compile(
+                      r'^[ \\t]*<string\\b(?=[^>]*\\bname=["\\\']' + re.escape(key) +
+                      r'["\\\'])[^>]*>.*?</string>[ \\t]*(?:\\r?\\n|$)',
+                      re.MULTILINE | re.DOTALL,
+                  )
+                  text, count = pattern.subn("", text)
+                  removed += count
+              if text != before:
+                  file.write_text(text, encoding="utf-8")
+                  print(f"Updated {file.relative_to(root)}")
+
+          print(f"Updated base strings and removed {removed} obsolete localized store strings.")
+          PY
+
+      - name: Commit localization cleanup
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/src/main/res/values/strings.xml app/src/main/res/values-*/strings.xml
+          if git diff --cached --quiet; then
+            echo "No localization changes were required."
+            exit 0
+          fi
+          git commit -m "Remove obsolete upstream add-ons-store strings"
+          git push origin HEAD:main
