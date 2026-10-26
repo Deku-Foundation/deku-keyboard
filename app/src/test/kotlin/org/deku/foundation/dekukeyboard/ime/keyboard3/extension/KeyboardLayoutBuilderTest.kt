@@ -54,7 +54,7 @@ class KeyboardLayoutBuilderTest : FunSpec({
         xml shouldContain """<key id="deku-layout-r0-k0" output="ض" />"""
         xml shouldContain """<key id="deku-layout-r0-k1" output="ص" />"""
         xml shouldContain """<row keys="base-to-shift deku-layout-r2-k0 deku-layout-r2-k1 bksp" />"""
-        xml shouldContain """<row keys="symbol-1 comma space enter" />"""
+        Regex("""<row\s+keys="symbol-1 comma space enter"\s*/>""").containsMatchIn(xml) shouldBe true
     }
 
     test("uses the Arabic symbol-toggle label for Arabic layouts") {
