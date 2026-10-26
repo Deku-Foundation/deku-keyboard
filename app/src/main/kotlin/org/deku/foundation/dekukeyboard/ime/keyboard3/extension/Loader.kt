@@ -34,6 +34,7 @@ import org.k3lp.lib.text.WillRequireMigrationToRichErrors
 import org.k3lp.model.K3CompileResult
 import org.k3lp.model.K3ImpliedImports
 import org.k3lp.model.K3ImportResolver
+import org.k3lp.model.K3Model
 import org.k3lp.model.compileToModel
 
 private const val FOUNDATION_EXTENSION_ID = "org.deku.foundation.dekukeyboard.k3.foundation"
@@ -82,6 +83,9 @@ suspend fun loadFoundationKeyboard(imeController: ImeController, storage: Storag
     // Reuse small static popup-map assets on language switches; only one locale map is compiled
     // into the active model, and failed reads fall back to the built-in keyboard without crashing.
     val popupMappingJsonCache = mutableMapOf<String, String>()
+    // Switching back to a recently used language should be instant: compiled K3 models are
+    // immutable inputs to the IME controller, so keep a small access-ordered cache to bound memory.
+    val compiledModelCache = java.util.LinkedHashMap<String, K3Model>(8, 0.75f, true)
 
     app.subtypeManager.value.activeSubtypeFlow.collectLatest { subtype ->
         val languageTag = subtype.primaryLocale.languageTag()
@@ -91,6 +95,15 @@ suspend fun loadFoundationKeyboard(imeController: ImeController, storage: Storag
             subtype.characterLayoutId,
             availableCharacterLayoutIds,
         )
+        val popupMappingId = resolvePopupMappingId(localizationManifest, languageTag)
+        val cacheKey = "$languageTag|$layoutId|${popupMappingId.orEmpty()}"
+        compiledModelCache[cacheKey]?.let { cachedModel ->
+            imeController.updateState {
+                switchModel(cachedModel)
+            }
+            return@collectLatest
+        }
+
         val layoutJson = if (layoutId == DEFAULT_CHARACTER_LAYOUT) {
             fallbackLayoutJson
         } else {
@@ -103,7 +116,6 @@ suspend fun loadFoundationKeyboard(imeController: ImeController, storage: Storag
             }.getOrDefault(fallbackLayoutJson)
         }
 
-        val popupMappingId = resolvePopupMappingId(localizationManifest, languageTag)
         val popupMappingJson = popupMappingId?.let { mappingId ->
             popupMappingJsonCache[mappingId] ?: runCatching {
                 loadAssetText(
@@ -142,6 +154,11 @@ suspend fun loadFoundationKeyboard(imeController: ImeController, storage: Storag
             flogError { report.cause?.stackTraceToString() ?: report.toString() }
         }
         if (result is K3CompileResult.Success) {
+            compiledModelCache[cacheKey] = result.model
+            while (compiledModelCache.size > 8) {
+                val eldestKey = compiledModelCache.entries.iterator().next().key
+                compiledModelCache.remove(eldestKey)
+            }
             imeController.updateState {
                 switchModel(result.model)
             }
