@@ -93,8 +93,8 @@ internal fun buildKeyboard3Xml(
         match.groupValues[1] + xmlAttribute(Locale.forLanguageTag(languageTag).toLanguageTag()) + match.groupValues[2]
     }
 
-    xml = replaceTouchLayerRows(xml, "base", effectiveRows, shifted = false, isRtl = isRtl)
-    xml = replaceTouchLayerRows(xml, "shift", effectiveRows, shifted = true, isRtl = isRtl)
+    xml = replaceTouchLayerRows(xml, "base", effectiveRows, shifted = false, isRtl = isRtl, languageTag = languageTag, existingKeyIdByOutput = existingKeyIdByOutput)
+    xml = replaceTouchLayerRows(xml, "shift", effectiveRows, shifted = true, isRtl = isRtl, languageTag = languageTag, existingKeyIdByOutput = existingKeyIdByOutput)
     xml = applyLanguageSpecificLabels(xml, languageTag)
     return xml
 }
@@ -105,6 +105,8 @@ private fun replaceTouchLayerRows(
     layoutRows: List<List<String>>,
     shifted: Boolean,
     isRtl: Boolean,
+    languageTag: String,
+    existingKeyIdByOutput: Map<String, String>,
 ): String {
     val layerPattern = Regex("""(<layer\s+id="$layerId">)([\s\S]*?)(</layer>)""")
     require(layerPattern.containsMatchIn(xml)) { "K3 touch layout has no '$layerId' layer" }
@@ -129,8 +131,10 @@ private fun replaceTouchLayerRows(
                     oldRow.value
                 }
             } else {
-                val ids = layoutRows[rowIndex].indices.map { column ->
-                    keyId(rowIndex, column, shifted)
+                val ids = layoutRows[rowIndex].mapIndexed { column, label ->
+                    resolveLayoutKeyId(
+                        label, rowIndex, column, shifted, languageTag, existingKeyIdByOutput
+                    )
                 }
                 val keys = when {
                     rowIndex == 2 && isRtl ->
@@ -162,8 +166,27 @@ private fun applyLanguageSpecificLabels(xml: String, languageTag: String): Strin
     }
 }
 
-private fun keyId(row: Int, column: Int, shifted: Boolean): String =
-    "deku-r$row-k$column" + if (shifted) "-shift" else ""
+private fun resolveLayoutKeyId(
+    label: String,
+    row: Int,
+    column: Int,
+    shifted: Boolean,
+    languageTag: String,
+    existingKeyIdByOutput: Map<String, String>,
+): String {
+    val output = if (shifted) shiftLabel(label, languageTag) else label
+    return existingKeyIdByOutput[output] ?: generatedKeyId(row, column, shifted)
+}
+
+private fun generatedKeyId(row: Int, column: Int, shifted: Boolean): String =
+    "deku-layout-r$row-k$column" + if (shifted) "-shift" else ""
+
+private fun unescapeXmlAttribute(value: String): String =
+    value.replace("&quot;", "\\\"")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&apos;", "'")
+        .replace("&amp;", "&")
 
 private fun shiftLabel(label: String, languageTag: String): String {
     if (label == "ß") return "ẞ"
