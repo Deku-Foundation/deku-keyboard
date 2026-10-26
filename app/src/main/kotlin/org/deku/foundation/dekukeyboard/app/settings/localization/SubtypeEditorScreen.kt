@@ -45,6 +45,7 @@ import org.deku.foundation.dekukeyboard.lib.DekuLocale
 import org.deku.foundation.dekukeyboard.lib.compose.DekuScreen
 import org.deku.foundation.dekukeyboard.lib.compose.stringRes
 import org.deku.foundation.dekukeyboard.subtypeManager
+import dev.patrickgold.jetpref.datastore.model.collectAsState
 
 @Composable
 fun SubtypeEditorScreen(id: Long?) = DekuScreen {
@@ -61,7 +62,9 @@ fun SubtypeEditorScreen(id: Long?) = DekuScreen {
     val context = LocalContext.current
     val subtypeManager by context.subtypeManager()
     val lifecycleOwner = LocalLifecycleOwner.current
-    val existingSubtype = remember(id, subtypeManager.subtypes) {
+    val configuredSubtypes by subtypeManager.subtypesFlow.collectAsState()
+    val editorBackStackEntry = remember(navController) { navController.currentBackStackEntry }
+    val existingSubtype = remember(id, configuredSubtypes) {
         id?.let(subtypeManager::getSubtypeById)
     }
 
@@ -79,7 +82,7 @@ fun SubtypeEditorScreen(id: Long?) = DekuScreen {
     val selectedLocale = remember(selectedLanguageTag) {
         selectedLanguageTag.takeIf { it.isNotBlank() }?.let { DekuLocale.fromTag(it) }
     }
-    val localeResult = navController.currentBackStackEntry
+    val localeResult = editorBackStackEntry
         ?.savedStateHandle
         ?.getLiveData<String>(SelectLocaleScreenResultLanguageTag)
 
