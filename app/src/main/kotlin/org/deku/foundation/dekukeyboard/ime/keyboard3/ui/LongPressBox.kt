@@ -17,6 +17,7 @@
 package org.deku.foundation.dekukeyboard.ime.keyboard3.ui
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -28,8 +29,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -58,14 +57,6 @@ fun LongPressBox(
     val showSimplePopup = longPress.shouldShowSimplePopup()
     val showExtendedPopup = longPress.shouldShowExtendedPopup()
     val isPopupShowing = showSimplePopup || showExtendedPopup
-    val lastSimpleBounds = remember { mutableStateOf(Rect.Zero) }
-    val lastExtendedBounds = remember { mutableStateOf(Rect.Zero) }
-    LaunchedEffect(longPress.simpleBounds) {
-        if (!longPress.simpleBounds.isEmpty) lastSimpleBounds.value = longPress.simpleBounds
-    }
-    LaunchedEffect(longPress.extendedBounds) {
-        if (!longPress.extendedBounds.isEmpty) lastExtendedBounds.value = longPress.extendedBounds
-    }
 
     DisposableEffect(isPopupShowing) {
         val delta = if (isPopupShowing) 1 else 0
@@ -77,13 +68,10 @@ fun LongPressBox(
 
     AnimatedVisibility(
         visible = showSimplePopup,
-        modifier = modifier.layoutNormalized(
-            if (showSimplePopup) longPress.simpleBounds else lastSimpleBounds.value,
-        ),
+        modifier = modifier.layoutNormalized(longPress.simpleBounds),
         enter = fadeIn(animationSpec = tween(90)) +
             scaleIn(initialScale = 0.94f, animationSpec = tween(90)),
-        exit = fadeOut(animationSpec = tween(70)) +
-            scaleOut(targetScale = 0.98f, animationSpec = tween(70)),
+        exit = ExitTransition.None,
     ) {
         SnyggBox(
             elementName = DekuImeUi.KeyPopupBox.elementName,
@@ -111,13 +99,10 @@ fun LongPressBox(
 
     AnimatedVisibility(
         visible = showExtendedPopup,
-        modifier = modifier.layoutNormalized(
-            if (showExtendedPopup) longPress.extendedBounds else lastExtendedBounds.value,
-        ),
+        modifier = modifier.layoutNormalized(longPress.extendedBounds),
         enter = fadeIn(animationSpec = tween(100)) +
             scaleIn(initialScale = 0.96f, animationSpec = tween(100)),
-        exit = fadeOut(animationSpec = tween(75)) +
-            scaleOut(targetScale = 0.98f, animationSpec = tween(75)),
+        exit = ExitTransition.None,
     ) {
         SnyggBox(
             elementName = DekuImeUi.KeyPopupBox.elementName,
