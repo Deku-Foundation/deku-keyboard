@@ -95,7 +95,7 @@ import json
               raise SystemExit("The upstream add-ons store endpoint must stay disabled until Deku owns a service.")
 
           project_settings = (root / "settings.gradle.kts").read_text(encoding="utf-8")
-          if not re.search(r'rootProject\\.name\\s*=\\s*"deku-keyboard"', project_settings):
+          if 'rootProject.name = "deku-keyboard"' not in project_settings:
               raise SystemExit("Gradle root project name must stay lowercase and hyphenated as deku-keyboard.")
 
           urls = (resources / "values/strings_dont_translate.xml").read_text(encoding="utf-8")
@@ -118,7 +118,7 @@ import json
               elif not (layout_root / f"{layout_id}.json").is_file():
                   missing_layouts.append(f"{locale_tag}: {layout_id}.json")
           if missing_layouts:
-              raise SystemExit("Locale presets reference missing character layouts:\\n" + "\\n".join(missing_layouts))
+              raise SystemExit("Locale presets reference missing character layouts:\n" + "\n".join(missing_layouts))
 
           print(f"Verified Deku package identity, {len(xml_files)} Android XML resources, and {len(presets)} locale presets.")
           print(f"All {len({p.get('preferred', {}).get('characters', '').rsplit(':', 1)[-1] for p in presets})} referenced character layouts exist.")
