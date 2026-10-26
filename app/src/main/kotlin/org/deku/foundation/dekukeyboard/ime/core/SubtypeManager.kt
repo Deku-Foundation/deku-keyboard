@@ -19,8 +19,10 @@ package org.deku.foundation.dekukeyboard.ime.core
 import android.content.Context
 import org.deku.foundation.dekukeyboard.app.DekuPreferenceStore
 import org.deku.foundation.dekukeyboard.lib.devtools.flogDebug
+import org.deku.foundation.dekukeyboard.lib.devtools.flogWarning
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -39,7 +41,7 @@ val SubtypeJsonConfig = Json {
  */
 class SubtypeManager(context: Context) {
     private val prefs by DekuPreferenceStore
-    private val scope = CoroutineScope(Dispatchers.Default)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     val subtypesFlow: StateFlow<List<Subtype>>
         field = MutableStateFlow(listOf())
@@ -58,8 +60,16 @@ class SubtypeManager(context: Context) {
     init {
         prefs.localization.subtypes.asFlow().collectLatestIn(scope) { listRaw ->
             flogDebug { listRaw }
+            // A damaged/legacy preference must not cancel this collector permanently. Recover to an
+            // empty editable list, log the data problem, and let the next save replace the bad value.
             val list = if (listRaw.isNotBlank()) {
-                SubtypeJsonConfig.decodeFromString<List<Subtype>>(listRaw)
+                runCatching { SubtypeJsonConfig.decodeFromString<List<Subtype>>(listRaw) }
+                    .onFailure { error ->
+                        flogWarning {
+                            "Malformed saved subtype preferences; opening an empty language list: ${error.message}"
+                        }
+                    }
+                    .getOrDefault(emptyList())
             } else {
                 emptyList()
             }
@@ -69,9 +79,18 @@ class SubtypeManager(context: Context) {
         }
     }
 
-    private fun persistNewSubtypeList(list: List<Subtype>) = scope.launch {
-        val listRaw = SubtypeJsonConfig.encodeToString(list)
-        prefs.localization.subtypes.set(listRaw)
+    private fun persistNewSubtypeList(list: List<Subtype>) {
+        // Publish the latest value immediately so rapid edits cannot race against a delayed DataStore
+        // emission and overwrite one another with an older snapshot.
+        subtypes = list
+        scope.launch {
+            runCatching {
+                val listRaw = SubtypeJsonConfig.encodeToString(list)
+                prefs.localization.subtypes.set(listRaw)
+            }.onFailure { error ->
+                flogWarning { "Failed to persist language configuration: ${error.message}" }
+            }
+        }
     }
 
     /**
@@ -81,7 +100,7 @@ class SubtypeManager(context: Context) {
      * @return The active subtype or null, if the subtype list is empty or no new active subtype
      *  could be determined.
      */
-    private fun evaluateActiveSubtype(list: List<Subtype>) = scope.launch {
+    private suspend fun evaluateActiveSubtype(list: List<Subtype>) {
         val activeSubtypeId = prefs.localization.activeSubtypeId.get()
         val subtype = list.find { it.id == activeSubtypeId } ?: list.firstOrNull() ?: Subtype.DEFAULT
         if (subtype.id != activeSubtypeId) {
@@ -176,7 +195,7 @@ class SubtypeManager(context: Context) {
                 }
             }
             persistNewSubtypeList(newSubtypeList)
-            evaluateActiveSubtype(newSubtypeList)
+            scope.launch { evaluateActiveSubtype(newSubtypeList) }
         }
     }
 
