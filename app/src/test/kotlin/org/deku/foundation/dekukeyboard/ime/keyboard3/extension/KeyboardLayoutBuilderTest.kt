@@ -185,4 +185,71 @@ class KeyboardLayoutBuilderTest : FunSpec({
         ) shouldBe "qwerty"
     }
 
+
+    test("resolves an exact locale popup mapping before falling back to language") {
+        val manifest = """
+            {
+              "popupMappings": [{"id":"default"}, {"id":"ar"}, {"id":"ar-dz"}, {"id":"en"}],
+              "subtypePresets": [
+                {"languageTag":"ar","popupMapping":"org.deku.foundation.dekukeyboard.localization:ar"},
+                {"languageTag":"ar-DZ","popupMapping":"org.deku.foundation.dekukeyboard.localization:ar-dz"},
+                {"languageTag":"en-US","popupMapping":"org.deku.foundation.dekukeyboard.localization:en"}
+              ]
+            }
+        """.trimIndent()
+
+        resolvePopupMappingId(manifest, "ar-DZ") shouldBe "ar-dz"
+        resolvePopupMappingId(manifest, "ar-MA") shouldBe "ar"
+        resolvePopupMappingId(manifest, "fr-FR") shouldBe "default"
+    }
+
+    test("wires Arabic popup variants to base and shifted keys without mirroring rows") {
+        val baseXml = """
+            <keyboard3 locale="en">
+              <keys>
+                <key id="base-to-shift" output="@k3:action/shift" />
+                <key id="shift-to-base" output="@k3:action/shift" />
+                <key id="bksp" output="@k3:action/backspace" />
+              </keys>
+              <layers formId="touch">
+                <layer id="base"><row keys="a"/><row keys="b"/><row keys="c"/><row keys="symbol-1 comma space enter"/></layer>
+                <layer id="shift"><row keys="A"/><row keys="B"/><row keys="C"/><row keys="symbol-1 comma space enter"/></layer>
+              </layers>
+            </keyboard3>
+        """.trimIndent()
+        val layoutJson = """
+            [[{"label":"ا"},{"label":"ب"}],[{"label":"س"},{"label":"ش"}],[{"label":"ل"},{"label":"ي"}]]
+        """.trimIndent()
+        val popupJson = """
+            {
+              "all": {
+                "ا": {
+                  "main": {"code": 1571, "label": "أ"},
+                  "relevant": [
+                    {"code": 1570, "label": "آ"},
+                    {"code": 1569, "label": "ء"},
+                    {"code": 1573, "label": "إ"}
+                  ]
+                },
+                "ب": {
+                  "relevant": [{"code": 1662, "label": "پ"}]
+                }
+              },
+              "uri": {"~right": {"main": {"code": -255, "label": ".sa"}}}
+            }
+        """.trimIndent()
+
+        val xml = buildKeyboard3Xml(baseXml, layoutJson, "ar", popupJson)
+
+        assertWellFormedXml(xml)
+        xml shouldContain """<key id="deku-layout-r0-k0-popup-0" output="أ" />"""
+        xml shouldContain """<key id="deku-layout-r0-k0-popup-1" output="آ" />"""
+        xml shouldContain """<key id="deku-layout-r0-k0-popup-2" output="ء" />"""
+        xml shouldContain """longPressDefaultKeyId="deku-layout-r0-k0-popup-0""""
+        xml shouldContain """longPressKeyIds="deku-layout-r0-k0-popup-0 deku-layout-r0-k0-popup-1 deku-layout-r0-k0-popup-2 deku-layout-r0-k0-popup-3""""
+        xml shouldContain """<row keys="base-to-shift deku-layout-r2-k0 deku-layout-r2-k1 bksp" />"""
+        xml shouldContain """<row keys="symbol-1 comma space enter" />"""
+        xml.contains("output=\".sa\"") shouldBe false
+    }
+
 })
