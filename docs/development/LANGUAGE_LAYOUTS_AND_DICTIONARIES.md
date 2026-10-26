@@ -24,14 +24,11 @@ The K3 layout builder therefore treats each layout JSON row as an ordered set of
 
 The current bundled word-frequency asset at `app/src/main/assets/ime/dict/data.json` is an English wordlist. It must not be presented as an Arabic, Persian, French, or German dictionary.
 
-The Latin provider now:
-- builds an immutable two-character prefix index once when the English wordlist is loaded;
-- returns bounded local prefix-completion candidates for English compositions;
-- respects the existing `allowPossiblyOffensive` setting for the known offensive terms currently listed in the provider;
-- returns no English candidates and no English dictionary verdict for non-English primary subtypes;
-- does not auto-commit suggestions or send text to a network service.
+The Latin provider builds an immutable two-character prefix index once and returns bounded local prefix completions for English compositions. It does not auto-commit or send text to a network service, and it does not treat the English wordlist as a dictionary for other locales.
 
-This is a conservative baseline, not a substitute for language-specific dictionaries, typo correction, next-word prediction, or a learned personalized model. Adding each language's suggestion support requires a dictionary/model with a reviewed license, a documented asset format, memory/startup measurements, and regression tests. Keep language layout availability independent so users can type in a language even when no matching offline dictionary is installed.
+Arabic now has a separate `ArabicLanguageProvider`, selected for Arabic subtypes even when their saved provider ID predates this implementation. It uses the pinned 10,000-entry MSA/newswire word-frequency list under CC BY 4.0, performs Harakat/tatweel normalization, creates a local prefix index, and offers non-autocommitting completions. Unknown Arabic forms are treated as unspecified rather than misspellings because this list is not a complete morphological dictionary. The shipped data attribution is at `ime/dict/ar/ATTRIBUTION.txt` and in [ARABIC_DICTIONARY_ATTRIBUTION.md](ARABIC_DICTIONARY_ATTRIBUTION.md).
+
+This Arabic provider is an MSA baseline, not an Algerian Darija dictionary, not a full spell-checker, and not a language model. Additional languages need separately reviewed data/models, attribution, memory/startup measurements, and regression tests. Keep layout availability independent so users can type in a language even when no matching offline dictionary is installed.
 
 ## HeliBoard patterns worth adapting
 
