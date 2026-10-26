@@ -85,7 +85,7 @@ fun SelectLocaleScreen() = DekuScreen {
                     ?.jsonArray
                     ?.mapNotNull { preset ->
                         preset.jsonObject["languageTag"]?.jsonPrimitive?.contentOrNull
-                            ?.let(DekuLocale::fromTag)
+                            ?.let { tag -> DekuLocale.fromTag(tag) }
                     }
                     .orEmpty()
             }
