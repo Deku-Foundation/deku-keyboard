@@ -138,6 +138,10 @@ Do not close issues in the upstream FlorisBoard repository from this independent
 
 - **[#3294 — Android inline-suggestion inflation crash](https://github.com/florisboard/florisboard/issues/3294):** current code passed a mutable chip height directly to `InlineSuggestion.inflate`. The `dev` patch now accepts a positive height only when it is inside the provider's `InlinePresentationSpec` bounds, otherwise requests `WRAP_CONTENT`. It also catches documented invalid-state/argument failures per suggestion so one bad provider item does not cancel the whole inflation loop, and adds unit tests for unset, negative and out-of-range heights. Status: **patch committed; waiting for CI and Android 16/device verification**.
 
+## Source-review findings
+
+- **[#3335 — Large selection truncated by Smartbar Copy](https://github.com/florisboard/florisboard/issues/3335):** the Smartbar Copy path used `state.content.surroundingText.textSelected`, a cached selection snapshot. The current `dev` patch now reads the selection directly from the active `InputConnection` at the moment Copy is invoked, preserving the internal-only clipboard path and avoiding fallback to stale cached text. A focused JVM test covers a 128 KiB selection returned by the live connection. Status: **patch committed; waiting for CI and manual reproduction in Joplin/Obsidian or equivalent editors**.
+
 ## Completion criteria
 
 A report can be marked **fixed in Deku** only when there is a linked Deku commit/PR, regression-test evidence (or a documented reason why the path cannot be unit-tested), green CI, and manual device/app validation for behavior depending on Android IME lifecycle, ROMs, stylus/hardware keyboards or third-party editors.
