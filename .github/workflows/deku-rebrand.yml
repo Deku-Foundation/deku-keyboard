@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/deku-rebrand.yml"
+      - ".github/scripts/rebrand.py"
   workflow_dispatch:
 
 permissions:
