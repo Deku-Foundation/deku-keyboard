@@ -10,10 +10,23 @@ import kotlinx.serialization.json.jsonPrimitive
 
 private const val DEFAULT_CHARACTER_LAYOUT = "qwerty"
 
+internal fun parseCharacterLayoutIds(layoutManifestJson: String): Set<String> = runCatching {
+    Json.parseToJsonElement(layoutManifestJson)
+        .jsonObject["layouts"]?.jsonObject
+        ?.get("characters")?.jsonArray
+        ?.mapNotNull { layout ->
+            layout.jsonObject["id"]?.jsonPrimitive?.contentOrNull
+                ?.takeIf { it.matches(Regex("[A-Za-z0-9_-]+")) }
+        }
+        ?.toSet()
+        .orEmpty()
+}.getOrDefault(emptySet())
+
 internal fun resolveCharacterLayoutId(
     localizationManifestJson: String,
     languageTag: String,
     preferredCharacterLayoutId: String? = null,
+    availableCharacterLayoutIds: Set<String>? = null,
 ): String {
     val presets = runCatching {
         Json.parseToJsonElement(localizationManifestJson)
@@ -38,7 +51,7 @@ internal fun resolveCharacterLayoutId(
     val byLanguage = presets.firstOrNull { (tag, _) ->
         Locale.forLanguageTag(tag).language.equals(requestedLanguage, ignoreCase = true)
     }
-    val knownLayoutIds = presets.map { it.second }.toSet()
+    val knownLayoutIds = availableCharacterLayoutIds ?: presets.map { it.second }.toSet()
     val preferred = preferredCharacterLayoutId?.takeIf {
         it.matches(Regex("[A-Za-z0-9_-]+")) && it in knownLayoutIds
     }
