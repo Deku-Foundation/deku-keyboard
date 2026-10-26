@@ -24,6 +24,27 @@ class KeyboardLayoutBuilderTest : FunSpec({
         resolveCharacterLayoutId("""{"subtypePresets":[]}""", "xx-ZZ") shouldBe "qwerty"
     }
 
+    test("reverses row order and edge controls for right-to-left layouts") {
+        val baseXml = """
+            <keyboard3 locale="en">
+              <keys>
+                <key id="base-to-shift" output="@k3:action/shift" />
+                <key id="shift-to-base" output="@k3:action/shift" />
+                <key id="bksp" output="@k3:action/backspace" />
+              </keys>
+              <layers formId="touch">
+                <layer id="base"><row keys="a"/><row keys="b"/><row keys="c"/><row keys="symbol-1 comma space enter"/></layer>
+                <layer id="shift"><row keys="A"/><row keys="B"/><row keys="C"/><row keys="symbol-1 comma space enter"/></layer>
+              </layers>
+            </keyboard3>
+        """.trimIndent()
+        val layoutJson = """[[{"label":"ض"},{"label":"ص"}],[{"label":"ش"},{"label":"س"}],[{"label":"ذ"},{"label":"ء"}]]"""
+        val xml = buildKeyboard3Xml(baseXml, layoutJson, "ar-DZ")
+        xml shouldContain """<row keys="deku-r0-k0 deku-r0-k1" />"""
+        xml shouldContain """<row keys="bksp deku-r2-k0 deku-r2-k1 base-to-shift" />"""
+        xml shouldContain """<row keys="enter space comma symbol-1" />"""
+    }
+
     test("uses the Arabic symbol-toggle label for Arabic layouts") {
         val baseXml = """
             <keyboard3 locale="en">
