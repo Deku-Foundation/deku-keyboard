@@ -46,9 +46,12 @@ private const val DEFAULT_CHARACTER_LAYOUT = "qwerty"
 suspend fun loadFoundationKeyboard(imeController: ImeController, storage: Storage) {
     val app = DekuApplication.getHack()
 
-    // Do not compile the initial keyboard until preferences have loaded; otherwise a saved language
-    // can be overwritten by the default English subtype during application startup.
+    // Wait for both DataStore and the subtype collector before reading activeSubtypeFlow. The
+    // latter starts asynchronously, so checking only preferenceStoreLoaded can still compile the
+    // transient English default before the saved locale is resolved.
     app.preferenceStoreLoaded.first { it }
+    val subtypeManager = app.subtypeManager.value
+    subtypeManager.isInitializedFlow.first { it }
 
     suspend fun loadAssetText(path: String): String = withContext(Dispatchers.IO) {
         storage.readText(DekuRef.assets(path))
@@ -87,7 +90,7 @@ suspend fun loadFoundationKeyboard(imeController: ImeController, storage: Storag
     // immutable inputs to the IME controller, so keep a small access-ordered cache to bound memory.
     val compiledModelCache = java.util.LinkedHashMap<String, K3Model>(8, 0.75f, true)
 
-    app.subtypeManager.value.activeSubtypeFlow.collectLatest { subtype ->
+    subtypeManager.activeSubtypeFlow.collectLatest { subtype ->
         val languageTag = subtype.primaryLocale.languageTag()
         val layoutId = resolveCharacterLayoutId(
             localizationManifest,
