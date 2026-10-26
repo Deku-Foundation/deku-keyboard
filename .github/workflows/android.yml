@@ -20,6 +20,10 @@ on:
   pull_request:
     branches: [ main, dev, pre-release ]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
