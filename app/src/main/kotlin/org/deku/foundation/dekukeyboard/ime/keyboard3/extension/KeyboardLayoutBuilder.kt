@@ -73,16 +73,41 @@ internal fun buildKeyboard3Xml(
     val isRtl = isRightToLeftLanguage(languageTag)
     val effectiveRows = if (isRtl) rows.map { it.reversed() } else rows
 
-    val keyDefinitions = buildString {
-        for (rowIndex in 0..2) {
-            effectiveRows[rowIndex].forEachIndexed { columnIndex, label ->
-                val id = keyId(rowIndex, columnIndex, shifted = false)
-                append("        <key id=\"").append(id)
-                    .append("\" output=\"").append(xmlAttribute(label)).append("\" />\n")
-                val shiftedLabel = shiftLabel(label, languageTag)
-                append("        <key id=\"").append(keyId(rowIndex, columnIndex, shifted = true))
-                    .append("\" output=\"").append(xmlAttribute(shiftedLabel)).append("\" />\n")
+    val existingKeyIds = Regex("""<key\\s+id="([^"]+)"""")
+        .findAll(baseXml)
+        .map { it.groupValues[1] }
+        .toSet()
+    val existingKeyIdByOutput = Regex("""<key\\s+id="([^"]+)"[^>]*\\boutput="([^"]*)"[^>]*/>""")
+        .findAll(baseXml)
+        .mapNotNull { match ->
+            val output = unescapeXmlAttribute(match.groupValues[2])
+            if (output.isEmpty() || output.startsWith("@k3:action")) null
+            else output to match.groupValues[1]
+        }
+        .toMap()
+
+    val generatedKeys = linkedMapOf<String, String>()
+    for (rowIndex in 0..2) {
+        effectiveRows[rowIndex].forEachIndexed { columnIndex, label ->
+            val baseId = resolveLayoutKeyId(
+                label, rowIndex, columnIndex, shifted = false, languageTag, existingKeyIdByOutput
+            )
+            if (baseId !in existingKeyIds && !generatedKeys.containsKey(baseId)) {
+                generatedKeys[baseId] = label
             }
+            val shiftedLabel = shiftLabel(label, languageTag)
+            val shiftedId = resolveLayoutKeyId(
+                label, rowIndex, columnIndex, shifted = true, languageTag, existingKeyIdByOutput
+            )
+            if (shiftedId !in existingKeyIds && !generatedKeys.containsKey(shiftedId)) {
+                generatedKeys[shiftedId] = shiftedLabel
+            }
+        }
+    }
+    val keyDefinitions = buildString {
+        generatedKeys.forEach { (id, output) ->
+            append("        <key id=\\\"").append(id)
+                .append("\\\" output=\\\"").append(xmlAttribute(output)).append("\\\" />\\n")
         }
     }
 
