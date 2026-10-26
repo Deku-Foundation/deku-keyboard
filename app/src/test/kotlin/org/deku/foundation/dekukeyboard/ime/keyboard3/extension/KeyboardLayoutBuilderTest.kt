@@ -248,7 +248,7 @@ class KeyboardLayoutBuilderTest : FunSpec({
         xml shouldContain """longPressDefaultKeyId="deku-layout-r0-k0-popup-0""""
         xml shouldContain """longPressKeyIds="deku-layout-r0-k0-popup-0 deku-layout-r0-k0-popup-1 deku-layout-r0-k0-popup-2 deku-layout-r0-k0-popup-3""""
         xml shouldContain """<row keys="base-to-shift deku-layout-r2-k0 deku-layout-r2-k1 bksp" />"""
-        xml shouldContain """<row keys="symbol-1 comma space enter" />"""
+        Regex("""<row\s+keys="symbol-1 comma space enter"\s*/>""").containsMatchIn(xml) shouldBe true
         xml.contains("output=\".sa\"") shouldBe false
     }
 
