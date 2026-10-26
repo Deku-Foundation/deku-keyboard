@@ -24,6 +24,22 @@ class KeyboardLayoutBuilderTest : FunSpec({
         resolveCharacterLayoutId("""{"subtypePresets":[]}""", "xx-ZZ") shouldBe "qwerty"
     }
 
+    test("uses the Arabic symbol-toggle label for Arabic layouts") {
+        val baseXml = """
+            <keyboard3 locale="en">
+              <keys></keys>
+              <layers formId="touch">
+                <layer id="base"><row keys="a"/><row keys="b"/><row keys="c"/><row keys="control"/></layer>
+                <layer id="shift"><row keys="A"/><row keys="B"/><row keys="C"/><row keys="control"/></layer>
+              </layers>
+              <variables><string id="symbol_1_display" value="?123" /></variables>
+            </keyboard3>
+        """.trimIndent()
+        val layoutJson = """[[{"label":"ض"}],[{"label":"ص"}],[{"label":"ط"}]]"""
+
+        buildKeyboard3Xml(baseXml, layoutJson, "ar-DZ") shouldContain """value="٣٢١؟""""
+    }
+
     test("generates base and shifted keys and retains the bottom control row") {
         val baseXml = """
             <keyboard3 locale="de">
