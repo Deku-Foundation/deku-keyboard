@@ -142,7 +142,7 @@ def replace_content(content: str, old_path: str) -> str:
         preserved_urls.append(match.group(0))
         return f"__DEKU_PRESERVED_GITHUB_URL_{len(preserved_urls)-1}__"
     content = re.sub(
-        r"https?://github\.com/florisboard/(?!florisboard(?:/|$))[^\\s\\)\\]\\\"']+",
+        r"https?://github\.com/florisboard/[^ \t\r\n]+",
         preserve_other_upstream_url,
         content,
     )
