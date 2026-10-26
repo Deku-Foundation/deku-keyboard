@@ -154,6 +154,12 @@
     <string name="settings__localization__subtype_select_locale" comment="Subtype select language title">Select language</string>
     <string name="settings__localization__subtype_search_locale_placeholder" comment="Subtype search language placeholder">Search for a language</string>
     <string name="settings__localization__subtype_search_locale_not_found" comment="Subtype search language not found">Could not find a language matching \"{search_term}\".</string>
+    <string name="settings__localization__subtype_select_layout" comment="Button label to choose a character layout independently from the language">Choose keyboard layout</string>
+    <string name="settings__localization__subtype_layout_automatic" comment="Automatic character layout choice for a language subtype">Automatic (language default)</string>
+    <string name="settings__localization__subtype_layout_automatic_summary" comment="Explains automatic keyboard layout resolution">Use the preferred character layout for the selected language.</string>
+    <string name="settings__localization__subtype_search_layout_placeholder" comment="Search field placeholder for keyboard layouts">Search keyboard layouts</string>
+    <string name="settings__localization__subtype_search_layout_not_found" comment="No keyboard layout matches the search term">No keyboard layout matching \"{search_term}\" was found.</string>
+    <string name="settings__localization__subtype_layout_catalog_unavailable" comment="Shown if the bundled keyboard layout catalog cannot be loaded">The keyboard layout catalog could not be loaded.</string>
     <string name="settings__localization__subtype_select_placeholder" comment="Subtype dialog select value placeholder (&amp;#8210; is a hyphen character)">&#8210; select &#8210;</string>
     <string name="settings__localization__subtype_summary" comment="Subtype summary">{characters_name} / {symbols_name} / {currency_set_name}</string>
     <string name="settings__localization__suggested_subtype_presets" comment="Suggested presets title">Suggested subtype presets</string>
