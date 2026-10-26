@@ -30,7 +30,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import org.k3lp.lib.meta.source.SourceFileRef
 import org.k3lp.lib.meta.source.TextSourceFile
-import org.k3lp.lib.text.K3Descriptor
 import org.k3lp.lib.text.WillRequireMigrationToRichErrors
 import org.k3lp.model.K3CompileResult
 import org.k3lp.model.K3ImpliedImports
@@ -41,8 +40,6 @@ private const val FOUNDATION_EXTENSION_ID = "org.deku.foundation.dekukeyboard.k3
 private const val LOCALIZATION_EXTENSION_ID = "org.deku.foundation.dekukeyboard.localization"
 private const val LAYOUT_EXTENSION_ID = "org.deku.foundation.dekukeyboard.layouts"
 private const val DEFAULT_CHARACTER_LAYOUT = "qwerty"
-
-private val SCOPE_FOUNDATION = K3Descriptor("fl", "ext", FOUNDATION_EXTENSION_ID)
 
 @OptIn(WillRequireMigrationToRichErrors::class)
 suspend fun loadFoundationKeyboard(imeController: ImeController, storage: Storage) {
