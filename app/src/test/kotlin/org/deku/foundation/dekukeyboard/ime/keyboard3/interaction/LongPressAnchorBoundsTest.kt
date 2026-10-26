@@ -30,9 +30,9 @@ class LongPressAnchorBoundsTest : FunSpec({
         val anchor = calculateLongPressAnchorBounds(Rect(0f, 0f, 0.04f, 0.06f))
 
         anchor.left shouldBe 0f
-        anchor.top shouldBe 0f
-        (anchor.right <= 1f && anchor.bottom <= 1f) shouldBe true
+        // At the top edge the popup is intentionally positioned below the pressed key.
         (anchor.top >= 0.06f) shouldBe true
+        (anchor.right <= 1f && anchor.bottom <= 1f) shouldBe true
     }
 
     test("adapts to tall landscape-style keys without leaving the viewport") {
