@@ -6,12 +6,8 @@ import io.kotest.matchers.shouldBe
 import java.lang.reflect.Proxy
 
 class SelectedTextReaderTest : FunSpec({
-    test("reads the full current selection from InputConnection") {
-        val selectedText = buildString {
-            repeat(1024) {
-                append("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ")
-            }
-        }
+    test("reads a 128 KiB current selection from InputConnection") {
+        val selectedText = "x".repeat(128 * 1024)
         var queried = false
         val connection = Proxy.newProxyInstance(
             InputConnection::class.java.classLoader ?: ClassLoader.getSystemClassLoader(),
@@ -34,7 +30,7 @@ class SelectedTextReaderTest : FunSpec({
 
         readSelectedText(connection) shouldBe selectedText
         queried shouldBe true
-        selectedText.length shouldBe 36 * 1024
+        selectedText.length shouldBe 128 * 1024
     }
 
     test("returns null when no InputConnection is active") {
