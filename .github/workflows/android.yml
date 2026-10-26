@@ -33,6 +33,66 @@ jobs:
           submodules: recursive
           persist-credentials: false
 
+      - name: Verify Deku identity and Android resources
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          import xml.etree.ElementTree as ET
+
+          root = Path.cwd()
+          app_gradle = (root / "app/build.gradle.kts").read_text(encoding="utf-8")
+          assert re.search(r'namespace\s*=\s*"org\.deku\.foundation\.dekukeyboard"', app_gradle), "Unexpected Android namespace"
+          assert re.search(r'applicationId\s*=\s*"org\.deku\.foundation\.dekukeyboard"', app_gradle), "Unexpected Android application ID"
+
+          legacy = (
+              "dev.patrickgold.florisboard",
+              "dev/patrickgold/florisboard",
+              "org.florisboard",
+              "org/florisboard",
+              "beta.addons.florisboard.org",
+          )
+          text_suffixes = {".kt", ".kts", ".java", ".xml", ".json", ".toml", ".rs", ".c", ".h", ".cpp", ".properties", ".gradle"}
+          violations = []
+          for base in ("app/src/main", "app/src/beta", "lib", "libnative", "settings.gradle.kts", "build.gradle.kts"):
+              source = root / base
+              paths = [source] if source.is_file() else source.rglob("*")
+              for path in paths:
+                  if not path.is_file() or path.suffix.lower() not in text_suffixes:
+                      continue
+                  rel = path.relative_to(root).as_posix()
+                  lower = rel.lower()
+                  if "/assets/license/" in lower or "/config/licenses/" in lower:
+                      continue
+                  try:
+                      text = path.read_text(encoding="utf-8")
+                  except (UnicodeDecodeError, OSError):
+                      continue
+                  for token in legacy:
+                      if token in text:
+                          violations.append(f"{rel}: {token}")
+          if violations:
+              raise SystemExit("Legacy package/endpoint reference(s) found in active code:\n" + "\n".join(violations[:50]))
+
+          resources = root / "app/src/main/res"
+          xml_files = list(resources.rglob("*.xml"))
+          for path in xml_files:
+              try:
+                  ET.parse(path)
+              except ET.ParseError as exc:
+                  raise SystemExit(f"Malformed Android XML in {path.relative_to(root)}: {exc}") from exc
+
+          base_strings = (resources / "values/strings.xml").read_text(encoding="utf-8")
+          if 'name="ext__home__visit_store"' in base_strings:
+              raise SystemExit("Obsolete upstream add-ons-store button string is still active.")
+          if "DEKU_ADDONS_STORE_URL" not in app_gradle or "beta.addons.florisboard.org" in app_gradle:
+              raise SystemExit("The upstream add-ons store endpoint must stay disabled until Deku owns a service.")
+
+          print(f"Verified Deku package identity and parsed {len(xml_files)} Android XML resources.")
+          print("No legacy package or upstream add-ons endpoint found in active source.")
+          PY
+
       - uses: gradle/actions/wrapper-validation@v4
       - name: Set up JDK 17
         uses: actions/setup-java@v6
