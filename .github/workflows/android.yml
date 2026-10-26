@@ -120,7 +120,25 @@ jobs:
           if missing_layouts:
               raise SystemExit("Locale presets reference missing character layouts:\n" + "\n".join(missing_layouts))
 
-          print(f"Verified Deku package identity, {len(xml_files)} Android XML resources, and {len(presets)} locale presets.")
+          arabic_dictionary_path = root / "app/src/main/assets/ime/dict/ar/frequency.txt"
+          arabic_attribution_path = root / "app/src/main/assets/ime/dict/ar/ATTRIBUTION.txt"
+          if not arabic_dictionary_path.is_file() or not arabic_attribution_path.is_file():
+              raise SystemExit("Arabic MSA dictionary data or in-app attribution file is missing.")
+          arabic_words = arabic_dictionary_path.read_text(encoding="utf-8").splitlines()
+          if len(arabic_words) != 10000:
+              raise SystemExit(f"Arabic MSA frequency list must contain exactly 10000 rows, got {len(arabic_words)}.")
+          if len(set(arabic_words)) != len(arabic_words):
+              raise SystemExit("Arabic MSA frequency list contains duplicate rows.")
+          if arabic_words[:5] != ["في", "من", "على", "أن", "إلى"]:
+              raise SystemExit("Arabic MSA frequency list order/head changed; review the pinned source and provenance.")
+          if not all(re.fullmatch(r"[\\u0600-\\u06FF]+", word) for word in arabic_words):
+              raise SystemExit("Arabic MSA frequency list contains a non-Arabic or malformed row.")
+          attribution = arabic_attribution_path.read_text(encoding="utf-8")
+          for required in ("Luraty", "Leipzig Corpora Collection", "CC BY 4.0", "7459e864b2bad4448b149f2a8b92b101156ca858"):
+              if required not in attribution:
+                  raise SystemExit(f"Arabic dictionary attribution missing required provenance: {required}")
+
+          print(f"Verified Deku package identity, {len(xml_files)} Android XML resources, {len(presets)} locale presets, and {len(arabic_words)} Arabic MSA dictionary rows.")
           print(f"All {len({p.get('preferred', {}).get('characters', '').rsplit(':', 1)[-1] for p in presets})} referenced character layouts exist.")
           print("No legacy package or upstream add-ons endpoint found in active source.")
           PY
