@@ -40,7 +40,6 @@ import org.k3lp.model.compileToModel
 private const val FOUNDATION_EXTENSION_ID = "org.deku.foundation.dekukeyboard.k3.foundation"
 private const val LOCALIZATION_EXTENSION_ID = "org.deku.foundation.dekukeyboard.localization"
 private const val LAYOUT_EXTENSION_ID = "org.deku.foundation.dekukeyboard.layouts"
-private const val DEFAULT_LANGUAGE_TAG = "en-US"
 private const val DEFAULT_CHARACTER_LAYOUT = "qwerty"
 
 private val SCOPE_FOUNDATION = K3Descriptor("fl", "ext", FOUNDATION_EXTENSION_ID)
@@ -105,7 +104,7 @@ suspend fun loadFoundationKeyboard(imeController: ImeController, storage: Storag
             }
         }.getOrElse {
             runCatching {
-                buildKeyboard3Xml(baseKeyboardXml, fallbackLayoutJson, DEFAULT_LANGUAGE_TAG)
+                buildKeyboard3Xml(baseKeyboardXml, fallbackLayoutJson, languageTag)
             }.getOrElse { fallbackError ->
                 flogError { "Unable to build fallback QWERTY keyboard: ${fallbackError.stackTraceToString()}" }
                 return@collectLatest
