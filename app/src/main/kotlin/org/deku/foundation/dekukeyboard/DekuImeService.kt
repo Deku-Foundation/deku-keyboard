@@ -269,6 +269,7 @@ class DekuImeService : LifecycleInputMethodService() {
         private set
 
     private val wallpaperChangeReceiver = WallpaperChangeReceiver()
+    private var imeRootView: ImeRootView? = null
 
     init {
         setTheme(R.style.DekuImeTheme)
@@ -314,7 +315,20 @@ class DekuImeService : LifecycleInputMethodService() {
     override fun onCreateInputView(): View? {
         super.installViewTreeOwners()
         val content = window.window!!.findViewById<ViewGroup>(android.R.id.content)
-        content.addView(ImeRootView(this))
+
+        // Android may recreate the input view while this service is still alive. Because the
+        // custom root is attached directly to the window content (and the default input view is
+        // disabled below), remove any prior root before attaching a new Compose tree.
+        for (index in content.childCount - 1 downTo 0) {
+            if (content.getChildAt(index) is ImeRootView) {
+                content.removeViewAt(index)
+            }
+        }
+
+        ImeRootView(this).also { root ->
+            imeRootView = root
+            content.addView(root)
+        }
         // Disable the default input view placement
         return null
     }
@@ -349,6 +363,10 @@ class DekuImeService : LifecycleInputMethodService() {
     }
 
     override fun onDestroy() {
+        imeRootView?.let { root ->
+            (root.parent as? ViewGroup)?.removeView(root)
+        }
+        imeRootView = null
         super.onDestroy()
         unregisterReceiver(wallpaperChangeReceiver)
         DekuImeServiceReference = WeakReference(null)
