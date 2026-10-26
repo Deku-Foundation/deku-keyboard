@@ -26,6 +26,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -71,6 +72,12 @@ fun SubtypeEditorScreen(id: Long?) = DekuScreen {
         mutableStateOf(existingSubtype?.primaryLocale?.languageTag().orEmpty())
     }
     var errorMessageId by rememberSaveable { mutableStateOf<Int?>(null) }
+
+    LaunchedEffect(existingSubtype?.id) {
+        if (id != null && selectedLanguageTag.isBlank() && existingSubtype != null) {
+            selectedLanguageTag = existingSubtype.primaryLocale.languageTag()
+        }
+    }
 
     val selectedLocale = remember(selectedLanguageTag) {
         selectedLanguageTag.takeIf { it.isNotBlank() }?.let { DekuLocale.fromTag(it) }
