@@ -37,8 +37,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Observer
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import org.deku.foundation.dekukeyboard.R
 import org.deku.foundation.dekukeyboard.app.LocalNavController
 import org.deku.foundation.dekukeyboard.app.Routes
@@ -63,7 +61,6 @@ fun SubtypeEditorScreen(id: Long?) = DekuScreen {
     val context = LocalContext.current
     val subtypeManager by context.subtypeManager()
     val lifecycleOwner = LocalLifecycleOwner.current
-    val saveScope = androidx.compose.runtime.rememberCoroutineScope()
     val existingSubtype = remember(id, subtypeManager.subtypes) {
         id?.let(subtypeManager::getSubtypeById)
     }
@@ -168,14 +165,10 @@ fun SubtypeEditorScreen(id: Long?) = DekuScreen {
                             return@Button
                         }
                         errorMessageId = null
-                        saveScope.launch {
-                            val updatedSubtypes = subtypeManager.subtypesFlow.first { list ->
-                                list.any { it.equalsExcludingId(candidate) }
-                            }
-                            val addedSubtype = updatedSubtypes.first { it.equalsExcludingId(candidate) }
-                            subtypeManager.switchToSubtypeById(addedSubtype.id)
-                            navController.popBackStack()
-                        }
+                        // Adding a layout does not have to change the active language immediately.
+                        // The localization list marks the active subtype and lets the user switch
+                        // deliberately, while preserving their existing typing context.
+                        navController.popBackStack()
                     } else {
                         subtypeManager.modifySubtypeWithSameId(candidate.copy(id = id))
                         errorMessageId = null
