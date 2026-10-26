@@ -36,6 +36,7 @@ import android.view.inputmethod.InputConnection
 import android.view.inputmethod.InputMethodInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.inline.InlinePresentationSpec
+import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -248,8 +249,11 @@ class DekuImeService : LifecycleInputMethodService() {
                 }
             }
         }
-        // TODO we have no access to interactionController here
-        // showShortToastSync("Failed to find voice IME, do you have one installed?")
+        Toast.makeText(
+            this,
+            R.string.ime__voice_input_unavailable,
+            Toast.LENGTH_SHORT,
+        ).show()
         return false
     }
 

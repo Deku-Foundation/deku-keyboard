@@ -581,6 +581,8 @@
     <string name="pref__gestures__delete_key_long_press__label" comment="Preference title">Delete key long press</string>
     <string name="pref__gestures__swipe_velocity_threshold__label" comment="Preference title">Swipe velocity threshold</string>
     <string name="pref__gestures__swipe_distance_threshold__label" comment="Preference title">Swipe distance threshold</string>
+    <string name="pref__gestures__flick_key_distance_threshold__label" comment="Preference title">Flick key distance threshold</string>
+    <string name="ime__voice_input_unavailable" comment="Toast shown when the user requests voice input but no enabled voice input method is installed">No enabled voice input method is available.</string>
 
     <string name="settings__other__title" comment="Title of Other settings">Other</string>
     <string name="pref__other__settings_theme__label" comment="Label of Settings theme preference in Other">Settings theme</string>

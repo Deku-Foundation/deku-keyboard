@@ -325,6 +325,10 @@ abstract class DekuPreferenceModel : PreferenceModel() {
             key = "gestures__swipe_distance_threshold",
             default = 32,
         )
+        val flickKeyDistanceThresholdDp = int(
+            key = "gestures__flick_key_distance_threshold_dp",
+            default = 30,
+        )
         val swipeVelocityThreshold = int(
             key = "gestures__swipe_velocity_threshold",
             default = 1900,

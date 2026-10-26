@@ -125,7 +125,9 @@ private data class LastUpKey(
     val uptimeMillis: Long,
 )
 
-// TODO the sync of this class is a bit messy
+// All pointer-event mutations and the delayed long-press expansion are serialized by
+// mutationGuard. Keep launches UNDISPATCHED in trackPointerInput so events acquire the mutex
+// in dispatch order and the focused popup key cannot lag behind the user's release.
 class PointerTracker(
     val touchKeyboard: TouchKeyboard,
     val imeController: ImeController,
@@ -454,10 +456,10 @@ fun rememberPointerTracker(
     val interactionController = LocalInteractionController.current
 
     val showSimplePopups by prefs.keyboard.popupEnabled.collectAsState()
-    // TODO make configurable
-    val peekDistanceSqMin = with(density) { 30.dp.toPx().pow(2) }
+    val flickKeyDistanceThresholdDp by prefs.gestures.flickKeyDistanceThresholdDp.collectAsState()
+    val peekDistanceSqMin = with(density) { flickKeyDistanceThresholdDp.dp.toPx().pow(2) }
 
-    val pointerTracker = remember(touchKeyboard, showSimplePopups) {
+    val pointerTracker = remember(touchKeyboard, showSimplePopups, peekDistanceSqMin) {
         PointerTracker(touchKeyboard, imeController, interactionController, showSimplePopups, peekDistanceSqMin)
     }
 
