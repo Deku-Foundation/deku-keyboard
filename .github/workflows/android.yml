@@ -43,6 +43,7 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           import re
+import json
           import xml.etree.ElementTree as ET
 
           root = Path.cwd()
@@ -93,7 +94,34 @@ jobs:
           if "DEKU_ADDONS_STORE_URL" not in app_gradle or "beta.addons.florisboard.org" in app_gradle:
               raise SystemExit("The upstream add-ons store endpoint must stay disabled until Deku owns a service.")
 
-          print(f"Verified Deku package identity and parsed {len(xml_files)} Android XML resources.")
+          project_settings = (root / "settings.gradle.kts").read_text(encoding="utf-8")
+          if not re.search(r'rootProject\\.name\\s*=\\s*"deku-keyboard"', project_settings):
+              raise SystemExit("Gradle root project name must stay lowercase and hyphenated as deku-keyboard.")
+
+          urls = (resources / "values/strings_dont_translate.xml").read_text(encoding="utf-8")
+          if "https://deku-foundation.github.io/" not in urls:
+              raise SystemExit("The canonical Deku Foundation website URL is missing from app resources.")
+
+          localization_path = root / "app/src/main/assets/ime/keyboard/org.deku.foundation.dekukeyboard.localization/extension.json"
+          localization = json.loads(localization_path.read_text(encoding="utf-8"))
+          presets = localization.get("subtypePresets", [])
+          if not presets:
+              raise SystemExit("No built-in locale presets were found.")
+          layout_root = root / "app/src/main/assets/ime/keyboard/org.deku.foundation.dekukeyboard.layouts/layouts/characters"
+          missing_layouts = []
+          for preset in presets:
+              locale_tag = preset.get("languageTag", "<missing-language-tag>")
+              layout_ref = preset.get("preferred", {}).get("characters", "")
+              layout_id = layout_ref.rsplit(":", 1)[-1]
+              if not layout_id or not re.fullmatch(r"[A-Za-z0-9_-]+", layout_id):
+                  missing_layouts.append(f"{locale_tag}: invalid layout reference {layout_ref!r}")
+              elif not (layout_root / f"{layout_id}.json").is_file():
+                  missing_layouts.append(f"{locale_tag}: {layout_id}.json")
+          if missing_layouts:
+              raise SystemExit("Locale presets reference missing character layouts:\\n" + "\\n".join(missing_layouts))
+
+          print(f"Verified Deku package identity, {len(xml_files)} Android XML resources, and {len(presets)} locale presets.")
+          print(f"All {len({p.get('preferred', {}).get('characters', '').rsplit(':', 1)[-1] for p in presets})} referenced character layouts exist.")
           print("No legacy package or upstream add-ons endpoint found in active source.")
           PY
 
