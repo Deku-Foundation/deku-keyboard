@@ -32,6 +32,16 @@ For every fix: (1) verify current Deku code and upstream issue history, (2) repr
 
 Do not close issues in the upstream FlorisBoard repository from this independent fork. Track Deku remediation in its own commits/issues and retain upstream copyright and license attribution.
 
+## Deku-specific findings from the current device report (2026-10-26)
+
+The user reported that only English was visible and that adding other languages appeared not to work. This is tracked separately from the 92 upstream reports because it is a Deku validation report, not evidence that any particular upstream issue is the same defect.
+
+- **Language/layout path:** the `dev` implementation includes a bundled subtype manifest, locale/layout selection screen, subtype editor and a runtime loader that resolves the selected subtype's layout, loads its asset off the main thread, builds K3 XML, and compiles a keyboard model. Arabic is present in the manifest and has a bundled `arabic.json` layout. Automated source checks alone do not prove the settings flow works on an installed device; verify save/reopen, active subtype selection, key output, and language switching on-device.
+- **RTL geometry:** a Deku-specific issue was found in the K3 layout builder: it reversed RTL character rows and mirrored the bottom control row. The builder now preserves the layout JSON's physical order and the base keyboard's control row; a regression test asserts Arabic key labels and fixed Shift/Backspace/bottom-row positions. CI must pass before this is considered build-validated, and real-device confirmation is still required.
+- **Suggestions versus layouts:** the existing bundled `ime/dict/data.json` is English-only, and the previous `LatinLanguageProvider.suggest()` returned an empty list. The provider now builds a local prefix index and returns non-autocommitting English completions only for English primary subtypes; it avoids offering English predictions or dictionary verdicts for Arabic and other non-English subtypes. This does not claim Arabic predictive text or spell-check support; a properly licensed Arabic dictionary/model and dedicated tests remain required.
+- **Performance:** layout asset reads remain on `Dispatchers.IO`, prefix-index construction happens once per dictionary load, and completion lookup uses the matching two-character bucket. Benchmark before claiming input-lag or animation issues solved; do not infer runtime performance from unit tests alone.
+- **Licensing:** HeliBoard is GPL-3.0 whereas this imported Deku codebase carries Apache-2.0 attribution. Use its documented language/layout/dictionary architecture as a reference, but do not transplant HeliBoard code or dictionary assets without a deliberate compatibility review.
+
 ## Issue-by-issue inventory
 
 The environment column is copied from each report when provided. It is a reproduction hint, not a claim that the same device/version can be reproduced with Deku.
