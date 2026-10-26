@@ -75,10 +75,25 @@ internal fun boundPreviewFieldValue(
     maxCodePoints: Int = PREVIEW_FIELD_MAX_CODE_POINTS,
 ): TextFieldValue {
     require(maxCodePoints >= 0) { "maxCodePoints must not be negative" }
-    if (value.text.codePointCount(0, value.text.length) <= maxCodePoints) return value
+    if (value.text.isEmpty()) return value
+    if (maxCodePoints == 0) {
+        return value.copy(
+            text = "",
+            selection = androidx.compose.ui.text.TextRange.Zero,
+            composition = null,
+        )
+    }
 
-    // offsetByCodePoints keeps the cut boundary outside a UTF-16 surrogate pair.
-    val end = value.text.offsetByCodePoints(0, maxCodePoints)
+    // Scan only up to the limit: calling codePointCount over the whole input on every keystroke
+    // would remain O(n) for large paste operations even though the resulting field is bounded.
+    // offsetByCodePoints also keeps the truncation boundary outside a UTF-16 surrogate pair.
+    val end = try {
+        value.text.offsetByCodePoints(0, maxCodePoints)
+    } catch (_: IndexOutOfBoundsException) {
+        return value
+    }
+    if (end == value.text.length) return value
+
     return value.copy(
         text = value.text.substring(0, end),
         selection = androidx.compose.ui.text.TextRange(
