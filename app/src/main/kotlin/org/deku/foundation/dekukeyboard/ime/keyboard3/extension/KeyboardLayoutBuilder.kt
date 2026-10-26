@@ -90,14 +90,24 @@ internal fun buildKeyboard3Xml(
     for (rowIndex in 0..2) {
         effectiveRows[rowIndex].forEachIndexed { columnIndex, label ->
             val baseId = resolveLayoutKeyId(
-                label, rowIndex, columnIndex, shifted = false, languageTag, existingKeyIdByOutput
+                label = label,
+                row = rowIndex,
+                column = columnIndex,
+                shifted = false,
+                languageTag = languageTag,
+                existingKeyIdByOutput = existingKeyIdByOutput,
             )
             if (baseId !in existingKeyIds && !generatedKeys.containsKey(baseId)) {
                 generatedKeys[baseId] = label
             }
             val shiftedLabel = shiftLabel(label, languageTag)
             val shiftedId = resolveLayoutKeyId(
-                label, rowIndex, columnIndex, shifted = true, languageTag, existingKeyIdByOutput
+                label = label,
+                row = rowIndex,
+                column = columnIndex,
+                shifted = true,
+                languageTag = languageTag,
+                existingKeyIdByOutput = existingKeyIdByOutput,
             )
             if (shiftedId !in existingKeyIds && !generatedKeys.containsKey(shiftedId)) {
                 generatedKeys[shiftedId] = shiftedLabel
