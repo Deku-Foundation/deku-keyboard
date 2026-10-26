@@ -134,6 +134,10 @@ Do not close issues in the upstream FlorisBoard repository from this independent
 - **[#3300 — Potentially time-consuming operations on the UI thread](https://github.com/florisboard/florisboard/issues/3300):** the inherited `DekuApplication` called `cacheDir.deleteContentsRecursively()` synchronously in both normal initialization and the locked-user path. Removed the unconditional recursive purge from Application startup because Android's cache directory is disposable and broad cleanup here adds main-thread disk I/O. This is a targeted performance correction, not proof that all startup work is now off the main thread; CI build validation is still required.
 - **IME root lifecycle hardening (related reports not yet root-caused):** `DekuImeService.onCreateInputView()` now removes existing direct-child `ImeRootView` instances before attaching a new Compose root, and removes the tracked root in `onDestroy()`. This prevents duplicate custom root views on repeated input-view creation; it is not claimed as a confirmed fix for any specific upstream report until reproduced.
 
+## Source-review findings
+
+- **[#3294 — Android inline-suggestion inflation crash](https://github.com/florisboard/florisboard/issues/3294):** current code passed a mutable chip height directly to `InlineSuggestion.inflate`. The `dev` patch now accepts a positive height only when it is inside the provider's `InlinePresentationSpec` bounds, otherwise requests `WRAP_CONTENT`. It also catches documented invalid-state/argument failures per suggestion so one bad provider item does not cancel the whole inflation loop, and adds unit tests for unset, negative and out-of-range heights. Status: **patch committed; waiting for CI and Android 16/device verification**.
+
 ## Completion criteria
 
 A report can be marked **fixed in Deku** only when there is a linked Deku commit/PR, regression-test evidence (or a documented reason why the path cannot be unit-tested), green CI, and manual device/app validation for behavior depending on Android IME lifecycle, ROMs, stylus/hardware keyboards or third-party editors.
