@@ -59,9 +59,12 @@ representative at an online or offline event.
 
 ## Enforcement
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be
-reported to the community leaders responsible for enforcement at
-[Deku Foundation maintainers](mailto:Deku Foundation maintainers).
+Instances of abusive, harassing, or otherwise unacceptable behavior should be
+reported through a verified private contact channel operated by Deku Foundation
+maintainers. Do not include private personal details in public issues. For
+sensitive security matters, use GitHub's private vulnerability reporting feature
+if it is enabled for this repository.
+
 All complaints will be reviewed and investigated promptly and fairly.
 
 All community leaders are obligated to respect the privacy and security of the
