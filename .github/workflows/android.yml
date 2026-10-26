@@ -131,7 +131,7 @@ jobs:
               raise SystemExit("Arabic MSA frequency list contains duplicate rows.")
           if arabic_words[:5] != ["في", "من", "على", "أن", "إلى"]:
               raise SystemExit("Arabic MSA frequency list order/head changed; review the pinned source and provenance.")
-          if not all(word and all("\\u0600" <= char <= "\\u06FF" for char in word) for word in arabic_words):
+          if not all(word and all(0x0600 <= ord(char) <= 0x06FF for char in word) for word in arabic_words):
               raise SystemExit("Arabic MSA frequency list contains a non-Arabic or malformed row.")
           attribution = arabic_attribution_path.read_text(encoding="utf-8")
           for required in ("Luraty", "Leipzig Corpora Collection", "CC BY 4.0", "7459e864b2bad4448b149f2a8b92b101156ca858"):
