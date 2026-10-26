@@ -18,7 +18,6 @@ package org.deku.foundation.dekukeyboard.ime.nlp.arabic
 
 import android.content.Context
 import java.text.Normalizer
-import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
