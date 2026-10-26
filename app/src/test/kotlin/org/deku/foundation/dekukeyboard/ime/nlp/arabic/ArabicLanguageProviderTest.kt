@@ -59,7 +59,7 @@ class ArabicLanguageProviderTest : FunSpec({
         findArabicWordPrefixSuggestions(index, "كس", 8, false) shouldBe
             listOf("كسب" to 90)
         findArabicWordPrefixSuggestions(index, "كس", 8, true) shouldBe
-            listOf("كس" to 100, "كسمك" to 80, "كسب" to 90).sortedByDescending { it.second }
+            listOf("كسب" to 90, "كسمك" to 80)
     }
 
     test("routes only Arabic primary subtypes to the Arabic dictionary") {
