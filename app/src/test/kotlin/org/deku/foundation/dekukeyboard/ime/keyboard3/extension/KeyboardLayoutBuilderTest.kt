@@ -102,6 +102,34 @@ class KeyboardLayoutBuilderTest : FunSpec({
         xml shouldContain """<row keys="symbol-1 comma fn-key space period enter" />"""
     }
 
+    test("reuses existing key definitions and preserves long-press metadata") {
+        val baseXml = """
+            <keyboard3 locale="en">
+              <keys>
+                <key id="base-to-shift" output="@k3:action/shift" />
+                <key id="shift-to-base" output="@k3:action/shift" />
+                <key id="bksp" output="@k3:action/backspace" />
+                <key id="q" output="q" longPressKeyIds="q-accent" />
+                <key id="q-accent" output="ǫ" />
+                <key id="Q" output="Q" />
+                <key id="w" output="w" />
+                <key id="W" output="W" />
+              </keys>
+              <layers formId="touch">
+                <layer id="base"><row keys="old1"/><row keys="old2"/><row keys="old3"/><row keys="symbol-1 comma space enter"/></layer>
+                <layer id="shift"><row keys="old1"/><row keys="old2"/><row keys="old3"/><row keys="symbol-1 comma space enter"/></layer>
+              </layers>
+            </keyboard3>
+        """.trimIndent()
+        val layoutJson = """[[{"label":"q"},{"label":"w"}],[{"label":"q"},{"label":"w"}],[{"label":"q"},{"label":"w"}]]"""
+
+        val xml = buildKeyboard3Xml(baseXml, layoutJson, "en-US")
+        xml shouldContain """<row keys="q w" />"""
+        xml shouldContain """longPressKeyIds="q-accent""""
+        xml shouldContain """<row keys="shift-to-base Q W bksp" />"""
+        xml shouldContain """<key id="deku-layout-r0-k0" output="q" />""".not()
+    }
+
     test("escapes XML metacharacters and uses Unicode uppercase for German sharp s") {
         val baseXml = """
             <keyboard3 locale="en">
