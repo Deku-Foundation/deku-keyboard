@@ -46,6 +46,7 @@ class SubtypeManager(context: Context) {
     private val prefs by DekuPreferenceStore
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val activeSubtypePersistenceMutex = Mutex()
+    private val subtypeListPersistenceMutex = Mutex()
 
     val subtypesFlow: StateFlow<List<Subtype>>
         field = MutableStateFlow(listOf())
@@ -89,8 +90,13 @@ class SubtypeManager(context: Context) {
         subtypes = list
         scope.launch {
             runCatching {
-                val listRaw = SubtypeJsonConfig.encodeToString(list)
-                prefs.localization.subtypes.set(listRaw)
+                subtypeListPersistenceMutex.withLock {
+                    // Serialize writes and encode the latest observable list rather than the
+                    // potentially stale snapshot captured by an earlier rapid add/remove action.
+                    val latestList = subtypes
+                    val listRaw = SubtypeJsonConfig.encodeToString(latestList)
+                    prefs.localization.subtypes.set(listRaw)
+                }
             }.onFailure { error ->
                 flogWarning { "Failed to persist language configuration: ${error.message}" }
             }
