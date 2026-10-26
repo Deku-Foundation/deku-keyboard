@@ -3,6 +3,15 @@ package org.deku.foundation.dekukeyboard.ime.keyboard3.extension
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
+import java.io.StringReader
+import javax.xml.parsers.DocumentBuilderFactory
+import org.xml.sax.InputSource
+
+private fun assertWellFormedXml(xml: String) {
+    DocumentBuilderFactory.newInstance()
+        .newDocumentBuilder()
+        .parse(InputSource(StringReader(xml)))
+}
 
 class KeyboardLayoutBuilderTest : FunSpec({
     test("uses exact region-specific preset before language fallback") {
@@ -40,6 +49,7 @@ class KeyboardLayoutBuilderTest : FunSpec({
         """.trimIndent()
         val layoutJson = """[[{"label":"ض"},{"label":"ص"}],[{"label":"ش"},{"label":"س"}],[{"label":"ذ"},{"label":"ء"}]]"""
         val xml = buildKeyboard3Xml(baseXml, layoutJson, "ar-DZ")
+        assertWellFormedXml(xml)
         xml shouldContain """<row keys="deku-layout-r0-k0 deku-layout-r0-k1" />"""
         xml shouldContain """<row keys="bksp deku-layout-r2-k0 deku-layout-r2-k1 base-to-shift" />"""
         xml shouldContain """<row keys="enter space comma symbol-1" />"""
@@ -94,6 +104,7 @@ class KeyboardLayoutBuilderTest : FunSpec({
         """.trimIndent()
 
         val xml = buildKeyboard3Xml(baseXml, layoutJson, "en-US")
+        assertWellFormedXml(xml)
         xml shouldContain """<keyboard3 locale="en-US">"""
         xml shouldContain """<key id="deku-layout-r0-k0" output="q" />"""
         xml shouldContain """<key id="deku-layout-r0-k0-shift" output="Q" />"""
@@ -143,6 +154,7 @@ class KeyboardLayoutBuilderTest : FunSpec({
         val layoutJson = """[[{"label":"&","code":38}],[{"label":"<","code":60}],[{"label":"ß","code":223}]]"""
 
         val xml = buildKeyboard3Xml(baseXml, layoutJson, "de-DE")
+        assertWellFormedXml(xml)
         xml shouldContain """output="&amp;""""
         xml shouldContain """output="&lt;""""
         xml shouldContain """output="ẞ""""

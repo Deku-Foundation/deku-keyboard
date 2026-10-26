@@ -116,8 +116,8 @@ internal fun buildKeyboard3Xml(
     }
     val keyDefinitions = buildString {
         generatedKeys.forEach { (id, output) ->
-            append("        <key id=\\\"").append(id)
-                .append("\\\" output=\\\"").append(xmlAttribute(output)).append("\\\" />\\n")
+            append("        <key id=\"").append(id)
+                .append("\" output=\"").append(xmlAttribute(output)).append("\" />\n")
         }
     }
 
@@ -179,7 +179,7 @@ private fun replaceTouchLayerRows(
                     else -> ids
                 }
                 rowIndex++
-                "            <row keys=\"${keys.joinToString(" ")}\" />"
+                """            <row keys="\${keys.joinToString(" ")}" />"""
             }
         }
         layerMatch.groupValues[1] + newBody + layerMatch.groupValues[3]
@@ -217,7 +217,7 @@ private fun generatedKeyId(row: Int, column: Int, shifted: Boolean): String =
     "deku-layout-r$row-k$column" + if (shifted) "-shift" else ""
 
 private fun unescapeXmlAttribute(value: String): String =
-    value.replace("&quot;", "\\\"")
+    value.replace("&quot;", "\"")
         .replace("&lt;", "<")
         .replace("&gt;", ">")
         .replace("&apos;", "'")

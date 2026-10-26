@@ -133,6 +133,11 @@ The environment column is copied from each report when provided. It is a reprodu
 
 ## Source-review findings
 
+- **Deku language selection / keyboard layout regression:** while reviewing the first reported failure to add languages, `KeyboardLayoutBuilder.kt` emitted generated key definitions using literal backslashes before XML quote delimiters and used a literal `\\n` sequence. The builder now emits normal XML attributes and real line breaks; unit tests parse generated English, Arabic RTL, and German XML with a real XML parser. Status: **patch committed; CI and runtime testing of switching from English to Arabic are pending**.
+- **[#3365 — language switch button selects another system IME](https://github.com/florisboard/florisboard/issues/3365):** the layout maps the globe icon to `switch_to_next_subtype`, but the corresponding `ImeController` handler was a no-op. The `dev` implementation now switches the active Deku subtype, implements the subtype picker, and closes the picker after selection. Status: **source path fixed; manual verification on a device is still required**.
+
+
+
 - **[#3300 — Potentially time-consuming operations on the UI thread](https://github.com/florisboard/florisboard/issues/3300):** the inherited `DekuApplication` called `cacheDir.deleteContentsRecursively()` synchronously in both normal initialization and the locked-user path. Removed the unconditional recursive purge from Application startup because Android's cache directory is disposable and broad cleanup here adds main-thread disk I/O. [Deku change](https://github.com/Deku-Foundation/deku-keyboard/commit/b046cb4853661a05be9e0aa452355c98ed5636bd). This is a targeted performance correction, not proof that all startup work is now off the main thread; CI build validation is still required.
 - **IME root lifecycle hardening (related reports not yet root-caused):** `DekuImeService.onCreateInputView()` now removes existing direct-child `ImeRootView` instances before attaching a new Compose root, and removes the tracked root in `onDestroy()`. [Deku change](https://github.com/Deku-Foundation/deku-keyboard/commit/0ab09468c75985373af5bbea080739f8447e1ac5). This prevents duplicate custom root views on repeated input-view creation; it is not claimed as a confirmed fix for any specific upstream report until reproduced.
 
