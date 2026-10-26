@@ -7,6 +7,10 @@ on:
       - "v*-beta.*"
       - "v*-rc.*"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: write
 
