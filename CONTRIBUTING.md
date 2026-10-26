@@ -41,7 +41,6 @@ The CI workflow builds a debug APK and publishes it as an artifact. Pull request
 - Do not add new network services, analytics, telemetry, or external integrations without reviewing privacy implications and documenting the behavior.
 - Avoid further blind renames of internal packages, resource identifiers, or extension formats. The initial namespace migration is complete; any future changes must be targeted, tested, and considered against extension compatibility.
 - Use [the AI policy](AI_POLICY.md) for research and AI-assisted changes.
-- Follow the [Deku Foundation technical writing standard](https://github.com/Deku-Foundation/.github/blob/main/EDITORIAL_STYLE.md) for project documentation, release notes and store copy.
 - Follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Translations
