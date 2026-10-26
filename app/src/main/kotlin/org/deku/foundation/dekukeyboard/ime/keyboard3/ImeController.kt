@@ -481,24 +481,26 @@ class ImeController(
         }
 
         fun emitForwardDelete() {
-            // TODO request additional text if too low on context length
             if (state.content.selection.isNotCollapsed()) {
                 emitBackspace()
             } else {
+                // Cached surrounding text may be truncated or stale. Read enough live text to
+                // identify the first code point (including a UTF-16 surrogate pair), then let
+                // InputConnection perform code-point-aware deletion in the host editor.
+                val liveTextAfterCursor = state.editor
+                    .getSurroundingText(charsBefore = 0, charsAfter = 2)
+                    .textAfter
                 val newSurroundingText = state.content.surroundingText.copy(
-                    textAfter = state.content.surroundingText.textAfter.let { text ->
-                        // TODO unicode
-                        if (text.isEmpty()) text else text.substring(1)
-                    },
+                    textAfter = removeLeadingCodePoint(liveTextAfterCursor),
                 )
                 state = state.copy(
                     content = state.content.copy(
                         surroundingText = newSurroundingText,
                     ),
                 )
-                state.editor.deleteSurroundingText(
+                state.editor.deleteSurroundingTextInCodePoints(
                     charsBefore = 0,
-                    charsAfter = 1, // TODO
+                    charsAfter = 1,
                 )
             }
         }

@@ -44,6 +44,16 @@ internal fun readSelectedText(inputConnection: InputConnection?): String? {
     return inputConnection?.getSelectedText(0)?.toString()
 }
 
+/**
+ * Removes one Unicode code point, not one UTF-16 code unit. Android's text APIs count
+ * surrounding text in different units depending on the API, so keep the optimistic local
+ * surrounding-text update consistent with code-point-aware forward deletion.
+ */
+internal fun removeLeadingCodePoint(text: String): String {
+    if (text.isEmpty()) return text
+    return text.substring(text.offsetByCodePoints(0, 1))
+}
+
 open class ImeEditor(
     val ic: WeakReference<InputConnection>,
     val info: DekuEditorInfo,
@@ -101,6 +111,15 @@ open class ImeEditor(
     fun deleteSurroundingText(charsBefore: Int, charsAfter: Int) {
         val ic = ic.get() ?: return
         ic.deleteSurroundingText(charsBefore, charsAfter)
+    }
+
+    /**
+     * Deletes surrounding Unicode code points. The app's minSdk is 26, so the API 24 method is
+     * available on every supported device.
+     */
+    fun deleteSurroundingTextInCodePoints(charsBefore: Int, charsAfter: Int) {
+        val ic = ic.get() ?: return
+        ic.deleteSurroundingTextInCodePoints(charsBefore, charsAfter)
     }
 
     fun performClipboardCopy(): Boolean {
