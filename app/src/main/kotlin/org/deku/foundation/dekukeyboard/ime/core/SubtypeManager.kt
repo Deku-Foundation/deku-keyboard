@@ -43,6 +43,8 @@ class SubtypeManager(context: Context) {
 
     val subtypesFlow: StateFlow<List<Subtype>>
         field = MutableStateFlow(listOf())
+    val isInitializedFlow: StateFlow<Boolean>
+        field = MutableStateFlow(false)
     inline var subtypes
         get() = subtypesFlow.value
         private set(v) { subtypesFlow.value = v }
@@ -63,6 +65,7 @@ class SubtypeManager(context: Context) {
             }
             subtypes = list
             evaluateActiveSubtype(list)
+            isInitializedFlow.value = true
         }
     }
 
@@ -95,6 +98,7 @@ class SubtypeManager(context: Context) {
      *  that the subtype already exists.
      */
     fun addSubtype(subtype: Subtype): Boolean {
+        if (!isInitializedFlow.value) return false
         val subtypeList = subtypes
         if (subtypeList.any { it.equalsExcludingId(subtype) }) {
             return false
@@ -138,6 +142,7 @@ class SubtypeManager(context: Context) {
      * @param subtypeToModify The subtype with the new details but same id.
      */
     fun modifySubtypeWithSameId(subtypeToModify: Subtype) {
+        if (!isInitializedFlow.value) return
         val subtypeList = subtypes
         val index = subtypeList.indexOfFirst { subtypeToModify.id == it.id }
         if (index >= 0 && index < subtypeList.size) {
@@ -159,6 +164,7 @@ class SubtypeManager(context: Context) {
      * @param subtypeToRemove The subtype which should be removed.
      */
     fun removeSubtype(subtypeToRemove: Subtype) {
+        if (!isInitializedFlow.value) return
         val subtypeList = subtypes
         val indexToRemove = subtypeList.indexOf(subtypeToRemove)
         if (indexToRemove in subtypeList.indices) {
