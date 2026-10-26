@@ -79,6 +79,9 @@ suspend fun loadFoundationKeyboard(imeController: ImeController, storage: Storag
     val fallbackLayoutJson = loadAssetText(
         "ime/keyboard/$LAYOUT_EXTENSION_ID/layouts/characters/$DEFAULT_CHARACTER_LAYOUT.json"
     )
+    // Reuse small static popup-map assets on language switches; only one locale map is compiled
+    // into the active model, and failed reads fall back to the built-in keyboard without crashing.
+    val popupMappingJsonCache = mutableMapOf<String, String>()
 
     app.subtypeManager.value.activeSubtypeFlow.collectLatest { subtype ->
         val languageTag = subtype.primaryLocale.languageTag()
@@ -100,8 +103,21 @@ suspend fun loadFoundationKeyboard(imeController: ImeController, storage: Storag
             }.getOrDefault(fallbackLayoutJson)
         }
 
+        val popupMappingId = resolvePopupMappingId(localizationManifest, languageTag)
+        val popupMappingJson = popupMappingId?.let { mappingId ->
+            popupMappingJsonCache[mappingId] ?: runCatching {
+                loadAssetText(
+                    "ime/keyboard/$LOCALIZATION_EXTENSION_ID/popupMappings/$mappingId.json"
+                )
+            }.onFailure { error ->
+                flogWarning {
+                    "Unable to load popup map '$mappingId' for $languageTag: ${error.message}"
+                }
+            }.getOrNull()?.also { popupMappingJsonCache[mappingId] = it }
+        }
+
         val keyboardXml = runCatching {
-            buildKeyboard3Xml(baseKeyboardXml, layoutJson, languageTag)
+            buildKeyboard3Xml(baseKeyboardXml, layoutJson, languageTag, popupMappingJson)
         }.onFailure { error ->
             flogWarning {
                 "Unable to build '$layoutId' keyboard for $languageTag; falling back to QWERTY: ${error.message}"
