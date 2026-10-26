@@ -150,7 +150,17 @@ fun LocalizationScreen() = DekuScreen {
                             }
                         },
                         headlineContent = { Text(name) },
-                        supportingContent = { Text(subtype.primaryLocale.languageTag()) },
+                        supportingContent = {
+                            Text(
+                                buildString {
+                                    append(subtype.primaryLocale.languageTag())
+                                    subtype.characterLayoutId?.let { layoutId ->
+                                        append(" · ")
+                                        append(layoutId.replace('_', ' '))
+                                    }
+                                }
+                            )
+                        },
                         trailingContent = {
                             Row {
                                 IconButton(

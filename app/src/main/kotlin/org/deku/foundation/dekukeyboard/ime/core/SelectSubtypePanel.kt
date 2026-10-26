@@ -91,7 +91,13 @@ fun SelectSubtypePanel(modifier: Modifier = Modifier) {
                             currentlySelected == it.id -> Icons.Default.RadioButtonChecked
                             else -> Icons.Default.RadioButtonUnchecked
                         },
-                        text = it.primaryLocale.displayName(),
+                        text = buildString {
+                            append(it.primaryLocale.displayName())
+                            it.characterLayoutId?.let { layoutId ->
+                                append(" · ")
+                                append(layoutId.replace('_', ' '))
+                            }
+                        },
                     )
                 }
             }

@@ -77,9 +77,10 @@ fun SubtypeEditorScreen(id: Long?) = DekuScreen {
     }
     var errorMessageId by rememberSaveable { mutableStateOf<Int?>(null) }
 
-    LaunchedEffect(existingSubtype?.id) {
+    LaunchedEffect(existingSubtype?.id, existingSubtype?.characterLayoutId) {
         if (id != null && selectedLanguageTag.isBlank() && existingSubtype != null) {
             selectedLanguageTag = existingSubtype.primaryLocale.languageTag()
+            selectedCharacterLayoutId = existingSubtype.characterLayoutId.orEmpty()
         }
     }
 
@@ -137,6 +138,12 @@ fun SubtypeEditorScreen(id: Long?) = DekuScreen {
             if (selectedLanguageTag.isNotBlank()) {
                 Text(
                     text = selectedLanguageTag,
+                    style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
+                )
+            }
+            selectedCharacterLayoutId.takeIf { it.isNotBlank() }?.let { layoutId ->
+                Text(
+                    text = layoutId.replace('_', ' '),
                     style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
                 )
             }
