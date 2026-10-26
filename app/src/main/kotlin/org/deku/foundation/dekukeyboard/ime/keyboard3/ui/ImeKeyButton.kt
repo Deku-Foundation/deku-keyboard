@@ -131,16 +131,17 @@ fun ImeKeyButton(
                     } else null
                     val up = waitForUpOrCancellation()
                     repeatJob?.cancel()
-                    scope.launch {
-                        imeController.updateState {
-                            if (up != null) {
-                                interactionSource.tryEmit(PressInteraction.Release(press))
-                                if (!didRepeatTrigger) {
-                                    emit(output)
-                                }
-                            } else {
-                                interactionSource.tryEmit(PressInteraction.Cancel(press))
+                    // Commit the release before this gesture loop waits for another down event.
+                    // Launching a detached child here lets rapid key-up updates race with later
+                    // taps, which can drop or reorder editor actions on some input targets.
+                    imeController.updateState {
+                        if (up != null) {
+                            interactionSource.tryEmit(PressInteraction.Release(press))
+                            if (!didRepeatTrigger) {
+                                emit(output)
                             }
+                        } else {
+                            interactionSource.tryEmit(PressInteraction.Cancel(press))
                         }
                     }
                 }
