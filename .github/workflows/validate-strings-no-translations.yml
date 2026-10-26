@@ -2,7 +2,7 @@ name: Deku Keyboard - validate base string resources
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, dev, pre-release]
 
 permissions:
   contents: read
