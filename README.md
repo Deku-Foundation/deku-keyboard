@@ -8,7 +8,7 @@ This independent project began from the FlorisBoard open-source codebase. It is 
 
 ## Project status
 
-This is the source-import baseline, not a published stable release. The first goal is to establish a reproducible build and CI. Signing and release distribution will be reviewed before a public Deku release. The Android application ID and primary adaptive icon have been changed; internal namespace/class names and inherited store-listing assets remain subject to targeted compatibility and licensing review. Do not treat unofficial builds as production releases.
+This is the source-import baseline, not a published stable release. The first goal is to establish a reproducible build and CI. The application namespace and ID, Kotlin/Java source paths, component class names, native JNI entry point, built-in extension identifiers, resource keys, app label, and adaptive icon have been migrated to Deku. The build is being validated after this migration. Inherited store-listing assets still require replacement or licensing review. Do not treat unofficial builds as production releases.
 
 ## Baseline capabilities
 
@@ -30,4 +30,4 @@ The privacy notice is currently a [pre-release draft](PRIVACY.md), not a final p
 
 ## Attribution and licensing
 
-This project is derived from FlorisBoard and retains its upstream license, copyright statements, and applicable third-party notices. See [LICENSE](LICENSE) and [UPSTREAM.md](UPSTREAM.md). Deku Keyboard is an independent project and is not the official FlorisBoard project. The app label, application ID, adaptive icon, palette, repository links, and Gradle project name have been updated; internal namespace/class names, some upstream integrations, and inherited store-listing assets remain subject to targeted compatibility and licensing review.
+This project is derived from FlorisBoard and retains its upstream license, copyright statements, and applicable third-party notices. See [LICENSE](LICENSE) and [UPSTREAM.md](UPSTREAM.md). Deku Keyboard is an independent project and is not the official FlorisBoard project. The app label, application ID, namespace, Kotlin/Java packages, native library symbols, built-in extension identifiers, resource names, icon, palette, repository links, and Gradle project name have been migrated. The real upstream add-ons endpoint remains configured intentionally until Deku operates a replacement; inherited store-listing assets are not ready for publication.
