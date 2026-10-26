@@ -162,7 +162,7 @@ private fun replaceTouchLayerRows(
                 val keysMatch = keysPattern.find(oldRow.value)
                 if (keysMatch != null) {
                     val reversedKeys = keysMatch.groupValues[1].split(Regex("\\s+")).reversed()
-                    """<row keys="\${reversedKeys.joinToString(" ")}" />"""
+                    """<row keys="${reversedKeys.joinToString(" ")}" />"""
                 } else {
                     oldRow.value
                 }
@@ -183,7 +183,7 @@ private fun replaceTouchLayerRows(
                 else -> ids
             }
             rowIndex++
-            "            <row keys=\"\${keys.joinToString(" ")}\" />"
+            "            <row keys=\"${keys.joinToString(" ")}\" />"
         }
     }
     val replacement = layerMatch.groupValues[1] + newBody + layerMatch.groupValues[3]
