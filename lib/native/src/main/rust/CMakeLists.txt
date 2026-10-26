@@ -37,7 +37,7 @@ else()
 endif()
 get_filename_component(LLVM_TOOLCHAIN ${CMAKE_C_COMPILER} DIRECTORY)
 
-set(FL_NATIVE_RUST_PATH "${CMAKE_CURRENT_SOURCE_DIR}/target/${RUST_TARGET}/release/libdeku_native_rust.a")
+set(DEKU_NATIVE_RUST_PATH "${CMAKE_CURRENT_SOURCE_DIR}/target/${RUST_TARGET}/release/libdeku_native_rust.a")
 
 add_custom_target(
     setup_rust_target ALL
@@ -48,7 +48,7 @@ add_custom_target(
     COMMAND ${CARGO_EXECUTABLE} rustc --release --locked --target ${RUST_TARGET} --
         -C linker="${LLVM_TOOLCHAIN}/${ANDROID_TARGET}${CMAKE_ANDROID_API}-clang"
     DEPENDS setup_rust_target
-    BYPRODUCTS ${FL_NATIVE_RUST_PATH}
+    BYPRODUCTS ${DEKU_NATIVE_RUST_PATH}
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
@@ -56,5 +56,5 @@ add_dependencies(deku_native deku_native_rust_build)
 
 # TODO: check if there's a better way than allowing multiple symbol definitions
 target_link_libraries(deku_native
-    android log -Wl,--whole-archive -Wl,--allow-multiple-definition -Wl,--build-id=none ${FL_NATIVE_RUST_PATH}
+    android log -Wl,--whole-archive -Wl,--allow-multiple-definition -Wl,--build-id=none ${DEKU_NATIVE_RUST_PATH}
 )
