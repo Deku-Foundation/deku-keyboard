@@ -77,7 +77,7 @@ internal fun buildKeyboard3Xml(
         .findAll(baseXml)
         .map { it.groupValues[1] }
         .toSet()
-    val existingKeyIdByOutput = Regex("""<key\\s+id="([^"]+)"[^>]*\boutput="([^"]*)"[^>]*/>""")
+    val existingKeyIdByOutput = Regex("""<key\s+id="([^"]+)"[^>]*\boutput="([^"]*)"[^>]*/>""")
         .findAll(baseXml)
         .mapNotNull { match ->
             val output = unescapeXmlAttribute(match.groupValues[2])
