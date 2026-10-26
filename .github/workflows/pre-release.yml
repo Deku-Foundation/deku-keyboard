@@ -1,0 +1,90 @@
+name: Deku Keyboard pre-release
+
+on:
+  push:
+    tags:
+      - "v*-alpha.*"
+      - "v*-beta.*"
+      - "v*-rc.*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-publish:
+    name: Build and publish a testing pre-release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Ensure the candidate belongs to pre-release
+        shell: bash
+        env:
+          CANDIDATE_TAG: ${{ github.ref_name }}
+          CANDIDATE_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$CANDIDATE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-(alpha|beta|rc)\.[0-9]+$ ]]; then
+            echo "Expected a tag such as v0.1.0-rc.1; received: $CANDIDATE_TAG" >&2
+            exit 1
+          fi
+          git fetch --no-tags origin refs/heads/pre-release:refs/remotes/origin/pre-release
+          if ! git merge-base --is-ancestor "$CANDIDATE_SHA" refs/remotes/origin/pre-release; then
+            echo "The tagged commit is not contained in the pre-release branch." >&2
+            exit 1
+          fi
+          echo "Validated $CANDIDATE_TAG at $CANDIDATE_SHA."
+
+      - uses: gradle/actions/wrapper-validation@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v6
+        with:
+          java-version: 17
+          distribution: temurin
+
+      - name: Set up CMake and Ninja
+        uses: lukka/get-cmake@v4.0.2
+
+      - name: Build candidate APK
+        run: ./gradlew clean assembleDebug
+
+      - name: Upload candidate artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: deku-keyboard-${{ github.ref_name }}-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Prepare candidate notes
+        shell: bash
+        run: |
+          {
+            echo "## Deku Keyboard ${GITHUB_REF_NAME}"
+            echo
+            echo "**Status:** Pre-release for testing only; not a stable or production release."
+            echo
+            echo "**Source commit:** ${GITHUB_SHA}"
+            echo
+            echo "The attached APK is built using the Gradle debug variant. Use it for controlled testing only. Do not publish it to an app store."
+            echo
+            echo "Report results with the device model, Android version, active language/layout, and exact reproduction steps."
+          } > "${RUNNER_TEMP}/release-notes.md"
+
+      - name: Publish GitHub pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CANDIDATE_TAG: ${{ github.ref_name }}
+          CANDIDATE_SHA: ${{ github.sha }}
+        run: |
+          gh release create "$CANDIDATE_TAG" \
+            "app/build/outputs/apk/debug/app-debug.apk#Deku Keyboard debug-signed APK (testing only)" \
+            --target "$CANDIDATE_SHA" \
+            --prerelease \
+            --title "Deku Keyboard $CANDIDATE_TAG" \
+            --notes-file "${RUNNER_TEMP}/release-notes.md"
