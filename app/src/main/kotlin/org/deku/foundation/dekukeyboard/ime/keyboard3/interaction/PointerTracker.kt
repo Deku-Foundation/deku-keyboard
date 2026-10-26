@@ -22,7 +22,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.input.pointer.PointerId
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.changedToDown
@@ -102,6 +101,24 @@ data class PeekLine(
     val start: Offset,
     val end: Offset,
 )
+
+internal fun calculateLongPressAnchorBounds(keyBounds: Rect): Rect {
+    if (keyBounds.isEmpty || keyBounds.width <= 0f || keyBounds.height <= 0f) {
+        return Rect.Zero
+    }
+
+    // Key bounds and popup bounds use normalized keyboard coordinates. Derive the popup width
+    // from the actual key so the same placement works on narrow/wide layouts and in landscape.
+    val width = keyBounds.width.coerceIn(MIN_LONG_PRESS_ANCHOR_DIMENSION, 1f)
+    val height = (keyBounds.height * 0.9f).coerceIn(MIN_LONG_PRESS_ANCHOR_DIMENSION, 1f)
+    val left = (keyBounds.center.x - width / 2f).coerceIn(0f, 1f - width)
+    val preferredTop = keyBounds.top - height * 1.2f
+    val top = preferredTop.coerceIn(0f, 1f - height)
+
+    return Rect(left, top, left + width, top + height)
+}
+
+private const val MIN_LONG_PRESS_ANCHOR_DIMENSION = 0.01f
 
 private data class LastUpKey(
     val touchKey: TouchKey,
@@ -190,17 +207,7 @@ class PointerTracker(
                 down = down,
                 downKey = downKey,
                 longPress = if (downKey.isSuitableForPopup) {
-                    val anchorBounds = downKey.bounds.let { bounds ->
-                        // TODO this is only tested for PHONE_PORTRAIT, test+fix other form factors!
-                        val w = 0.1f
-                        val h = bounds.height * 0.9f
-                        val x = bounds.bottomCenter.x - w / 2f
-                        val y = bounds.bottom - h * 2.3f
-                        Rect(
-                            offset = Offset(x, y),
-                            size = Size(w, h),
-                        )
-                    }
+                    val anchorBounds = calculateLongPressAnchorBounds(downKey.bounds)
                     LongPress(
                         anchorBounds = anchorBounds,
                         simpleBounds = if (showSimplePopups && downKey.isSuitableForSimplePopup) {
