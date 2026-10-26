@@ -317,8 +317,12 @@ class ImeController(
                 // TODO clipboard manager needs a rewrite to match the new state paradigm
                 ImeActions.ClipboardCopy -> {
                     if (state.editor.info.isRichInputEditor) {
-                        val text = state.content.surroundingText.textSelected
-                        if (text.isNotEmpty()) {
+                        // Do not copy the cached surrounding-text snapshot: it can be stale or
+                        // truncated for large selections in some InputConnection implementations.
+                        // Query the editor at action time so internal-only clipboard mode remains
+                        // supported without forcing a copy through the system clipboard.
+                        val text = state.editor.getSelectedText()
+                        if (!text.isNullOrEmpty()) {
                             clipboardManager.addNewPlaintext(text)
                         }
                     } else {
