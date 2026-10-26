@@ -63,6 +63,7 @@ fun SubtypeEditorScreen(id: Long?) = DekuScreen {
     val subtypeManager by context.subtypeManager()
     val lifecycleOwner = LocalLifecycleOwner.current
     val configuredSubtypes by subtypeManager.subtypesFlow.collectAsState()
+    val subtypeManagerReady by subtypeManager.isInitializedFlow.collectAsState()
     val editorBackStackEntry = remember(navController) { navController.currentBackStackEntry }
     val existingSubtype = remember(id, configuredSubtypes) {
         id?.let(subtypeManager::getSubtypeById)
@@ -134,7 +135,7 @@ fun SubtypeEditorScreen(id: Long?) = DekuScreen {
 
             Button(
                 modifier = Modifier.fillMaxWidth(),
-                enabled = selectedLocale != null,
+                enabled = selectedLocale != null && subtypeManagerReady,
                 onClick = {
                     val locale = selectedLocale
                     if (locale == null) {
