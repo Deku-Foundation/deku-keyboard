@@ -105,9 +105,24 @@ jobs:
           localization_path = root / "app/src/main/assets/ime/keyboard/org.deku.foundation.dekukeyboard.localization/extension.json"
           localization = json.loads(localization_path.read_text(encoding="utf-8"))
           presets = localization.get("subtypePresets", [])
-          if not presets:
-              raise SystemExit("No built-in locale presets were found.")
+          if len(presets) < 50:
+              raise SystemExit(f"Expected a broad bundled locale catalog (at least 50 presets), got {len(presets)}.")
+          if not any(
+              str(preset.get("languageTag", "")).lower() == "ar"
+              or str(preset.get("languageTag", "")).lower().startswith("ar-")
+              for preset in presets
+          ):
+              raise SystemExit("The bundled locale catalog must retain Arabic support.")
           layout_root = root / "app/src/main/assets/ime/keyboard/org.deku.foundation.dekukeyboard.layouts/layouts/characters"
+          layout_manifest_path = root / "app/src/main/assets/ime/keyboard/org.deku.foundation.dekukeyboard.layouts/extension.json"
+          layout_manifest = json.loads(layout_manifest_path.read_text(encoding="utf-8"))
+          declared_character_layouts = {
+              str(layout.get("id"))
+              for layout in layout_manifest.get("layouts", {}).get("characters", [])
+              if layout.get("id")
+          }
+          if not declared_character_layouts:
+              raise SystemExit("The character-layout extension manifest declares no layouts.")
           missing_layouts = []
           for preset in presets:
               locale_tag = preset.get("languageTag", "<missing-language-tag>")
@@ -115,6 +130,8 @@ jobs:
               layout_id = layout_ref.rsplit(":", 1)[-1]
               if not layout_id or not re.fullmatch(r"[A-Za-z0-9_-]+", layout_id):
                   missing_layouts.append(f"{locale_tag}: invalid layout reference {layout_ref!r}")
+              elif layout_id not in declared_character_layouts:
+                  missing_layouts.append(f"{locale_tag}: {layout_id} is not declared in the character-layout manifest")
               elif not (layout_root / f"{layout_id}.json").is_file():
                   missing_layouts.append(f"{locale_tag}: {layout_id}.json")
           if missing_layouts:
