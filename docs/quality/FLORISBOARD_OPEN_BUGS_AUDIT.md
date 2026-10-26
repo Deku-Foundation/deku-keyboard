@@ -138,7 +138,7 @@ The environment column is copied from each report when provided. It is a reprodu
 
 
 - **Language-picker compilation failure:** CI on `5b7ebe0f897d06380a6c8a850489c6a27650604d` failed in `SubtypeEditorScreen.kt` because `StateFlow.collectAsState()` resolved to the JetPref `PreferenceData` extension. The import now uses `androidx.compose.runtime.collectAsState`. The failure is recorded as an actual compiler diagnostic, not a speculative runtime theory; validation of the fix is pending on the current head.
-- **Generated layout XML:** the follow-up patch removes backslashes from generated attribute quotes and emits a real newline, and adds XML-parser assertions for generated English, Arabic RTL and German layouts. The corresponding build/test result is still pending.
+- **Generated layout XML:** the follow-up patch removes backslashes from generated attribute quotes, emits a real newline, and adds XML-parser assertions for generated English, Arabic RTL and German layouts. The first CI run then caught use of a nonexistent `Regex.replaceFirst(input) { ... }` overload; it has been changed to `find` plus `replaceRange`. The build/test result for these corrections is still pending.
 
 
 

@@ -123,10 +123,14 @@ internal fun buildKeyboard3Xml(
 
     var xml = baseXml.replaceFirst("</keys>", "$keyDefinitions    </keys>")
     val localePattern = Regex("""(<keyboard3\b[^>]*\blocale=")[^"]*(")""")
-    require(localePattern.containsMatchIn(xml)) { "K3 root keyboard3 element has no locale attribute" }
-    xml = localePattern.replaceFirst(xml) { match ->
-        match.groupValues[1] + xmlAttribute(Locale.forLanguageTag(languageTag).toLanguageTag()) + match.groupValues[2]
-    }
+    val localeMatch = localePattern.find(xml)
+        ?: throw IllegalArgumentException("K3 root keyboard3 element has no locale attribute")
+    xml = xml.replaceRange(
+        localeMatch.range,
+        localeMatch.groupValues[1] +
+            xmlAttribute(Locale.forLanguageTag(languageTag).toLanguageTag()) +
+            localeMatch.groupValues[2],
+    )
 
     xml = replaceTouchLayerRows(xml, "base", effectiveRows, shifted = false, isRtl = isRtl, languageTag = languageTag, existingKeyIdByOutput = existingKeyIdByOutput)
     xml = replaceTouchLayerRows(xml, "shift", effectiveRows, shifted = true, isRtl = isRtl, languageTag = languageTag, existingKeyIdByOutput = existingKeyIdByOutput)
