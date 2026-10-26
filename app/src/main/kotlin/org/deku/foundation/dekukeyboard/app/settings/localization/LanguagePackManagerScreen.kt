@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2025 The FlorisBoard Contributors
+ * Copyright (C) 2021-2026 The FlorisBoard Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,195 +16,57 @@
 
 package org.deku.foundation.dekukeyboard.app.settings.localization
 
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Input
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import org.deku.foundation.dekukeyboard.R
-import org.deku.foundation.dekukeyboard.app.DekuPreferenceStore
 import org.deku.foundation.dekukeyboard.app.LocalNavController
 import org.deku.foundation.dekukeyboard.app.Routes
 import org.deku.foundation.dekukeyboard.app.ext.ExtensionImportScreenType
-import org.deku.foundation.dekukeyboard.lib.compose.DekuConfirmDeleteDialog
 import org.deku.foundation.dekukeyboard.lib.compose.DekuScreen
-import dev.patrickgold.jetpref.datastore.ui.ExperimentalJetPrefDatastoreUi
-import dev.patrickgold.jetpref.datastore.ui.Preference
-import dev.patrickgold.jetpref.material.ui.JetPrefListItem
-import org.deku.foundation.dekukeyboard.lib.compose.DekuOutlinedBox
-import org.deku.foundation.dekukeyboard.lib.compose.DekuTextButton
-import org.deku.foundation.dekukeyboard.lib.compose.defaultDekuOutlinedBox
-import org.deku.foundation.dekukeyboard.lib.compose.rippleClickable
 import org.deku.foundation.dekukeyboard.lib.compose.stringRes
 
 enum class LanguagePackManagerScreenAction(val id: String) {
     MANAGE("manage-installed-language-packs");
 }
 
-// TODO: this file is based on ThemeManagerScreen.kt and can arguably be merged.
-@OptIn(ExperimentalJetPrefDatastoreUi::class)
 @Composable
-fun LanguagePackManagerScreen(action: LanguagePackManagerScreenAction?) {} /*= DekuScreen {
-    title = stringRes(when (action) {
-        LanguagePackManagerScreenAction.MANAGE -> R.string.settings__localization__language_pack_title
-        else -> error("LanguagePack manager screen action must not be null")
-    })
-
-    val prefs by DekuPreferenceStore
+fun LanguagePackManagerScreen(action: LanguagePackManagerScreenAction?) = DekuScreen {
+    title = stringRes(R.string.settings__localization__language_pack_title)
     val navController = LocalNavController.current
     val context = LocalContext.current
-    val extensionManager by context.extensionManager()
-
-    val indexedLanguagePackExtensions by extensionManager.languagePacks.collectAsState()
-    val selectedManagerLanguagePackId = remember { mutableStateOf<ExtensionComponentName?>(null) }
-    val extGroupedLanguagePacks = remember(indexedLanguagePackExtensions) {
-        buildMap {
-            for (ext in indexedLanguagePackExtensions) {
-                put(ext.meta.id, ext.items)
-            }
-        }.mapValues { (_, configs) -> configs.sortedBy { it.label } }
-    }
-
-    fun getLanguagePackIdPref(): Nothing = TODO("Not implemented yet")
-
-    fun setLanguagePack(extId: String, componentId: String) {
-        val extComponentName = ExtensionComponentName(extId, componentId)
-        when (action) {
-            LanguagePackManagerScreenAction.MANAGE -> {
-                selectedManagerLanguagePackId.value = extComponentName
-            }
-        }
-    }
-
-    val activeLanguagePackId by when (action) {
-        LanguagePackManagerScreenAction.MANAGE -> selectedManagerLanguagePackId
-    }
-    var languagePackExtToDelete by remember { mutableStateOf<Extension?>(null) }
 
     content {
-        val grayColor = LocalContentColor.current.copy(alpha = 0.56f)
-        if (action == LanguagePackManagerScreenAction.MANAGE) {
-            DekuOutlinedBox(
-                modifier = Modifier.defaultDekuOutlinedBox(),
-            ) {
-                Preference(
-                    onClick = { navController.navigate(
-                        Routes.Ext.Import(ExtensionImportScreenType.EXT_LANGUAGEPACK, null)
-                    ) },
-                    icon = Icons.Default.Input,
-                    title = stringRes(R.string.action__import),
-                )
-            }
-        }
-        for ((extensionId, configs) in extGroupedLanguagePacks) key(extensionId) {
-            val ext = extensionManager.getExtensionById(extensionId)!!
-            DekuOutlinedBox(
-                modifier = Modifier.defaultDekuOutlinedBox(),
-                title = ext.meta.title,
-                onTitleClick = { navController.navigate(Routes.Ext.View(extensionId)) },
-                subtitle = extensionId,
-                onSubtitleClick = { navController.navigate(Routes.Ext.View(extensionId)) },
-            ) {
-                Column(
-                    // Allowing horizontal scroll to fit translations in descriptions.
-                    Modifier
-                        .horizontalScroll(rememberScrollState())
-                        .width(intrinsicSize = IntrinsicSize.Max),
-                ) {
-                    for (config in configs) key(extensionId, config.id) {
-                        JetPrefListItem(
-                            modifier = Modifier.rippleClickable {
-                                setLanguagePack(extensionId, config.id)
-                            },
-//                        icon = {
-//                            RadioButton(
-//                                selected = activeLanguagePackId?.extensionId == extensionId &&
-//                                    activeLanguagePackId?.componentId == config.id,
-//                                onClick = null,
-//                            )
-//                        },
-                            text = config.label,
-//                        trailing = {
-//                            Icon(
-//                                modifier = Modifier.size(ButtonDefaults.IconSize),
-//                                painter = painterResource(if (config.isNightLanguagePack) {
-//                                    R.drawable.ic_dark_mode
-//                                } else {
-//                                    R.drawable.ic_light_mode
-//                                }),
-//                                contentDescription = null,
-//                                tint = grayColor,
-//                            )
-//                        },
-                        )
-                    }
-                }
-                if (action == LanguagePackManagerScreenAction.MANAGE && extensionManager.canDelete(ext)) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 6.dp),
-                    ) {
-                        DekuTextButton(
-                            onClick = {
-                                languagePackExtToDelete = ext
-                            },
-                            icon = Icons.Default.Delete,
-                            text = stringRes(R.string.action__delete),
-                            colors = ButtonDefaults.textButtonColors(
-                                contentColor = MaterialTheme.colorScheme.error,
-                            ),
-                        )
-                        Spacer(modifier = Modifier.weight(1f))
-//                        DekuTextButton(
-//                            onClick = {
-//                                navController.navigate(Routes.Ext.Edit(ext.meta.id))
-//                            },
-//                            icon = painterResource(R.drawable.ic_edit),
-//                            text = stringRes(R.string.action__edit),
-//                        )
-                    }
-                }
-            }
-        }
-
-        if (languagePackExtToDelete != null) {
-            DekuConfirmDeleteDialog(
-                onConfirm = {
-                    runCatching {
-                        extensionManager.delete(languagePackExtToDelete!!)
-                    }.onFailure { error ->
-                        context.showLongToastSync(
-                            R.string.error__snackbar_message,
-                            "error_message" to error.localizedMessage,
-                        )
-                    }
-                    languagePackExtToDelete = null
-                },
-                onDismiss = { languagePackExtToDelete = null },
-                what = languagePackExtToDelete!!.meta.title,
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                text = stringRes(R.string.settings__localization__language_pack_info),
+                style = MaterialTheme.typography.bodyLarge,
             )
+            Button(
+                modifier = Modifier.fillMaxWidth(),
+                enabled = action == LanguagePackManagerScreenAction.MANAGE,
+                onClick = {
+                    navController.navigate(
+                        Routes.Ext.Import(ExtensionImportScreenType.EXT_LANGUAGEPACK, null)
+                    )
+                },
+            ) {
+                Text(stringRes(R.string.action__import))
+            }
         }
     }
 }
-*/
