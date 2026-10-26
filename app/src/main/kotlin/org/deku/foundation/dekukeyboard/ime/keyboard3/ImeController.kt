@@ -331,8 +331,10 @@ class ImeController(
                 }
                 ImeActions.ClipboardCut -> {
                     if (state.editor.info.isRichInputEditor) {
-                        val text = state.content.surroundingText.textSelected
-                        if (text.isNotEmpty()) {
+                        // Match Copy's live selection read so large selections are not truncated
+                        // by a stale surrounding-text snapshot before the selection is deleted.
+                        val text = state.editor.getSelectedText()
+                        if (!text.isNullOrEmpty()) {
                             clipboardManager.addNewPlaintext(text)
                             emitBackspace()
                         }
