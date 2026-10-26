@@ -227,7 +227,7 @@ class DekuLocale private constructor(val base: Locale) {
      * @return The language tag for this locale. May be an empty string if
      *  [language], [country] and [variant] are not specified.
      */
-    fun languageTag(): String = buildLocaleString(DELIMITER_LANGUAGE_TAG)
+    fun languageTag(): String = if (base.language.isBlank()) "" else base.toLanguageTag()
 
     /**
      * Generates the locale tag for this locale in the format `xx`,
