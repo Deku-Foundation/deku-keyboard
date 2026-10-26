@@ -15,7 +15,7 @@
  */
 
 // Deku Foundation modification (2026-10-25): use the independent repository project name.
-rootProject.name = "Deku Keyboard"
+rootProject.name = "DekuKeyboard"
 
 pluginManagement {
     repositories {
