@@ -17,11 +17,16 @@ internal fun clipboardTextPreview(
     maxCodePoints: Int = CLIPBOARD_TILE_PREVIEW_MAX_CODE_POINTS,
 ): String {
     require(maxCodePoints >= 0) { "maxCodePoints must not be negative" }
-    if (text.isEmpty() || maxCodePoints == 0) {
-        return if (text.isEmpty()) text else "…"
+    if (text.isEmpty()) return text
+    if (maxCodePoints == 0) return "…"
+
+    // Bound the scan itself, not just the rendered result. Counting the code points in the entire
+    // string here makes every recomposition O(n) for enormous clipboard payloads.
+    val end = try {
+        text.offsetByCodePoints(0, maxCodePoints)
+    } catch (_: IndexOutOfBoundsException) {
+        return text
     }
-    val codePointCount = text.codePointCount(0, text.length)
-    if (codePointCount <= maxCodePoints) return text
-    val end = text.offsetByCodePoints(0, maxCodePoints)
+    if (end == text.length) return text
     return text.substring(0, end) + "…"
 }
