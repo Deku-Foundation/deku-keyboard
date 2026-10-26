@@ -23,6 +23,7 @@ import org.deku.foundation.dekukeyboard.ime.nlp.SpellingProvider
 import org.deku.foundation.dekukeyboard.ime.nlp.SpellingResult
 import org.deku.foundation.dekukeyboard.ime.nlp.SuggestionCandidate
 import org.deku.foundation.dekukeyboard.ime.nlp.SuggestionProvider
+import org.deku.foundation.dekukeyboard.ime.nlp.WordSuggestionCandidate
 import org.deku.foundation.dekukeyboard.lib.devtools.flogDebug
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
