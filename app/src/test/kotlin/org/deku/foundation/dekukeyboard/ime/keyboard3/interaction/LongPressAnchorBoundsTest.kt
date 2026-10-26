@@ -32,6 +32,7 @@ class LongPressAnchorBoundsTest : FunSpec({
         anchor.left shouldBe 0f
         anchor.top shouldBe 0f
         (anchor.right <= 1f && anchor.bottom <= 1f) shouldBe true
+        (anchor.top >= 0.06f) shouldBe true
     }
 
     test("adapts to tall landscape-style keys without leaving the viewport") {

@@ -113,7 +113,13 @@ internal fun calculateLongPressAnchorBounds(keyBounds: Rect): Rect {
     val height = (keyBounds.height * 0.9f).coerceIn(MIN_LONG_PRESS_ANCHOR_DIMENSION, 1f)
     val left = (keyBounds.center.x - width / 2f).coerceIn(0f, 1f - width)
     val preferredTop = keyBounds.top - height * 1.2f
-    val top = preferredTop.coerceIn(0f, 1f - height)
+    val top = if (preferredTop >= 0f) {
+        preferredTop.coerceAtMost(1f - height)
+    } else {
+        // At the very top edge there is no space above the key. Place the popup below it
+        // instead of clipping it at y=0 or covering the character that was pressed.
+        keyBounds.bottom.coerceAtMost(1f - height)
+    }
 
     return Rect(left, top, left + width, top + height)
 }
