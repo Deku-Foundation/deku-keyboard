@@ -31,6 +31,7 @@ import org.deku.foundation.dekukeyboard.ime.clipboard.provider.ItemType
 import org.deku.foundation.dekukeyboard.ime.editor.DekuEditorInfo
 import org.deku.foundation.dekukeyboard.ime.editor.ImeOptions
 import org.deku.foundation.dekukeyboard.ime.editor.InputAttributes
+import org.deku.foundation.dekukeyboard.ime.editor.requiresVisiblePasswordEnterFallback
 import org.deku.foundation.dekukeyboard.ime.io.StorageController
 import org.deku.foundation.dekukeyboard.ime.keyboard.IncognitoMode
 import org.deku.foundation.dekukeyboard.ime.keyboard3.extension.loadFoundationKeyboard
@@ -410,7 +411,21 @@ class ImeController(
         }
 
         override fun emitBackspace() {
-            super.emitBackspace()
+            val editorInfo = state.editor.info
+            val surrounding = state.content.surroundingText
+            val hasNoReportedSurroundingText = surrounding.textBefore.isEmpty() &&
+                surrounding.textSelected.isEmpty() &&
+                surrounding.textAfter.isEmpty()
+            if (
+                hasNoReportedSurroundingText &&
+                requiresVisiblePasswordEnterFallback(editorInfo.inputAttributes, editorInfo.imeOptions)
+            ) {
+                // Work around host engines that report VISIBLE_PASSWORD but fail to expose text to
+                // InputConnection; a physical delete event lets the host update its own text model.
+                state.editor.sendDownUpKeyEvent(KeyEvent.KEYCODE_DEL)
+            } else {
+                super.emitBackspace()
+            }
             expectedContentQueue.push(state.content)
         }
 
@@ -419,6 +434,10 @@ class ImeController(
             val isShiftPressed = false // TODO inputEventDispatcher.isPressed(KeyCode.SHIFT)
             if (info.imeOptions.flagNoEnterAction || info.inputAttributes.flagTextMultiLine && isShiftPressed) {
                 emitEnterKey()
+            } else if (requiresVisiblePasswordEnterFallback(info.inputAttributes, info.imeOptions)) {
+                // A few game engines expose a visible-password EditorInfo for ordinary single-line
+                // name fields. An explicit Enter key event is more compatible than IME action 0.
+                state.editor.sendDownUpKeyEvent(KeyEvent.KEYCODE_ENTER)
             } else {
                 when (val action = info.imeOptions.action) {
                     ImeOptions.Action.UNSPECIFIED,
