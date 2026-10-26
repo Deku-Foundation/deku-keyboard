@@ -133,6 +133,11 @@ The environment column is copied from each report when provided. It is a reprodu
 
 ## Source-review findings
 
+- **Language-picker compilation failure:** CI on `5b7ebe0f897d06380a6c8a850489c6a27650604d` failed in `SubtypeEditorScreen.kt` because `StateFlow.collectAsState()` resolved to the JetPref `PreferenceData` extension. The import now uses `androidx.compose.runtime.collectAsState`. The failure is recorded as an actual compiler diagnostic, not a speculative runtime theory; validation of the fix is pending on the current head.
+- **Generated layout XML:** the follow-up patch removes backslashes from generated attribute quotes and emits a real newline, and adds XML-parser assertions for generated English, Arabic RTL and German layouts. The corresponding build/test result is still pending.
+
+
+
 - **Deku language selection / keyboard layout regression:** while reviewing the first reported failure to add languages, `KeyboardLayoutBuilder.kt` emitted generated key definitions using literal backslashes before XML quote delimiters and used a literal `\\n` sequence. The builder now emits normal XML attributes and real line breaks; unit tests parse generated English, Arabic RTL, and German XML with a real XML parser. Status: **patch committed; CI and runtime testing of switching from English to Arabic are pending**.
 - **[#3365 — language switch button selects another system IME](https://github.com/florisboard/florisboard/issues/3365):** the layout maps the globe icon to `switch_to_next_subtype`, but the corresponding `ImeController` handler was a no-op. The `dev` implementation now switches the active Deku subtype, implements the subtype picker, and closes the picker after selection. Status: **source path fixed; manual verification on a device is still required**.
 

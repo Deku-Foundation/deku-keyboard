@@ -45,7 +45,7 @@ import org.deku.foundation.dekukeyboard.lib.DekuLocale
 import org.deku.foundation.dekukeyboard.lib.compose.DekuScreen
 import org.deku.foundation.dekukeyboard.lib.compose.stringRes
 import org.deku.foundation.dekukeyboard.subtypeManager
-import dev.patrickgold.jetpref.datastore.model.collectAsState
+import androidx.compose.runtime.collectAsState
 
 @Composable
 fun SubtypeEditorScreen(id: Long?) = DekuScreen {
