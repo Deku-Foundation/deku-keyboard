@@ -2,11 +2,11 @@
 
 Thank you for helping improve Deku Keyboard, an open-source Android keyboard maintained by Deku Foundation.
 
-This repository began as an import of the Deku Keyboard open-source codebase. Its upstream license and relevant source notices are retained; see [UPSTREAM.md](UPSTREAM.md). Deku Keyboard is an independent derivative, not the official Deku Keyboard project.
+This repository began as an import of the FlorisBoard open-source codebase. Its Apache-2.0 license and applicable source notices are retained; see [UPSTREAM.md](UPSTREAM.md). Deku Keyboard is an independent derivative, not the official FlorisBoard project.
 
 ## Current status
 
-This is a development baseline, not a stable release. The Android app identity has been started, but internal package/class names, some upstream integrations, translated store listings, screenshots, and other inherited assets are still being reviewed. Do not upload Fastlane metadata or publish builds as stable releases yet; see [fastlane/README.md](fastlane/README.md), [PRIVACY.md](PRIVACY.md), and [SECURITY_REVIEW.md](SECURITY_REVIEW.md).
+This is a development baseline, not a stable release. The app/package rebrand has been applied. The post-migration build is being checked, while the live upstream add-ons integration and inherited store listings/screenshots still need a Deku-owned replacement or explicit approval. Do not upload Fastlane metadata or publish builds as stable releases yet; see [fastlane/README.md](fastlane/README.md), [PRIVACY.md](PRIVACY.md), and [SECURITY_REVIEW.md](SECURITY_REVIEW.md).
 
 ## Issues and proposals
 
@@ -39,7 +39,7 @@ The CI workflow builds a debug APK and publishes it as an artifact. Pull request
 - Preserve upstream copyright notices and third-party license requirements.
 - Do not commit credentials, private keys, user data, or real crash logs containing personal information.
 - Do not add new network services, analytics, telemetry, or external integrations without reviewing privacy implications and documenting the behavior.
-- Avoid broad automated renames of internal package names, resource identifiers, or extension formats. Coordinate a targeted migration and test it.
+- Avoid further blind renames of internal packages, resource identifiers, or extension formats. The initial namespace migration is complete; any future changes must be targeted, tested, and considered against extension compatibility.
 - Use [the AI policy](AI_POLICY.md) for research and AI-assisted changes.
 - Follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 
