@@ -20,7 +20,7 @@ import io.github.reactivecircus.cache4k.Cache
 import kotlinx.coroutines.CoroutineScope
 import org.k3lp.model.K3Model
 
-private const val MAX_CACHED_TOUCH_MODELS = 8
+private const val MAX_CACHED_TOUCH_MODELS = 8L
 
 class TouchModelCache {
     // Keyboard models change when language, layout, or modifiers change. Bound this cache so
