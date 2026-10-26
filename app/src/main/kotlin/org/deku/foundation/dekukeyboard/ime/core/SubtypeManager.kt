@@ -22,10 +22,13 @@ import org.deku.foundation.dekukeyboard.lib.devtools.flogDebug
 import org.deku.foundation.dekukeyboard.lib.devtools.flogWarning
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
 import org.deku.foundation.dekukeyboard.lib.kotlin.collectLatestIn
 
@@ -42,6 +45,7 @@ val SubtypeJsonConfig = Json {
 class SubtypeManager(context: Context) {
     private val prefs by DekuPreferenceStore
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val activeSubtypePersistenceMutex = Mutex()
 
     val subtypesFlow: StateFlow<List<Subtype>>
         field = MutableStateFlow(listOf())
@@ -101,12 +105,29 @@ class SubtypeManager(context: Context) {
      *  could be determined.
      */
     private suspend fun evaluateActiveSubtype(list: List<Subtype>) {
-        val activeSubtypeId = prefs.localization.activeSubtypeId.get()
-        val subtype = list.find { it.id == activeSubtypeId } ?: list.firstOrNull() ?: Subtype.DEFAULT
-        if (subtype.id != activeSubtypeId) {
-            prefs.localization.activeSubtypeId.set(subtype.id)
-        }
+        val storedSubtypeId = prefs.localization.activeSubtypeId.get()
+        val subtype = list.find { it.id == storedSubtypeId } ?: list.firstOrNull() ?: Subtype.DEFAULT
         activeSubtype = subtype
+        if (subtype.id != storedSubtypeId) {
+            persistActiveSubtypeId()
+        }
+    }
+
+    /**
+     * Serialize active-language writes and always persist the latest in-memory selection. Rapid
+     * presses can schedule several writes; an older coroutine must never save a stale language last.
+     */
+    private suspend fun persistActiveSubtypeId() {
+        activeSubtypePersistenceMutex.withLock {
+            prefs.localization.activeSubtypeId.set(activeSubtype.id)
+        }
+    }
+
+    private fun queueActiveSubtypePersistence(): Job = scope.launch {
+        runCatching { persistActiveSubtypeId() }
+            .onFailure { error ->
+                flogWarning { "Failed to persist active language selection: ${error.message}" }
+            }
     }
 
     /**
@@ -202,53 +223,37 @@ class SubtypeManager(context: Context) {
     /**
      * Switch to the previous subtype in the subtype list if possible.
      */
-    fun switchToPrevSubtype() = scope.launch {
+    fun switchToPrevSubtype(): Job {
         val subtypeList = subtypes
-        val cachedActiveSubtype = activeSubtype
-        var triggerNextSubtype = false
-        var newActiveSubtype: Subtype = Subtype.DEFAULT
-        for (subtype in subtypeList.asReversed()) {
-            if (triggerNextSubtype) {
-                triggerNextSubtype = false
-                newActiveSubtype = subtype
-            } else if (subtype == cachedActiveSubtype) {
-                triggerNextSubtype = true
-            }
-        }
-        if (triggerNextSubtype) {
-            newActiveSubtype = subtypeList.last()
-        }
-        prefs.localization.activeSubtypeId.set(newActiveSubtype.id)
-        activeSubtype = newActiveSubtype
+        if (subtypeList.isEmpty()) return scope.launch { }
+
+        val currentIndex = subtypeList.indexOfFirst { it.id == activeSubtype.id }
+        val previousIndex = if (currentIndex <= 0) subtypeList.lastIndex else currentIndex - 1
+        // Publish synchronously so consecutive taps are applied to the latest selection rather than
+        // every coroutine reading the same previous state.
+        activeSubtype = subtypeList[previousIndex]
+        return queueActiveSubtypePersistence()
     }
 
     /**
      * Switch to the next subtype in the subtype list if possible.
      */
-    fun switchToNextSubtype() = scope.launch {
+    fun switchToNextSubtype(): Job {
         val subtypeList = subtypes
-        val cachedActiveSubtype = activeSubtype
-        var triggerNextSubtype = false
-        var newActiveSubtype: Subtype = Subtype.DEFAULT
-        for (subtype in subtypeList) {
-            if (triggerNextSubtype) {
-                triggerNextSubtype = false
-                newActiveSubtype = subtype
-            } else if (subtype == cachedActiveSubtype) {
-                triggerNextSubtype = true
-            }
-        }
-        if (triggerNextSubtype) {
-            newActiveSubtype = subtypeList.first()
-        }
-        prefs.localization.activeSubtypeId.set(newActiveSubtype.id)
-        activeSubtype = newActiveSubtype
+        if (subtypeList.isEmpty()) return scope.launch { }
+
+        val currentIndex = subtypeList.indexOfFirst { it.id == activeSubtype.id }
+        val nextIndex = if (currentIndex < 0 || currentIndex == subtypeList.lastIndex) 0
+            else currentIndex + 1
+        // Publish synchronously so consecutive taps are applied to the latest selection rather than
+        // every coroutine reading the same previous state.
+        activeSubtype = subtypeList[nextIndex]
+        return queueActiveSubtypePersistence()
     }
 
-    fun switchToSubtypeById(id: Long) = scope.launch {
-        if (subtypes.any { it.id == id }) {
-            activeSubtype = getSubtypeById(id)!!
-            prefs.localization.activeSubtypeId.set(id)
-        }
+    fun switchToSubtypeById(id: Long): Job {
+        val subtype = subtypes.firstOrNull { it.id == id } ?: return scope.launch { }
+        activeSubtype = subtype
+        return queueActiveSubtypePersistence()
     }
 }
