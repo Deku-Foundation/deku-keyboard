@@ -25,6 +25,7 @@ import org.deku.foundation.dekukeyboard.ime.clipboard.provider.ClipboardItem
 import org.deku.foundation.dekukeyboard.ime.clipboard.provider.ItemType
 import org.deku.foundation.dekukeyboard.ime.core.Subtype
 import org.deku.foundation.dekukeyboard.ime.media.emoji.EmojiSuggestionProvider
+import org.deku.foundation.dekukeyboard.ime.nlp.arabic.ArabicLanguageProvider
 import org.deku.foundation.dekukeyboard.ime.nlp.latin.LatinLanguageProvider
 import org.deku.foundation.dekukeyboard.inferDekuApplication
 import org.deku.foundation.dekukeyboard.lib.util.NetworkUtils
@@ -63,6 +64,7 @@ class NlpManager(context: Context) {
     private val providers = guardedByLock {
         mapOf(
             LatinLanguageProvider.ProviderId to ProviderInstanceWrapper(LatinLanguageProvider(context)),
+            ArabicLanguageProvider.ProviderId to ProviderInstanceWrapper(ArabicLanguageProvider(context)),
             //HanShapeBasedLanguageProvider.ProviderId to ProviderInstanceWrapper(HanShapeBasedLanguageProvider(context)),
         )
     }
@@ -123,13 +125,30 @@ class NlpManager(context: Context) {
         return PunctuationRule.Fallback
     }
 
+    /**
+     * Old saved subtypes default to the Latin provider ID. Resolve that legacy default by locale
+     * so existing Arabic configurations gain the Arabic MSA provider without rewriting preferences.
+     * Explicit non-default provider IDs remain untouched.
+     */
+    private fun resolveProviderId(subtype: Subtype, providerId: String): String =
+        if (
+            providerId == LatinLanguageProvider.ProviderId &&
+            subtype.primaryLocale.language.equals("ar", ignoreCase = true)
+        ) {
+            ArabicLanguageProvider.ProviderId
+        } else {
+            providerId
+        }
+
     private suspend fun getSpellingProvider(subtype: Subtype): SpellingProvider {
-        return providers.withLock { it[subtype.nlpProviders.spelling] }?.provider as? SpellingProvider
+        val providerId = resolveProviderId(subtype, subtype.nlpProviders.spelling)
+        return providers.withLock { it[providerId] }?.provider as? SpellingProvider
             ?: FallbackNlpProvider
     }
 
     private suspend fun getSuggestionProvider(subtype: Subtype): SuggestionProvider {
-        return providers.withLock { it[subtype.nlpProviders.suggestion] }?.provider as? SuggestionProvider
+        val providerId = resolveProviderId(subtype, subtype.nlpProviders.suggestion)
+        return providers.withLock { it[providerId] }?.provider as? SuggestionProvider
             ?: FallbackNlpProvider
     }
 
@@ -137,7 +156,8 @@ class NlpManager(context: Context) {
         scope.launch {
             emojiSuggestionProvider.preload(subtype)
             providers.withLock { providers ->
-                subtype.nlpProviders.forEach { _, providerId ->
+                subtype.nlpProviders.forEach { _, configuredProviderId ->
+                    val providerId = resolveProviderId(subtype, configuredProviderId)
                     providers[providerId]?.let { provider ->
                         provider.createIfNecessary()
                         provider.preload(subtype)
@@ -179,7 +199,8 @@ class NlpManager(context: Context) {
 
     fun providerForcesSuggestionOn(subtype: Subtype): Boolean {
         // Using a cache because I have no idea how fast the runBlocking is
-        return providersForceSuggestionOn.getOrPut(subtype.nlpProviders.suggestion) {
+        val providerId = resolveProviderId(subtype, subtype.nlpProviders.suggestion)
+        return providersForceSuggestionOn.getOrPut(providerId) {
             runBlocking {
                 getSuggestionProvider(subtype).forcesSuggestionOn
             }
