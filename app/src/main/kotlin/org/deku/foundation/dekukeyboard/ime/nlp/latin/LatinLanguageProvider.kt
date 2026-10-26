@@ -123,8 +123,8 @@ class LatinLanguageProvider(context: Context) : SpellingProvider, SuggestionProv
 
         // The active composition is a word, not the whole editor buffer. Only autocomplete
         // an actual trailing word prefix; never rewrite text or infer a word after punctuation.
-        val composingText = content.composingText
-        val prefix = TRAILING_ENGLISH_WORD.find(composingText)?.value ?: return emptyList()
+        val compositionText = content.compositionText?.toString().orEmpty()
+        val prefix = TRAILING_ENGLISH_WORD.find(compositionText)?.value ?: return emptyList()
         val candidates = findEnglishWordPrefixSuggestions(
             index = englishWordPrefixIndex,
             prefix = prefix,
