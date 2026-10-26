@@ -498,10 +498,20 @@ class ImeController(
                         surroundingText = newSurroundingText,
                     ),
                 )
-                state.editor.deleteSurroundingTextInCodePoints(
+                val deletedByCodePoint = state.editor.deleteSurroundingTextInCodePoints(
                     charsBefore = 0,
                     charsAfter = 1,
                 )
+                if (!deletedByCodePoint) {
+                    // Some pre-Android-13 editor implementations do not support code-point
+                    // deletion. Preserve surrogate pairs when falling back to UTF-16 units.
+                    val utf16Length = firstCodePointUtf16Length(liveTextAfterCursor)
+                    if (utf16Length > 0) {
+                        state.editor.deleteSurroundingText(charsBefore = 0, charsAfter = utf16Length)
+                    } else {
+                        state.editor.sendDownUpKeyEvent(KeyEvent.KEYCODE_FORWARD_DEL)
+                    }
+                }
             }
         }
 

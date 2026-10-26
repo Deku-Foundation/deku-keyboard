@@ -28,5 +28,11 @@ class ForwardDeleteUnicodeTest : FunSpec({
 
     test("preserves an empty surrounding-text snapshot") {
         removeLeadingCodePoint("") shouldBe ""
+        firstCodePointUtf16Length("") shouldBe 0
+    }
+
+    test("reports UTF-16 length for safe compatibility fallback") {
+        firstCodePointUtf16Length("xabc") shouldBe 1
+        firstCodePointUtf16Length("😀x") shouldBe 2
     }
 })

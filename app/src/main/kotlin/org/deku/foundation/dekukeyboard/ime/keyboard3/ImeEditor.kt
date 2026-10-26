@@ -55,6 +55,10 @@ internal fun removeLeadingCodePoint(text: String): String {
     return text.substring(text.offsetByCodePoints(0, 1))
 }
 
+/** Returns the UTF-16 code-unit length of the first Unicode code point, or zero for empty text. */
+internal fun firstCodePointUtf16Length(text: String): Int =
+    if (text.isEmpty()) 0 else Character.charCount(text.codePointAt(0))
+
 /**
  * Splits the text and selection indices returned by InputConnection.getSurroundingText().
  * Invalid indices are rejected so callers can safely fall back to individual cursor queries.
@@ -146,9 +150,9 @@ open class ImeEditor(
      * Deletes surrounding Unicode code points. The app's minSdk is 26, so the API 24 method is
      * available on every supported device.
      */
-    fun deleteSurroundingTextInCodePoints(charsBefore: Int, charsAfter: Int) {
-        val ic = ic.get() ?: return
-        ic.deleteSurroundingTextInCodePoints(charsBefore, charsAfter)
+    fun deleteSurroundingTextInCodePoints(charsBefore: Int, charsAfter: Int): Boolean {
+        val ic = ic.get() ?: return false
+        return ic.deleteSurroundingTextInCodePoints(charsBefore, charsAfter)
     }
 
     fun performClipboardCopy(): Boolean {
