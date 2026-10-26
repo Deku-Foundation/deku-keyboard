@@ -161,4 +161,28 @@ class KeyboardLayoutBuilderTest : FunSpec({
         xml shouldContain """output="&lt;""""
         xml shouldContain """output="ẞ""""
     }
+    test("accepts a declared alternative layout not referenced by a locale preset") {
+        val localizationManifest = """
+            {
+              "subtypePresets": [
+                {"languageTag":"en-US","preferred":{"characters":"org.deku.foundation.dekukeyboard.layouts:qwerty"}}
+              ]
+            }
+        """.trimIndent()
+
+        resolveCharacterLayoutId(
+            localizationManifest,
+            "en-US",
+            "colemak",
+            setOf("qwerty", "colemak"),
+        ) shouldBe "colemak"
+
+        resolveCharacterLayoutId(
+            localizationManifest,
+            "en-US",
+            "../colemak",
+            setOf("qwerty", "colemak"),
+        ) shouldBe "qwerty"
+    }
+
 })
