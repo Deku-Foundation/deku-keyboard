@@ -78,6 +78,7 @@ fun LocalizationScreen() = DekuScreen {
     val context = LocalContext.current
     val subtypeManager by context.subtypeManager()
     val displayLanguageNamesIn by prefs.localization.displayLanguageNamesIn.collectAsState()
+    val subtypesReady by subtypeManager.isInitializedFlow.collectAsState()
     var chosenSubtypeToDelete: Subtype? by rememberSaveable(saver = SubtypeSaver) { mutableStateOf(null) }
 
     floatingActionButton {
@@ -94,7 +95,7 @@ fun LocalizationScreen() = DekuScreen {
                 )
             },
             shape = FloatingActionButtonDefaults.extendedFabShape,
-            onClick = { navController.navigate(Routes.Settings.SubtypeAdd) },
+            onClick = { if (subtypesReady) navController.navigate(Routes.Settings.SubtypeAdd) },
         )
     }
 
@@ -117,7 +118,12 @@ fun LocalizationScreen() = DekuScreen {
         )
         PreferenceGroup(title = stringRes(R.string.settings__localization__group_subtypes__label)) {
             val subtypes by subtypeManager.subtypesFlow.collectAsState()
-            if (subtypes.isEmpty()) {
+            if (!subtypesReady) {
+                Text(
+                    modifier = Modifier.padding(all = 8.dp),
+                    text = stringRes(R.string.settings__localization__loading),
+                )
+            } else if (subtypes.isEmpty()) {
                 DekuWarningCard(
                     modifier = Modifier.padding(all = 8.dp),
                     text = stringRes(R.string.settings__localization__subtype_no_subtypes_configured_warning),
