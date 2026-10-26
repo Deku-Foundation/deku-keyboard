@@ -44,6 +44,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import org.deku.foundation.dekukeyboard.R
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.deku.foundation.dekukeyboard.app.DekuPreferenceStore
 import org.deku.foundation.dekukeyboard.app.LocalNavController
 import org.deku.foundation.dekukeyboard.ime.core.DisplayLanguageNamesIn
@@ -63,16 +68,39 @@ fun SelectLocaleScreen() = DekuScreen {
 
     val prefs by DekuPreferenceStore
     val navController = LocalNavController.current
+    val context = LocalContext.current
 
     val displayLanguageNamesIn by prefs.localization.displayLanguageNamesIn.collectAsState()
     var searchTermValue by remember { mutableStateOf(TextFieldValue()) }
-    val systemLocales =
-        DekuLocale.extendedAvailableLocales().sortedBy { locale ->
-            when (displayLanguageNamesIn) {
-                DisplayLanguageNamesIn.SYSTEM_LOCALE -> locale.displayName()
-                DisplayLanguageNamesIn.NATIVE_LOCALE -> locale.displayName(locale)
-            }.lowercase()
-        }
+
+    // Android's installed Locale list can omit languages shipped with this APK. Include the
+    // repository's own locale presets so every bundled language/layout can actually be selected.
+    val bundledPresetLocales: List<DekuLocale> = remember(context) {
+        runCatching {
+            context.assets.open(
+                "ime/keyboard/org.deku.foundation.dekukeyboard.localization/extension.json"
+            ).bufferedReader(Charsets.UTF_8).use { reader ->
+                Json.parseToJsonElement(reader.readText())
+                    .jsonObject["subtypePresets"]
+                    ?.jsonArray
+                    ?.mapNotNull { preset ->
+                        preset.jsonObject["languageTag"]?.jsonPrimitive?.contentOrNull
+                            ?.let(DekuLocale::fromTag)
+                    }
+                    .orEmpty()
+            }
+        }.getOrDefault(emptyList())
+    }
+    val systemLocales = remember(displayLanguageNamesIn, bundledPresetLocales) {
+        (DekuLocale.extendedAvailableLocales() + bundledPresetLocales)
+            .distinctBy { locale -> locale.languageTag().lowercase() }
+            .sortedBy { locale ->
+                when (displayLanguageNamesIn) {
+                    DisplayLanguageNamesIn.SYSTEM_LOCALE -> locale.displayName()
+                    DisplayLanguageNamesIn.NATIVE_LOCALE -> locale.displayName(locale)
+                }.lowercase()
+            }
+    }
 
     val filteredSystemLocales = remember(searchTermValue) {
         if (searchTermValue.text.isBlank()) {
