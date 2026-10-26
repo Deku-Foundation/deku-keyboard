@@ -22,6 +22,7 @@ import android.text.TextUtils
 import android.view.KeyEvent
 import android.view.inputmethod.InputConnection
 import androidx.compose.runtime.staticCompositionLocalOf
+import org.deku.foundation.dekukeyboard.DekuApplication
 import org.deku.foundation.dekukeyboard.DekuImeService
 import org.deku.foundation.dekukeyboard.app.DekuPreferenceStore
 import org.deku.foundation.dekukeyboard.ime.ImeUiMode
@@ -384,9 +385,23 @@ class ImeController(
                 ImeActions.ShowInputMethodPicker -> DekuImeService.showImePicker()
                 ImeActions.SwitchToPrevInputMethod -> DekuImeService.switchToPrevInputMethod()
                 ImeActions.SwitchToNextInputMethod -> DekuImeService.switchToNextInputMethod()
-                ImeActions.ShowSubtypePicker -> {} // TODO
-                ImeActions.SwitchToPrevSubtype -> {} // TODO
-                ImeActions.SwitchToNextSubtype -> {} // TODO
+                ImeActions.ShowSubtypePicker -> {
+                    state = state.copy(
+                        flags = state.flags.withSubtypeSelectionVisible(!state.flags.isSubtypeSelectionVisible),
+                    )
+                }
+                ImeActions.SwitchToPrevSubtype -> {
+                    DekuApplication.getHack().subtypeManager.value.switchToPrevSubtype()
+                    state = state.copy(
+                        flags = state.flags.withSubtypeSelectionVisible(false),
+                    )
+                }
+                ImeActions.SwitchToNextSubtype -> {
+                    DekuApplication.getHack().subtypeManager.value.switchToNextSubtype()
+                    state = state.copy(
+                        flags = state.flags.withSubtypeSelectionVisible(false),
+                    )
+                }
                 ImeActions.ToggleActionsEditor -> {
                     state = state.copy(
                         flags = state.flags
