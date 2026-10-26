@@ -61,6 +61,7 @@ fun SubtypeEditorScreen(id: Long?) = DekuScreen {
     val navController = LocalNavController.current
     val context = LocalContext.current
     val subtypeManager by context.subtypeManager()
+    val bundledCharacterLayouts = remember(context) { loadBundledCharacterLayouts(context) }
     val lifecycleOwner = LocalLifecycleOwner.current
     val configuredSubtypes by subtypeManager.subtypesFlow.collectAsState()
     val subtypeManagerReady by subtypeManager.isInitializedFlow.collectAsState()
@@ -141,10 +142,32 @@ fun SubtypeEditorScreen(id: Long?) = DekuScreen {
                     style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
                 )
             }
-            selectedCharacterLayoutId.takeIf { it.isNotBlank() }?.let { layoutId ->
+            Text(
+                text = stringRes(R.string.settings__localization__subtype_characters_layout),
+                style = androidx.compose.material3.MaterialTheme.typography.titleMedium,
+            )
+            val selectedLayoutLabel = bundledCharacterLayouts
+                .firstOrNull { it.id == selectedCharacterLayoutId }?.label
+            OutlinedButton(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = {
+                    editorBackStackEntry?.savedStateHandle?.set(
+                        SelectCharacterLayoutScreenCurrentLayoutId,
+                        selectedCharacterLayoutId,
+                    )
+                    navController.navigate(Routes.Settings.SelectCharacterLayout)
+                },
+            ) {
                 Text(
-                    text = layoutId.replace('_', ' '),
-                    style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
+                    text = when {
+                        selectedCharacterLayoutId.isBlank() ->
+                            stringRes(R.string.settings__localization__subtype_layout_automatic)
+                        selectedLayoutLabel != null -> selectedLayoutLabel
+                        else -> stringRes(
+                            R.string.settings__localization__subtype_error_layout_not_installed,
+                            "layout_id" to selectedCharacterLayoutId,
+                        )
+                    },
                 )
             }
             errorMessageId?.let { messageId ->
