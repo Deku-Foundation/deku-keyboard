@@ -33,7 +33,7 @@ class KeyboardLayoutBuilderTest : FunSpec({
         resolveCharacterLayoutId("""{"subtypePresets":[]}""", "xx-ZZ") shouldBe "qwerty"
     }
 
-    test("reverses row order and edge controls for right-to-left layouts") {
+    test("does not mirror Arabic keys or control positions for right-to-left labels") {
         val baseXml = """
             <keyboard3 locale="en">
               <keys>
@@ -49,10 +49,12 @@ class KeyboardLayoutBuilderTest : FunSpec({
         """.trimIndent()
         val layoutJson = """[[{"label":"ض"},{"label":"ص"}],[{"label":"ش"},{"label":"س"}],[{"label":"ذ"},{"label":"ء"}]]"""
         val xml = buildKeyboard3Xml(baseXml, layoutJson, "ar-DZ")
+
         assertWellFormedXml(xml)
-        xml shouldContain """<row keys="deku-layout-r0-k0 deku-layout-r0-k1" />"""
-        xml shouldContain """<row keys="bksp deku-layout-r2-k0 deku-layout-r2-k1 base-to-shift" />"""
-        xml shouldContain """<row keys="enter space comma symbol-1" />"""
+        xml shouldContain """<key id="deku-layout-r0-k0" output="ض" />"""
+        xml shouldContain """<key id="deku-layout-r0-k1" output="ص" />"""
+        xml shouldContain """<row keys="base-to-shift deku-layout-r2-k0 deku-layout-r2-k1 bksp" />"""
+        xml shouldContain """<row keys="symbol-1 comma space enter" />"""
     }
 
     test("uses the Arabic symbol-toggle label for Arabic layouts") {
