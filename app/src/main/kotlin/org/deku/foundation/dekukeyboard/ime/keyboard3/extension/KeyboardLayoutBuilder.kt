@@ -10,6 +10,137 @@ import kotlinx.serialization.json.jsonPrimitive
 
 private const val DEFAULT_CHARACTER_LAYOUT = "qwerty"
 
+private data class PopupVariants(
+    val main: String?,
+    val relevant: List<String>,
+)
+
+private data class PopupBinding(
+    val keyIds: List<String>,
+    val defaultKeyId: String,
+)
+
+/**
+ * Finds a locale's bundled popup-map ID without coupling the keyboard builder to app settings.
+ * Exact region presets win; unknown regions fall back to their primary language and then to the
+ * bundled default map. IDs are accepted only when declared by the localization manifest.
+ */
+internal fun resolvePopupMappingId(localizationManifestJson: String, languageTag: String): String? {
+    val manifest = runCatching { Json.parseToJsonElement(localizationManifestJson).jsonObject }
+        .getOrNull() ?: return null
+    val declaredIds = manifest["popupMappings"]?.jsonArray.orEmpty().mapNotNull { entry ->
+        runCatching {
+            entry.jsonObject["id"]?.jsonPrimitive?.contentOrNull
+                ?.takeIf { it.matches(Regex("[A-Za-z0-9_-]+")) }
+        }.getOrNull()
+    }.toSet()
+    if (declaredIds.isEmpty()) return null
+
+    val presets = manifest["subtypePresets"]?.jsonArray.orEmpty().mapNotNull { entry ->
+        runCatching {
+            val obj = entry.jsonObject
+            val tag = obj["languageTag"]?.jsonPrimitive?.contentOrNull ?: return@runCatching null
+            val mapId = obj["popupMapping"]?.jsonPrimitive?.contentOrNull
+                ?.substringAfterLast(':')
+                ?.takeIf { it.matches(Regex("[A-Za-z0-9_-]+")) }
+                ?: return@runCatching null
+            tag to mapId
+        }.getOrNull()
+    }
+    val requestedTag = Locale.forLanguageTag(languageTag).toLanguageTag()
+    val requestedLanguage = Locale.forLanguageTag(languageTag).language
+    val exact = presets.firstOrNull { (tag, _) ->
+        Locale.forLanguageTag(tag).toLanguageTag().equals(requestedTag, ignoreCase = true)
+    }
+    val sameLanguage = presets.firstOrNull { (tag, _) ->
+        Locale.forLanguageTag(tag).language.equals(requestedLanguage, ignoreCase = true)
+    }
+    return (exact?.second ?: sameLanguage?.second)
+        ?.takeIf { it in declaredIds }
+        ?: "default".takeIf { it in declaredIds }
+}
+
+private fun popupLabel(element: kotlinx.serialization.json.JsonElement?): String? {
+    val obj = runCatching { element?.jsonObject }.getOrNull() ?: return null
+    return obj["label"]?.jsonPrimitive?.contentOrNull?.takeIf { it.isNotEmpty() }
+        ?: obj["code"]?.jsonPrimitive?.intOrNull?.let(::codePointToString)
+}
+
+/**
+ * Parses the active locale popup map. Only the general "all" key group is applied to the physical
+ * character rows here; input-type-specific groups remain untouched.
+ */
+private fun parsePopupVariants(popupMappingJson: String?): Map<String, PopupVariants> {
+    if (popupMappingJson.isNullOrBlank()) return emptyMap()
+    val all = runCatching {
+        Json.parseToJsonElement(popupMappingJson).jsonObject["all"]?.jsonObject
+    }.getOrNull() ?: return emptyMap()
+
+    return all.entries.mapNotNull { (keyLabel, element) ->
+        if (keyLabel.startsWith("~") || keyLabel.isBlank()) return@mapNotNull null
+        runCatching {
+            val obj = element.jsonObject
+            val main = popupLabel(obj["main"])
+            val relevant = obj["relevant"]?.jsonArray.orEmpty()
+                .mapNotNull(::popupLabel)
+                .distinct()
+            if (main == null && relevant.isEmpty()) null
+            else keyLabel to PopupVariants(main, relevant.filterNot { it == main })
+        }.getOrNull()
+    }.toMap()
+}
+
+private fun createPopupBinding(
+    row: Int,
+    column: Int,
+    shifted: Boolean,
+    variants: PopupVariants,
+    existingKeyIds: Set<String>,
+    existingKeyIdByOutput: Map<String, String>,
+    generatedKeys: MutableMap<String, String>,
+): PopupBinding? {
+    val labels = (listOfNotNull(variants.main) + variants.relevant).distinct()
+    if (labels.isEmpty()) return null
+    val prefix = generatedKeyId(row, column, shifted) + "-popup"
+    val ids = labels.mapIndexed { index, label ->
+        existingKeyIdByOutput[label] ?: "$prefix-$index".also { id ->
+            if (id !in existingKeyIds && !generatedKeys.containsKey(id)) {
+                generatedKeys[id] = label
+            }
+        }
+    }
+    val defaultLabel = variants.main ?: labels.first()
+    val defaultId = ids[labels.indexOf(defaultLabel).coerceAtLeast(0)]
+    return PopupBinding(ids.distinct(), defaultId)
+}
+
+private fun applyPopupBindings(xml: String, bindings: Map<String, PopupBinding>): String {
+    if (bindings.isEmpty()) return xml
+    val keyTagPattern = Regex("""<key\b[^>]*\bid="([^"]+)"[^>]*/>""")
+    return keyTagPattern.replace(xml) { match ->
+        val binding = bindings[match.groupValues[1]] ?: return@replace match.value
+        var tag = match.value
+        val existingIds = Regex("""\blongPressKeyIds="([^"]*)"""")
+            .find(tag)?.groupValues?.get(1)
+            ?.split(Regex("""\s+"""))
+            ?.filter { it.isNotBlank() }
+            .orEmpty()
+        val mergedIds = (existingIds + binding.keyIds).distinct().joinToString(" ")
+        fun putAttribute(source: String, name: String, value: String): String {
+            val attribute = Regex("""\b$name="[^"]*"""")
+            val replacement = "$name=\"$value\""
+            return if (attribute.containsMatchIn(source)) {
+                attribute.replaceFirst(source, replacement)
+            } else {
+                source.removeSuffix("/>").trimEnd() + " " + replacement + " />"
+            }
+        }
+        tag = putAttribute(tag, "longPressKeyIds", mergedIds)
+        tag = putAttribute(tag, "longPressDefaultKeyId", binding.defaultKeyId)
+        tag
+    }
+}
+
 internal fun parseCharacterLayoutIds(layoutManifestJson: String): Set<String> = runCatching {
     Json.parseToJsonElement(layoutManifestJson)
         .jsonObject["layouts"]?.jsonObject
@@ -70,6 +201,7 @@ internal fun buildKeyboard3Xml(
     baseXml: String,
     characterLayoutJson: String,
     languageTag: String,
+    popupMappingJson: String? = null,
 ): String {
     val rows = runCatching {
         Json.parseToJsonElement(characterLayoutJson).jsonArray.map { row ->
@@ -106,6 +238,8 @@ internal fun buildKeyboard3Xml(
         .toMap()
 
     val generatedKeys = linkedMapOf<String, String>()
+    val popupVariantsByLabel = parsePopupVariants(popupMappingJson)
+    val popupBindings = linkedMapOf<String, PopupBinding>()
     for (rowIndex in 0..2) {
         effectiveRows[rowIndex].forEachIndexed { columnIndex, label ->
             val baseId = resolveLayoutKeyId(
@@ -131,6 +265,24 @@ internal fun buildKeyboard3Xml(
             if (shiftedId !in existingKeyIds && !generatedKeys.containsKey(shiftedId)) {
                 generatedKeys[shiftedId] = shiftedLabel
             }
+
+            val basePopup = popupVariantsByLabel[label]
+                ?: popupVariantsByLabel[label.lowercase(Locale.ROOT)]
+            if (basePopup != null) {
+                createPopupBinding(
+                    rowIndex, columnIndex, false, basePopup,
+                    existingKeyIds, existingKeyIdByOutput, generatedKeys,
+                )?.let { popupBindings[baseId] = it }
+            }
+            val shiftedPopup = popupVariantsByLabel[shiftedLabel]
+                ?: popupVariantsByLabel[shiftedLabel.lowercase(Locale.ROOT)]
+                ?: popupVariantsByLabel[label]
+            if (shiftedPopup != null) {
+                createPopupBinding(
+                    rowIndex, columnIndex, true, shiftedPopup,
+                    existingKeyIds, existingKeyIdByOutput, generatedKeys,
+                )?.let { popupBindings[shiftedId] = it }
+            }
         }
     }
     val keyDefinitions = buildString {
@@ -141,6 +293,7 @@ internal fun buildKeyboard3Xml(
     }
 
     var xml = baseXml.replaceFirst("</keys>", "$keyDefinitions    </keys>")
+    xml = applyPopupBindings(xml, popupBindings)
     val localePattern = Regex("""(<keyboard3\b[^>]*\blocale=")[^"]*(")""")
     val localeMatch = localePattern.find(xml)
         ?: throw IllegalArgumentException("K3 root keyboard3 element has no locale attribute")
