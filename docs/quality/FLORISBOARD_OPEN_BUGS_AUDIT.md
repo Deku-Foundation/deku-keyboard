@@ -133,6 +133,10 @@ The environment column is copied from each report when provided. It is a reprodu
 
 ## Source-review findings
 
+- **[#3361 — Popup candidate changes on finger release](https://github.com/florisboard/florisboard/issues/3361):** pointer down/move/up handlers were independently dispatched using the default coroutine start, then serialized through a mutex. That allows dispatch scheduling to reorder a move and the subsequent release. The `dev` patch starts these handlers undispatched only until their first suspension so their mutex acquisition requests are registered in event order; normal continuations still use the original dispatcher. Status: **source-level race mitigation committed; CI and fast swipe/long-press device testing remain required**.
+
+
+
 - **Language-picker compilation failure:** CI on `5b7ebe0f897d06380a6c8a850489c6a27650604d` failed in `SubtypeEditorScreen.kt` because `StateFlow.collectAsState()` resolved to the JetPref `PreferenceData` extension. The import now uses `androidx.compose.runtime.collectAsState`. The failure is recorded as an actual compiler diagnostic, not a speculative runtime theory; validation of the fix is pending on the current head.
 - **Generated layout XML:** the follow-up patch removes backslashes from generated attribute quotes and emits a real newline, and adds XML-parser assertions for generated English, Arabic RTL and German layouts. The corresponding build/test result is still pending.
 

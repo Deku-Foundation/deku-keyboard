@@ -44,6 +44,7 @@ import org.deku.foundation.dekukeyboard.ime.keyboard3.touch.TouchKey
 import org.deku.foundation.dekukeyboard.ime.keyboard3.touch.TouchKeyboard
 import dev.patrickgold.jetpref.datastore.model.collectAsState
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
@@ -467,26 +468,33 @@ fun Modifier.trackPointerInput(
                 while (true) {
                     val event = awaitPointerEvent()
                     val sizeAtEvent = size
-                    scope.launch {
+
+                    // Register state-mutating handlers in dispatch order. With default launch start,
+                    // a later PointerUp may be scheduled before a preceding PointerMove acquires the
+                    // mutex, causing the selected long-press popup key to differ from the visible
+                    // focused key at release. UNDISPATCHED runs each handler through its first
+                    // suspension immediately, preserving FIFO Mutex acquisition order while later
+                    // suspensions still resume on the scope's original dispatcher.
+                    scope.launch(start = CoroutineStart.UNDISPATCHED) {
                         pointerTracker.mutateLocked {
                             cancelNonPresent(event.changes)
                         }
                     }
                     event.changes.fastForEach { change ->
                         if (change.changedToDown()) {
-                            scope.launch {
+                            scope.launch(start = CoroutineStart.UNDISPATCHED) {
                                 pointerTracker.mutateLocked {
                                     handleDown(change, sizeAtEvent)
                                 }
                             }
                         } else if (change.changedToUp()) {
-                            scope.launch {
+                            scope.launch(start = CoroutineStart.UNDISPATCHED) {
                                 pointerTracker.mutateLocked {
                                     handleUp(change, sizeAtEvent)
                                 }
                             }
                         } else if (!change.isConsumed) {
-                            scope.launch {
+                            scope.launch(start = CoroutineStart.UNDISPATCHED) {
                                 pointerTracker.mutateLocked {
                                     handleMove(change, sizeAtEvent)
                                 }
