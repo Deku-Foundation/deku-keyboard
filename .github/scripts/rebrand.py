@@ -15,6 +15,7 @@ PROTECTED_FILES = {
     "LICENSE",
     "UPSTREAM.md",
     "docs/automation/crowdin-upload-upstream.yml.disabled",
+    "docs/automation/crowdin-upload.yml.disabled",
     "docs/automation/crowdin-upstream.yml.disabled",
 }
 PROTECTED_PARTS = {"licenses", "third_party", "third-party"}
@@ -114,6 +115,37 @@ def replace_content(content: str, old_path: str) -> str:
         "https://crowdin.florisboard.org",
         "https://github.com/Deku-Foundation/deku-keyboard",
     )
+    content = content.replace(
+        "https://florisboard.org",
+        "https://github.com/Deku-Foundation/deku-keyboard",
+    )
+    content = content.replace(
+        "http://florisboard.org",
+        "https://github.com/Deku-Foundation/deku-keyboard",
+    )
+    content = content.replace(
+        "https://matrix.to/#/#florisboard:matrix.org",
+        "https://github.com/Deku-Foundation/deku-keyboard/issues",
+    )
+    content = content.replace(
+        "https://matrix.to/#/#florisboard-dev:matrix.org",
+        "https://github.com/Deku-Foundation/deku-keyboard/issues",
+    )
+    content = content.replace(
+        "florisboard@patrickgold.dev",
+        "Deku Foundation maintainers",
+    )
+    # Keep links to separate upstream repositories intact rather than manufacturing
+    # URLs by changing their owner. The main upstream project URL was remapped above.
+    preserved_urls = []
+    def preserve_other_upstream_url(match):
+        preserved_urls.append(match.group(0))
+        return f"__DEKU_PRESERVED_GITHUB_URL_{len(preserved_urls)-1}__"
+    content = re.sub(
+        r"https?://github\.com/florisboard/(?!florisboard(?:/|$))[^\\s\\)\\]\\\"']+",
+        preserve_other_upstream_url,
+        content,
+    )
     content = content.replace(ADDONS_HOST, ADDONS_TOKEN)
 
     code_file = Path(old_path).suffix.lower() in {
@@ -137,6 +169,8 @@ def replace_content(content: str, old_path: str) -> str:
 
     content = "".join(output)
     content = content.replace(ADDONS_TOKEN, ADDONS_HOST)
+    for index, url in enumerate(preserved_urls):
+        content = content.replace(f"__DEKU_PRESERVED_GITHUB_URL_{index}__", url)
 
     if old_path == "README.md":
         content = content.replace(
