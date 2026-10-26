@@ -26,7 +26,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import org.deku.foundation.dekukeyboard.R
 import org.deku.foundation.dekukeyboard.app.LocalNavController
@@ -43,7 +42,6 @@ enum class LanguagePackManagerScreenAction(val id: String) {
 fun LanguagePackManagerScreen(action: LanguagePackManagerScreenAction?) = DekuScreen {
     title = stringRes(R.string.settings__localization__language_pack_title)
     val navController = LocalNavController.current
-    val context = LocalContext.current
 
     content {
         Column(
