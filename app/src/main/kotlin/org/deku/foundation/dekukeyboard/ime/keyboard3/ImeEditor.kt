@@ -36,10 +36,25 @@ import java.lang.ref.WeakReference
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 
+/**
+ * Read selected text at the point of action. A missing connection or unsupported selection query
+ * is represented as null; callers must not fall back to a cached selection for clipboard writes.
+ */
+internal fun readSelectedText(inputConnection: InputConnection?): String? {
+    return inputConnection?.getSelectedText(0)?.toString()
+}
+
 open class ImeEditor(
     val ic: WeakReference<InputConnection>,
     val info: DekuEditorInfo,
 ) : K3Editor {
+    /**
+     * Reads the current selection from the live InputConnection rather than from the cached
+     * K3 surrounding-text snapshot. Editors can change selection text independently and may
+     * expose large selections that must not be copied from a stale/truncated state snapshot.
+     */
+    fun getSelectedText(): String? = readSelectedText(ic.get())
+
     fun getSurroundingText(charsBefore: Int, charsAfter: Int): K3SurroundingText {
         val ic = ic.get() ?: return K3SurroundingText.Empty
         // TODO maybe use eet for getSurroundingText??
