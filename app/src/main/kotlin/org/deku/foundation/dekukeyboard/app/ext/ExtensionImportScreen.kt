@@ -46,7 +46,6 @@ import org.deku.foundation.dekukeyboard.ime.io.DekuRef
 import org.deku.foundation.dekukeyboard.ime.io.LocalStorageController
 import org.deku.foundation.dekukeyboard.ime.io.deleteWorkspace
 import org.deku.foundation.dekukeyboard.ime.io.getWorkspaceRef
-import org.deku.foundation.dekukeyboard.ime.io.list
 import org.deku.foundation.dekukeyboard.ime.keyboard3.extension.Keyboard3Extension
 import org.deku.foundation.dekukeyboard.ime.keyboard3.interaction.LocalInteractionController
 import org.deku.foundation.dekukeyboard.ime.keyboard3.interaction.showLongToast
