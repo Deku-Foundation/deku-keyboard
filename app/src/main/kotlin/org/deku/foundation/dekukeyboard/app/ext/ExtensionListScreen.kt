@@ -79,12 +79,7 @@ enum class ExtensionListScreenType(
         predicate = { it is Keyboard3Extension },
         launchExtensionCreate = null,//{ it.navigate(Routes.Ext.Edit("null", KeyboardExtension.SERIAL_TYPE)) },
     ),
-    EXT_LANGUAGEPACK(
-        id = "ext-languagepack",
-        titleResId = R.string.ext__list__ext_languagepack,
-        predicate = { false }, // TODO
-        launchExtensionCreate = null,//{ it.navigate(Routes.Ext.Edit("null", LanguagePackExtension.SERIAL_TYPE)) },
-    );
+    ;
 }
 
 @Composable
