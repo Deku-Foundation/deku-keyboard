@@ -17,6 +17,7 @@
 package org.deku.foundation.dekukeyboard
 
 import android.content.Context
+import android.content.res.Resources
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.res.Configuration
@@ -541,7 +542,8 @@ class DekuImeService : LifecycleInputMethodService() {
                 EditorInfo.IME_ACTION_PREVIOUS -> resourcesContext.getString(AndroidInternalR.string.ime_action_previous)
                 else -> resourcesContext.getString(AndroidInternalR.string.ime_action_default)
             }
-        } catch (_: Throwable) {
+        } catch (exception: Resources.NotFoundException) {
+            flogWarning { "Android system IME action label is unavailable: $exception" }
             super.getTextForImeAction(imeOptions)?.toString()
         }
     }
