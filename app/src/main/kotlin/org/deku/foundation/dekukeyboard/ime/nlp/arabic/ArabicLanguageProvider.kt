@@ -18,6 +18,7 @@ package org.deku.foundation.dekukeyboard.ime.nlp.arabic
 
 import android.content.Context
 import java.text.Normalizer
+import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -53,6 +54,9 @@ class ArabicLanguageProvider(context: Context) : SpellingProvider, SuggestionPro
     private var wordPrefixIndex: Map<String, List<Pair<String, Int>>> = emptyMap()
 
     @Volatile
+    private var arabiziPrefixIndex: Map<String, List<Pair<String, Int>>> = emptyMap()
+
+    @Volatile
     private var wordsByFrequency: List<String> = emptyList()
 
     @Volatile
@@ -79,7 +83,10 @@ class ArabicLanguageProvider(context: Context) : SpellingProvider, SuggestionPro
                 word to (parsedWords.size - index)
             }
             wordPrefixIndex = buildArabicWordPrefixIndex(scoredWords)
-            wordFrequency = scoredWords.toMap()
+            arabiziPrefixIndex = buildArabiziPrefixIndex(scoredWords)
+            wordFrequency = scoredWords.associate { (word, frequency) ->
+                normalizeArabicMatchKey(word) to frequency
+            }
             wordsByFrequency = parsedWords
         }
     }
@@ -96,7 +103,7 @@ class ArabicLanguageProvider(context: Context) : SpellingProvider, SuggestionPro
         if (!supportsArabicDictionary(subtype) || !containsArabicScript(word)) {
             return SpellingResult.unspecified()
         }
-        val normalized = normalizeArabicWord(word)
+        val normalized = normalizeArabicMatchKey(word)
         return if (normalized.isNotEmpty() && normalized in wordFrequency) {
             SpellingResult.validWord()
         } else {
@@ -117,14 +124,21 @@ class ArabicLanguageProvider(context: Context) : SpellingProvider, SuggestionPro
 
         val composition = content.compositionText?.toString().orEmpty()
         val rawPrefix = TRAILING_WORD.find(composition)?.value ?: return emptyList()
-        if (!containsArabicScript(rawPrefix)) return emptyList()
-
-        val suggestions = findArabicWordPrefixSuggestions(
-            index = wordPrefixIndex,
-            prefix = rawPrefix,
-            maxCandidateCount = maxCandidateCount,
-            allowPossiblyOffensive = allowPossiblyOffensive,
-        )
+        val suggestions = when {
+            containsArabicScript(rawPrefix) -> findArabicWordPrefixSuggestions(
+                index = wordPrefixIndex,
+                prefix = rawPrefix,
+                maxCandidateCount = maxCandidateCount,
+                allowPossiblyOffensive = allowPossiblyOffensive,
+            )
+            containsLatinScript(rawPrefix) -> findArabiziPrefixSuggestions(
+                index = arabiziPrefixIndex,
+                prefix = rawPrefix,
+                maxCandidateCount = maxCandidateCount,
+                allowPossiblyOffensive = allowPossiblyOffensive,
+            )
+            else -> emptyList()
+        }
         val maxFrequency = wordsByFrequency.size.coerceAtLeast(1)
         return suggestions.map { (word, score) ->
             WordSuggestionCandidate(
@@ -148,19 +162,20 @@ class ArabicLanguageProvider(context: Context) : SpellingProvider, SuggestionPro
 
     override suspend fun getFrequencyForWord(subtype: Subtype, word: String): Double {
         if (!supportsArabicDictionary(subtype)) return 0.0
-        val score = wordFrequency[normalizeArabicWord(word)] ?: return 0.0
+        val score = wordFrequency[normalizeArabicMatchKey(word)] ?: return 0.0
         return score.toDouble() / wordsByFrequency.size.coerceAtLeast(1)
     }
 
     override suspend fun destroy() {
         wordPrefixIndex = emptyMap()
+        arabiziPrefixIndex = emptyMap()
         wordsByFrequency = emptyList()
         wordFrequency = emptyMap()
     }
 }
 
-private val TRAILING_WORD = Regex("[\\p{L}\\p{M}]+$")
-private val ARABIC_MARKS_AND_TATWEEL = Regex("[\\u064B-\\u065F\\u0670\\u0640]")
+private val TRAILING_WORD = Regex("[\\p{L}\\p{M}\\p{Nd}]+$")
+private val ARABIC_MARKS_AND_TATWEEL = Regex("[\\u0610-\\u061A\\u064B-\\u065F\\u0670\\u06D6-\\u06ED\\u0640]")
 private val KNOWN_ARABIC_OFFENSIVE_TERMS = setOf(
     "ابنشرموطة",
     "احا",
@@ -179,7 +194,7 @@ private val KNOWN_ARABIC_OFFENSIVE_TERMS = setOf(
     "قحبه",
     "زبي",
     "زب",
-)
+).map(::normalizeArabicMatchKey).toSet()
 
 internal fun supportsArabicDictionary(subtype: Subtype): Boolean =
     subtype.primaryLocale.language.equals("ar", ignoreCase = true)
@@ -188,18 +203,30 @@ internal fun normalizeArabicWord(word: String): String =
     Normalizer.normalize(word, Normalizer.Form.NFC)
         .replace(ARABIC_MARKS_AND_TATWEEL, "")
 
+internal fun normalizeArabicMatchKey(word: String): String =
+    normalizeArabicWord(word)
+        .replace('أ', 'ا')
+        .replace('إ', 'ا')
+        .replace('آ', 'ا')
+        .replace('ٱ', 'ا')
+        .replace('ى', 'ي')
+        .replace('ة', 'ه')
+
 /** Keep only actual Arabic-script words; locale tags alone never decide the character direction. */
 internal fun containsArabicScript(value: String): Boolean =
     value.any { Character.UnicodeScript.of(it.code) == Character.UnicodeScript.ARABIC }
+
+internal fun containsLatinScript(value: String): Boolean =
+    value.any { Character.UnicodeScript.of(it.code) == Character.UnicodeScript.LATIN }
 
 internal fun buildArabicWordPrefixIndex(
     words: List<Pair<String, Int>>,
 ): Map<String, List<Pair<String, Int>>> {
     return words.asSequence()
         .map { (word, frequency) -> normalizeArabicWord(word) to frequency }
-        .filter { (word, _) -> word.length >= 2 && containsArabicScript(word) }
-        .distinctBy { it.first }
-        .groupBy { (word, _) -> word.take(2) }
+        .filter { (word, _) -> normalizeArabicMatchKey(word).length >= 2 && containsArabicScript(word) }
+        .distinctBy { normalizeArabicMatchKey(it.first) }
+        .groupBy { (word, _) -> normalizeArabicMatchKey(word).take(2) }
         .mapValues { (_, entries) ->
             entries.sortedWith(
                 compareByDescending<Pair<String, Int>> { it.second }
@@ -214,15 +241,95 @@ internal fun findArabicWordPrefixSuggestions(
     maxCandidateCount: Int,
     allowPossiblyOffensive: Boolean,
 ): List<Pair<String, Int>> {
-    val normalizedPrefix = normalizeArabicWord(prefix)
-    if (normalizedPrefix.length < 2 || !containsArabicScript(normalizedPrefix) || maxCandidateCount <= 0) {
+    val normalizedPrefix = normalizeArabicMatchKey(prefix)
+    if (normalizedPrefix.length < 2 || !containsArabicScript(prefix) || maxCandidateCount <= 0) {
         return emptyList()
     }
 
     return index[normalizedPrefix.take(2)].orEmpty()
         .asSequence()
-        .filter { (word, _) -> word.startsWith(normalizedPrefix) && word != normalizedPrefix }
-        .filter { (word, _) -> allowPossiblyOffensive || word !in KNOWN_ARABIC_OFFENSIVE_TERMS }
+        .filter { (word, _) ->
+            val matchKey = normalizeArabicMatchKey(word)
+            matchKey.startsWith(normalizedPrefix) && matchKey != normalizedPrefix
+        }
+        .filter { (word, _) -> allowPossiblyOffensive || normalizeArabicMatchKey(word) !in KNOWN_ARABIC_OFFENSIVE_TERMS }
         .take(maxCandidateCount.coerceAtMost(9))
         .toList()
+}
+
+internal fun buildArabiziPrefixIndex(
+    words: List<Pair<String, Int>>,
+): Map<String, List<Pair<String, Int>>> =
+    words.asSequence()
+        .map { (word, frequency) -> normalizeArabicWord(word) to frequency }
+        .map { (word, frequency) -> word to (arabicWordToArabiziSkeleton(word) to frequency) }
+        .filter { (_, pair) -> pair.first.length >= 2 }
+        .groupBy({ (_, pair) -> pair.first.take(2) }, { (word, pair) -> word to pair.second })
+        .mapValues { (_, entries) ->
+            entries.distinctBy { arabicWordToArabiziSkeleton(it.first) }
+                .sortedWith(
+                    compareByDescending<Pair<String, Int>> { it.second }
+                        .thenBy { it.first },
+                )
+        }
+
+internal fun findArabiziPrefixSuggestions(
+    index: Map<String, List<Pair<String, Int>>>,
+    prefix: String,
+    maxCandidateCount: Int,
+    allowPossiblyOffensive: Boolean,
+): List<Pair<String, Int>> {
+    val normalizedPrefix = normalizeArabiziSkeleton(prefix)
+    if (normalizedPrefix.length < 2 || !containsLatinScript(prefix) || maxCandidateCount <= 0) {
+        return emptyList()
+    }
+
+    return index[normalizedPrefix.take(2)].orEmpty()
+        .asSequence()
+        .filter { (word, _) -> arabicWordToArabiziSkeleton(word).startsWith(normalizedPrefix) }
+        .filter { (word, _) -> allowPossiblyOffensive || normalizeArabicMatchKey(word) !in KNOWN_ARABIC_OFFENSIVE_TERMS }
+        .take(maxCandidateCount.coerceAtMost(9))
+        .toList()
+}
+
+internal fun normalizeArabiziSkeleton(value: String): String =
+    value.lowercase(Locale.ROOT)
+        .filter { it.isDigit() || Character.UnicodeScript.of(it.code) == Character.UnicodeScript.LATIN }
+        .filterNot { it in "aeiouwy" }
+
+private fun arabicWordToArabiziSkeleton(word: String): String = buildString {
+    for (character in normalizeArabicMatchKey(word)) {
+        append(
+            when (character) {
+                'ء', 'ؤ', 'ئ' -> "2"
+                'ب' -> "b"
+                'ت' -> "t"
+                'ث' -> "th"
+                'ج' -> "j"
+                'ح' -> "7"
+                'خ' -> "5"
+                'د' -> "d"
+                'ذ' -> "dh"
+                'ر' -> "r"
+                'ز' -> "z"
+                'س' -> "s"
+                'ش' -> "sh"
+                'ص' -> "9"
+                'ض' -> "9d"
+                'ط' -> "6"
+                'ظ' -> "6d"
+                'ع' -> "3"
+                'غ' -> "8"
+                'ف' -> "f"
+                'ق' -> "q"
+                'ك' -> "k"
+                'ل' -> "l"
+                'م' -> "m"
+                'ن' -> "n"
+                'ه' -> "h"
+                'ا', 'و', 'ي' -> ""
+                else -> ""
+            },
+        )
+    }
 }
