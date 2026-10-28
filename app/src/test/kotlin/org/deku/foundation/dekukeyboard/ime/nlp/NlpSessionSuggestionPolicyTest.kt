@@ -10,17 +10,52 @@
 
 package org.deku.foundation.dekukeyboard.ime.nlp
 
+import android.text.InputType
+import android.view.inputmethod.EditorInfo
+import androidx.core.view.inputmethod.EditorInfoCompat
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldContainExactly
+import io.kotest.matchers.shouldBe
+import org.deku.foundation.dekukeyboard.ime.editor.ImeOptions
+import org.deku.foundation.dekukeyboard.ime.editor.InputAttributes
 
 class NlpSessionSuggestionPolicyTest : FunSpec({
-    test("private sessions accept only suggestions generated for that private session") {
+    test("incognito sessions do not expose keyboard-generated or clipboard suggestions") {
         selectSuggestionsForSession(
             isPrivateSession = true,
             suggestionsFromCurrentSession = listOf("current-private"),
             suggestionsWereGeneratedPrivately = true,
             clipboardSuggestions = listOf("clipboard"),
-        ) shouldContainExactly listOf("current-private")
+        ) shouldContainExactly emptyList()
+    }
+
+    test("incognito and no-personalized-learning flags block NLP") {
+        val normalText = InputAttributes.wrap(InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_NORMAL)
+        shouldBlockNlpSuggestions(false, normalText, ImeOptions.wrap(EditorInfo.IME_ACTION_DONE)) shouldBe false
+        shouldBlockNlpSuggestions(true, normalText, ImeOptions.wrap(EditorInfo.IME_ACTION_DONE)) shouldBe true
+        shouldBlockNlpSuggestions(
+            false,
+            normalText,
+            ImeOptions.wrap(EditorInfoCompat.IME_FLAG_NO_PERSONALIZED_LEARNING),
+        ) shouldBe true
+    }
+
+    test("structured data fields block suggestions and learning") {
+        val blockedTypes = listOf(
+            InputType.TYPE_CLASS_NUMBER,
+            InputType.TYPE_CLASS_PHONE,
+            InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS,
+            InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI,
+            InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_WEB_EDIT_TEXT,
+        )
+
+        blockedTypes.forEach { raw ->
+            shouldBlockNlpSuggestions(
+                isIncognitoMode = false,
+                inputAttributes = InputAttributes.wrap(raw),
+                imeOptions = ImeOptions.wrap(EditorInfo.IME_ACTION_DONE),
+            ) shouldBe true
+        }
     }
 
     test("private sessions reject stale non-private candidates and clipboard suggestions") {
