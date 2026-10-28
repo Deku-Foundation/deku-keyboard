@@ -16,7 +16,9 @@
 
 package org.deku.foundation.dekukeyboard.ime.keyboard3.ui
 
-import androidx.compose.foundation.background
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
@@ -34,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
@@ -171,7 +174,7 @@ fun ImeKeyboardBox(
                         val peekLine = trackedPeekPointer.peekLine
                         if (peekLine != null) {
                             drawLine(
-                                color = Color.Red, // TODO customizable
+                                color = androidx.compose.material3.MaterialTheme.colorScheme.primary,
                                 start = peekLine.start,
                                 end = peekLine.end,
                                 strokeWidth = peekLineWidthPx,
@@ -263,7 +266,16 @@ private fun ImeKeyboardKeyBox(
             }
         }
     }
-    // TODO some keys an be disabled (copy cut etc)
+    // Use a draw-layer transform for press feedback so the key grid is not remeasured
+    // on each animation frame.
+    val pressScale by animateFloatAsState(
+        targetValue = if (isPressed) 0.965f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessHigh,
+        ),
+        label = "ime-key-press-scale",
+    )
     val selector = if (isPressed) SnyggSelector.PRESSED else SnyggSelector.NONE
     val multiTapKeys = touchKey.multiTapKeys
 
@@ -271,7 +283,10 @@ private fun ImeKeyboardKeyBox(
         DekuImeUi.Key.elementName,
         attributes = attributes,
         selector = selector,
-        modifier = modifier,
+        modifier = modifier.graphicsLayer {
+            scaleX = pressScale
+            scaleY = pressScale
+        },
     ) {
         Row(
             modifier = Modifier
@@ -280,12 +295,18 @@ private fun ImeKeyboardKeyBox(
         ) {
             if (touchKey.shouldOverrideDisplayWithMultiTapKeys) {
                 for ((index, multiTapKey) in multiTapKeys.withIndex()) {
-                    Display3(
-                        modifier = if (touchKey.shouldHighlightPendingMultiTapKey && index == multiTapIndex) {
-                            Modifier.background(Color.Red) // TODO customizable
-                        } else Modifier,
-                        display = multiTapKey.display,
-                    )
+                    if (touchKey.shouldHighlightPendingMultiTapKey && index == multiTapIndex) {
+                        SnyggBox(
+                            elementName = DekuImeUi.KeyPopupElement.elementName,
+                            attributes = attributes,
+                            selector = SnyggSelector.FOCUS,
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Display3(multiTapKey.display)
+                        }
+                    } else {
+                        Display3(multiTapKey.display)
+                    }
                 }
             } else {
                 Display3(display)
