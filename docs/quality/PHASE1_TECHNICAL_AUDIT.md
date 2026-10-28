@@ -23,7 +23,7 @@ This is the verified high-value list from files inspected on dev, not a claim th
 
 | File / baseline location | Finding | Priority | Resolution plan |
 |---|---|---:|---|
-| app/src/main/kotlin/org/deku/foundation/dekukeyboard/ime/extension/ExtensionController.kt:70,74 | delete() and export() contain live TODO() stubs. | P1 | Trace callers, storage trust boundaries, and intended export destination. Protect bundled assets from deletion; validate archive paths. If unused, remove the dead API rather than leave fake functionality. |
+| app/src/main/kotlin/org/deku/foundation/dekukeyboard/ime/extension/ExtensionController.kt | delete(), importExtension(), and export() are now wired to the UI. Deletion is limited to indexed internal extensions; .flex import checks manifest/type, duplicate IDs, path traversal, duplicate ZIP entries, entry count, and extracted size; export requires a SAF content:// URI. | Implemented on dev; runtime round-trip not yet verified | Validate CI and test import/export/delete, malformed ZIPs, duplicate IDs, and cleanup of failed partial imports on-device. Treat this as security-sensitive code until those tests pass. |
 | app/src/main/kotlin/org/deku/foundation/dekukeyboard/ime/keyboard3/extension/Loader.kt | Older default-branch search surfaced a placeholder comment, but the inspected dev file does not contain that stub. Current dev resolves locale/layout/popup-map assets, falls back to QWERTY, and caches eight compiled models. | Verified substantially implemented | Preserve these semantics with tests for language switching, stale compile cancellation, fallback behavior, and popup-map loading; do not reimplement from stale default-branch search results. |
 | app/src/main/kotlin/org/deku/foundation/dekukeyboard/ime/window/ImeWindowMode.kt:56 | Fixed.THUMBS is marked as a placeholder. | P2 | Determine whether UI/config exposes it. Implement a real layout or remove unreachable enum/UI with migration-safe config handling. |
 | app/src/main/kotlin/org/deku/foundation/dekukeyboard/ime/keyboard3/ui/ImeKeyboardBox.kt:108,129,303 | Locale fallback and effect-based row-count update are marked incomplete; flick hints remain unimplemented. | P1/P2 | Use resolved active subtype for the spacebar; replace row-count side effect only after state ownership is clear; add hints only with tracker support and performance tests. |
@@ -42,14 +42,14 @@ This is the verified high-value list from files inspected on dev, not a claim th
 ## 3. Risks by priority
 
 ### P0 — blocker/security
-- **Incognito and sensitive fields:** Audit NLP, emoji, clipboard suggestions, autocorrect, learning, logging, and future model inference. NlpManager snapshots incognito state and filters clipboard candidates; that is evidence of intended protection, not proof that every provider/password variation is covered.
+- **Incognito and sensitive fields:** Password variations now have an explicit InputAttributes.isPasswordField classification; initial surrounding text is not requested for password fields; spell checks, suggestions, direct suggestions, composing analysis, and auto-commit are blocked, and current candidates are cleared on entry. Unit coverage was added for text/visible/web/numeric passwords. This still needs CI and real-app testing across all providers and Android editor implementations.
 - **Offline guarantee:** The inspected app/src/main/AndroidManifest.xml has no android.permission.INTERNET. Keep CI enforcing its absence. Dependencies can still contain network code, so no outbound feature should be introduced.
-- **Extension/archive trust boundary:** delete/export remain stubs. Before enabling them, only user-managed internal extensions may be deleted and ZIP entries must not escape their destination.
+- **Extension/archive trust boundary:** delete/import/export have implementations on dev, but must not be considered production-safe until the latest build passes and round-trip/security testing confirms ZIP limits, path guards, cleanup, and protection of bundled assets.
 
 ### P1 — major UX/reliability
-- **Hard-coded red feedback:** ImeKeyboardBox.kt used Color.Red for the peek/swipe line and pending multi-tap highlight despite stylesheet-based key styling. Fixed in follow-up commits: the line uses Material primary, the pending multi-tap state uses Snygg focus styling, and all bundled theme variants use their own primary color for the drag-marker token.
-- **Missing press motion:** Main K3 keys changed to SnyggSelector.PRESSED but lacked an animated transform. Fixed in a follow-up commit with a short spring scale using graphicsLayer; device-side latency/jank measurement remains open.
-- **Keyboard fills screen / white view:** ImeRootView is intentionally full-root for geometry/inset measurement, while ImeWindow wraps its measured content and is anchored to the bottom. Changing MATCH_PARENT blindly is unsafe. Reproduce across portrait, landscape, extract mode, split screen, gesture and 3-button navigation; inspect onComputeInsets, ImeWindowSpec, row count, and Snygg window background together.
+- **Hard-coded red feedback:** ImeKeyboardBox.kt used Color.Red for the peek/swipe line and pending multi-tap highlight. Fixed on dev: the line resolves the active Snygg glide-trail foreground, pending multi-tap uses Snygg focus styling, and the drag-marker token follows each bundled theme's primary color. Debug touch boundaries remain red only in the explicit developer overlay.
+- **Missing press motion/feedback:** Main keys and action keys now use a short spring scale at graphicsLayer; successful key releases dispatch configured KeyRelease feedback, and extended long presses dispatch existing LongPress feedback on the main thread. Device-side latency/jank and haptic timing remain unverified.
+- **Keyboard fills screen / white view:** ImeRootView is intentionally full-root for geometry/inset measurement, while ImeWindow wraps its measured content and is anchored to the bottom. The default landscape mode changed from DYNAMICALLY_SHOW to NEVER_SHOW, and DekuImeService reevaluates fullscreen mode when the preference changes. This targets Android's default landscape extract-mode behavior without breaking root coordinate/inset measurement. Verify stored user preferences and reproduce across portrait, landscape, extract mode, split screen, gesture/3-button navigation; inspect onComputeInsets, ImeWindowSpec, row count, and Snygg background together.
 - **Language/layout confusion:** These are separate data models and screens. CI proves asset reference consistency, not successful runtime save/restore. Test add/edit/remove, app restart, rapid switching, and mixed Arabic/English typing.
 - **Arabic RTL:** Preserve physical row/control-key ordering; directionality belongs in text rendering and locale-specific layout data. Regress Arabic and mixed-script typing. Verify Arabic popup alternatives against the actual bundled mapping files.
 - **Lag/jank:** Measure pointer/input latency before adding model inference or more animations. Compile keyboard models off the main thread, cancel stale work, and avoid recomputing layout on every touch.
@@ -61,7 +61,14 @@ This is the verified high-value list from files inspected on dev, not a claim th
 - Add reduced-motion, TalkBack semantics, contrast and touch-target checks.
 - Keep prediction/translation/writing/voice modular and offline. Do not claim transformer quality or sub-30ms latency until licensed model assets, device benchmarks, memory measurements, cancellation, and sensitive-input exclusion exist.
 
-## 4. Fix order
+## 4. Follow-up implementation status (2026-10-28)
+
+- **Applied on dev:** K3 and action-key spring press animations; Snygg-based multi-tap highlight and theme-bound glide trail/drag marker; configured release and long-press feedback dispatch; retry-safe NLP provider lifecycle; explicit password classification and NLP suppression; landscape fullscreen default changed to NEVER_SHOW with live reevaluation; extension deletion/import/export implementations with local-only document picker, SAF export, and bounded ZIP handling; unsupported language-pack extension shortcut removed in favor of the bundled locale/layout picker.
+- **Added tests:** password input variation classification and extension-path/archive-name guards. These are committed but pending validation by current-head Android CI.
+- **CI at audit update:** Android run for SHA `1acd01ee13d1c7ef6b6cd05ea1b929a0e582ff45` was in progress; see [run 40758612378](https://github.com/Deku-Foundation/deku-keyboard/actions/runs/40758612378). Resource validation for the same SHA passed at [run 40758618044](https://github.com/Deku-Foundation/deku-keyboard/actions/runs/40758618044). Earlier successful builds do not verify later changes.
+- **Still not implemented:** Neural translation, rewrite/writing assistant, or speech model. No compatible local model weights or runtime were found in the inspected code. No cloud fallback should be added.
+
+## 5. Fix order
 1. Maintain package identity, no-network policy, storage path safety, and CI.
 2. Fix key feedback/popup styling and cover touch-state regressions.
 3. Validate language/subtype/layout flows on-device, especially Arabic popups and stable physical key positions.
@@ -70,7 +77,7 @@ This is the verified high-value list from files inspected on dev, not a claim th
 6. Redesign themes/settings and add accessibility/reduced-motion behavior.
 7. Evaluate local prediction, translation, writing assistance, and voice only with licensed weights and measured APK/RAM/latency budgets; no cloud fallback.
 
-## 5. References consulted
+## 6. References consulted
 - Android Developers, [Create an input method](https://developer.android.com/develop/ui/views/touch-and-input/creating-input-method): IME lifecycle, UI, screen sizes, and input types.
 - Android Developers, [Compose animation performance](https://developer.android.com/develop/ui/compose/animation/quick-guide): prefer draw-phase/lambda modifiers and graphicsLayer when layout need not change.
 - Android Developers, [Compose performance best practices](https://developer.android.com/develop/ui/compose/performance/bestpractices): remember expensive calculations, reduce recompositions, defer state reads, and avoid backwards writes.
