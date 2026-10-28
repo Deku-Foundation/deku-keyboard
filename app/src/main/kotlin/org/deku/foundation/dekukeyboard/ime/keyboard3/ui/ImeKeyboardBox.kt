@@ -114,7 +114,6 @@ fun ImeKeyboardBox(
         when (spaceBarMode) {
             SpaceBarMode.NOTHING -> K3String.Empty
             SpaceBarMode.CURRENT_LANGUAGE -> {
-                // TODO this might not be the right locale, get from new suntypes once impl
                 val locale = DekuLocale.from(model.locales.getOrElse(0) { "en" })
                 when (displayLanguageNamesIn) {
                     DisplayLanguageNamesIn.SYSTEM_LOCALE -> locale.displayName()
@@ -140,7 +139,7 @@ fun ImeKeyboardBox(
         val activeTouchKeyboard = remember(activeTouchModel, deviceWidthMm) {
             activeTouchModel.selectKeyboard(deviceWidthMm)
         }
-        // TODO this launched effect is a hack, there must be a better way
+        // The effective row count controls IME window height and follows the width-selected layout.
         LaunchedEffect(activeTouchKeyboard) {
             imeController.updateState {
                 state = state.copy(effRowCount = activeTouchKeyboard.rowCount)

@@ -11,7 +11,7 @@ This report records source changes and automated evidence for the Deku Keyboard 
 - Suggestion assembly and provider removal no longer synchronously block through `runBlocking`; stale candidate assembly is discarded by a revision counter. Dictionary-reading APIs are suspending.
 - Suggestion generation is blocked when the editor is incognito, sets `IME_FLAG_NO_PERSONALIZED_LEARNING`, or uses password, email, URI, phone, numeric, or no-suggestions input types. Incognito sessions do not publish keyboard-generated or clipboard candidates.
 - The local Arabic provider now normalizes hamza/alef variants, alef maqsura, taa marbuta and Arabic diacritics for matching while retaining dictionary spelling for output. A heuristic Arabizi-to-Arabic candidate index is generated locally from the bundled Arabic word list; it is not a morphology-aware transliteration model.
-- Clipboard-media editor access uses an injected application context rather than a static `getHack()` lookup. Unused JNI smoke-test logging has been removed.
+- Clipboard-media editor access and the Keyboard3 loader use explicit application dependency injection rather than a static `getHack()` lookup. The unused Rust/JNI `dummyAdd` smoke-test module, NDK pin, and CMake/Ninja workflow steps have been removed because no production feature used the native library. Suggestion completion now commits text through the K3 input-method API instead of returning `false` unconditionally, and successful accepted candidates notify their provider.
 - CI checks source and merged debug manifests for the absence of the `INTERNET` permission and checks active dependencies for common cloud/analytics/Google ML SDKs.
 
 ## Automated quality gate
@@ -53,4 +53,4 @@ No key-to-render latency, cold-start timing, heap use, or on-device APK runtime 
 - Arabizi suggestions are heuristic candidates generated from the existing offline dictionary; Arabic clitic morphology, spelling correction, learned ranking, and a calibrated confidence threshold remain unimplemented.
 - No local transformer, ONNX/TFLite model, translation model, writing assistant, or speech model is included.
 - Glide typing is currently disabled in the implementation: its classifier is replaced by `Unit` and suggestion update returns immediately. This report does not claim glide typing works.
-- Legacy TODOs and upstream-maintenance notes remain elsewhere in the inherited codebase; they must be triaged by owner and behavior rather than mass-deleted without understanding the affected feature.
+- Legacy TODOs, commented-out code and upstream-maintenance notes remain elsewhere in the inherited codebase; they must be triaged by owner and behavior rather than mass-deleted without understanding the affected feature. The legacy Rust/JNI module was removed only after confirming its sole exported entry point was the unused `dummyAdd` smoke test.

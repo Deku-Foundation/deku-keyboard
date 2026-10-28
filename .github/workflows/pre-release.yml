@@ -51,8 +51,6 @@ jobs:
           java-version: 17
           distribution: temurin
 
-      - name: Set up CMake and Ninja
-        uses: lukka/get-cmake@v4.0.2
 
       - name: Build candidate APK
         run: ./gradlew clean assembleDebug

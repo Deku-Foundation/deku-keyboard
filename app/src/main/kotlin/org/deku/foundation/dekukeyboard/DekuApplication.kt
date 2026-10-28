@@ -60,16 +60,6 @@ private var dekuApplicationReference = WeakReference<DekuApplication?>(null)
 
 @Suppress("unused")
 class DekuApplication : Application() {
-    companion object {
-        init {
-            try {
-                System.loadLibrary("deku_native")
-            } catch (_: Exception) {
-            }
-        }
-
-    }
-
     private val mainHandler by lazy { Handler(mainLooper) }
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     val preferenceStoreLoaded = MutableStateFlow(false)

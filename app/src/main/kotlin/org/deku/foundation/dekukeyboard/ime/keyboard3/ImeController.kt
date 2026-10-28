@@ -132,9 +132,14 @@ class ImeController(
             }
         }
 
-        // TODO proper stateful compilation
-        scope.launch {
-            loadFoundationKeyboard(this@ImeController, storageController.activeStorage.value)
+        application?.let { app ->
+            scope.launch {
+                loadFoundationKeyboard(
+                    imeController = this@ImeController,
+                    storage = storageController.activeStorage.value,
+                    app = app,
+                )
+            }
         }
     }
 
@@ -529,12 +534,16 @@ class ImeController(
         }
 
         fun emitCandidate(candidate: SuggestionCandidate) {
-//            scope.launch {
-//                candidate.sourceProvider?.notifySuggestionAccepted(subtypeManager.activeSubtype, candidate)
-//            }
             when (candidate) {
                 is ClipboardSuggestionCandidate -> emitClipboardItem(candidate.clipboardItem)
-                else -> emitCompletion(candidate)
+                else -> {
+                    if (!emitCompletion(candidate)) return
+                    val app = application ?: return
+                    val provider = candidate.sourceProvider ?: return
+                    scope.launch {
+                        provider.notifySuggestionAccepted(app.subtypeManager.value.activeSubtype, candidate)
+                    }
+                }
             }
         }
 
@@ -563,24 +572,28 @@ class ImeController(
 
         fun emitCompletion(candidate: SuggestionCandidate): Boolean {
             val text = candidate.text.toString()
-            if (text.isEmpty() || state.editor.info.isRawInputEditor) return false
-//            val content = activeContent
-//            return if (content.composing.isValid) {
-//                phantomSpace.setActive(showComposingRegion = false, candidate = candidate)
-//                super.finalizeComposingText(text)
-//            } else {
-//                val isPhantomSpaceActive = phantomSpace.determine(text)
-//                phantomSpace.setActive(showComposingRegion = false, candidate = candidate)
-//                return if (isPhantomSpaceActive) {
-//                    super.commitText("$SPACE$text")
-//                } else {
-//                    super.commitText(text)
-//                }.also {
-//                    // handled in finalizeComposingText if content.composing.isValid
-//                    updateLastCommitPosition()
-//                }
-//            }
-            return false
+            if (
+                text.isBlank() ||
+                state.editor.info.isRawInputEditor ||
+                shouldBlockNlpSuggestions(
+                    isIncognitoMode = state.flags.isIncognitoMode,
+                    inputAttributes = state.editor.info.inputAttributes,
+                    imeOptions = state.editor.info.imeOptions,
+                )
+            ) {
+                return false
+            }
+
+            val didCommit = if (state.content.composing.isValid) {
+                super.finalizeComposingText(text)
+            } else {
+                super.commitText(text)
+            }
+            if (didCommit) {
+                expectedContentQueue.push(state.content)
+                reevaluateInputShiftState()
+            }
+            return didCommit
         }
 
         override fun switchTouchLayer(newTouchLayerId: K3LayerId) {

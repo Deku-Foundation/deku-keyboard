@@ -43,8 +43,11 @@ private const val LAYOUT_EXTENSION_ID = "org.deku.foundation.dekukeyboard.layout
 private const val DEFAULT_CHARACTER_LAYOUT = "qwerty"
 
 @OptIn(WillRequireMigrationToRichErrors::class)
-suspend fun loadFoundationKeyboard(imeController: ImeController, storage: Storage) {
-    val app = DekuApplication.getHack()
+suspend fun loadFoundationKeyboard(
+    imeController: ImeController,
+    storage: Storage,
+    app: DekuApplication,
+) {
 
     // Wait for both DataStore and the subtype collector before reading activeSubtypeFlow. The
     // latter starts asynchronously, so checking only preferenceStoreLoaded can still compile the

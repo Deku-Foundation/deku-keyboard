@@ -60,7 +60,7 @@ jobs:
           )
           text_suffixes = {".kt", ".kts", ".java", ".xml", ".json", ".toml", ".rs", ".c", ".h", ".cpp", ".properties", ".gradle"}
           violations = []
-          for base in ("app/src/main", "app/src/beta", "lib", "libnative", "settings.gradle.kts", "build.gradle.kts"):
+          for base in ("app/src/main", "app/src/beta", "lib", "settings.gradle.kts", "build.gradle.kts"):
               source = root / base
               paths = [source] if source.is_file() else source.rglob("*")
               for path in paths:
@@ -99,6 +99,13 @@ jobs:
           }
           if network_permission in declared_permissions:
               raise SystemExit("Privacy policy violation: the keyboard must not declare INTERNET permission.")
+
+          if (root / "lib/native").exists() or (root / "libnative/dummy").exists():
+              raise SystemExit("The unused Rust/JNI dummyAdd smoke-test module must not return as an application dependency.")
+          for kotlin_file in (root / "app/src/main/kotlin").rglob("*.kt"):
+              source = kotlin_file.read_text(encoding="utf-8")
+              if "dummyAdd(" in source or 'System.loadLibrary("deku_native")' in source:
+                  raise SystemExit(f"Removed JNI smoke-test entry point reintroduced in {kotlin_file.relative_to(root)}.")
 
           # Keep inference strictly local: cloud-backed Google SDKs are not allowed in app dependencies.
           gradle_inputs = [
@@ -237,8 +244,6 @@ jobs:
         with:
           java-version: 17
           distribution: temurin
-      - name: Set up CMake and Ninja
-        uses: lukka/get-cmake@v4.4.2
       - name: Build with Gradle
         run: ./gradlew clean testDebugUnitTest assembleDebug
       - name: Verify merged app manifests stay offline
