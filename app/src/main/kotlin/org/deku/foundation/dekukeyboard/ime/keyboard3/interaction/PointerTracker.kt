@@ -126,8 +126,14 @@ internal fun calculateLongPressAnchorBounds(
     // y=0 by exactly the area available in the containing IME root window.
     val width = keyBounds.width.coerceAtMost(viewportBounds.width)
         .coerceAtLeast(MIN_LONG_PRESS_ANCHOR_DIMENSION)
-    val height = (keyBounds.height * 0.9f).coerceAtMost(viewportBounds.height)
-        .coerceAtLeast(MIN_LONG_PRESS_ANCHOR_DIMENSION)
+    val preferredHeight = (keyBounds.height * 0.9f).coerceAtMost(viewportBounds.height)
+    val availableAbove = (keyBounds.top - viewportBounds.top).coerceAtLeast(0f)
+    val height = if (availableAbove >= MIN_LONG_PRESS_ANCHOR_DIMENSION * 1.2f) {
+        preferredHeight.coerceAtMost(availableAbove / 1.2f)
+            .coerceAtLeast(MIN_LONG_PRESS_ANCHOR_DIMENSION)
+    } else {
+        preferredHeight
+    }
     return calculatePopupBounds(
         keyBounds = keyBounds,
         containerBounds = viewportBounds,
