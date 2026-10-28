@@ -12,6 +12,8 @@ package org.deku.foundation.dekukeyboard.ime.keyboard3.interaction
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.unit.LayoutDirection
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import kotlin.math.abs
@@ -27,13 +29,57 @@ class LongPressAnchorBoundsTest : FunSpec({
         (anchor.bottom < keyBounds.top) shouldBe true
     }
 
-    test("keeps a top-left edge key anchor inside the normalized viewport") {
-        val anchor = calculateLongPressAnchorBounds(Rect(0f, 0f, 0.04f, 0.06f))
+    test("keeps a top-row popup above the key when the IME root has space above the keyboard") {
+        val keyBounds = Rect(0f, 0f, 0.04f, 0.06f)
+        val viewportBounds = Rect(0f, -0.20f, 1f, 1f)
+        val anchor = calculateLongPressAnchorBounds(
+            keyBounds = keyBounds,
+            viewportBounds = viewportBounds,
+            layoutDirection = LayoutDirection.Ltr,
+        )
 
         anchor.left shouldBe 0f
-        // At the top edge the popup is intentionally positioned below the pressed key.
-        (anchor.top >= 0.06f) shouldBe true
-        (anchor.right <= 1f && anchor.bottom <= 1f) shouldBe true
+        (anchor.top < keyBounds.top) shouldBe true
+        (anchor.bottom < keyBounds.top) shouldBe true
+        (anchor.top >= viewportBounds.top) shouldBe true
+        (anchor.right <= viewportBounds.right && anchor.bottom <= viewportBounds.bottom) shouldBe true
+    }
+
+    test("flips below only when the available container has no room above the top-row key") {
+        val keyBounds = Rect(0.2f, 0f, 0.3f, 0.1f)
+        val anchor = calculateLongPressAnchorBounds(
+            keyBounds = keyBounds,
+            viewportBounds = Rect(0f, 0f, 1f, 1f),
+            layoutDirection = LayoutDirection.Ltr,
+        )
+
+        (anchor.top >= keyBounds.bottom) shouldBe true
+    }
+
+    test("keeps a wider popup aligned to the logical start of its key") {
+        val keyBounds = Rect(0.45f, 0.4f, 0.55f, 0.5f)
+        val containerBounds = Rect(0f, -0.3f, 1f, 1f)
+        val popupSize = Size(0.3f, 0.1f)
+
+        val ltr = calculatePopupBounds(keyBounds, containerBounds, popupSize, LayoutDirection.Ltr)
+        val rtl = calculatePopupBounds(keyBounds, containerBounds, popupSize, LayoutDirection.Rtl)
+
+        (abs(ltr.left - 0.45f) < 0.00001f) shouldBe true
+        (abs(rtl.right - 0.55f) < 0.00001f) shouldBe true
+        (ltr.top < keyBounds.top && rtl.top < keyBounds.top) shouldBe true
+    }
+
+    test("clamps a wider popup to the viewport at the physical right edge") {
+        val keyBounds = Rect(0.94f, 0.4f, 1f, 0.5f)
+        val popup = calculatePopupBounds(
+            keyBounds = keyBounds,
+            containerBounds = Rect(0f, -0.3f, 1f, 1f),
+            popupSize = Size(0.3f, 0.1f),
+            layoutDirection = LayoutDirection.Ltr,
+        )
+
+        (abs(popup.right - 1f) < 0.00001f) shouldBe true
+        (abs(popup.width - 0.3f) < 0.00001f) shouldBe true
     }
 
     test("adapts to tall landscape-style keys without leaving the viewport") {
