@@ -39,7 +39,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.deku.foundation.dekukeyboard.lib.kotlin.collectLatestIn
@@ -378,13 +377,11 @@ class NlpManager(context: Context) {
         return true
     }
 
-    fun getListOfWords(subtype: Subtype): List<String> {
-        return runBlocking { getSuggestionProvider(subtype).getListOfWords(subtype) }
-    }
+    suspend fun getListOfWords(subtype: Subtype): List<String> =
+        getSuggestionProvider(subtype).getListOfWords(subtype)
 
-    fun getFrequencyForWord(subtype: Subtype, word: String): Double {
-        return runBlocking { getSuggestionProvider(subtype).getFrequencyForWord(subtype, word) }
-    }
+    suspend fun getFrequencyForWord(subtype: Subtype, word: String): Double =
+        getSuggestionProvider(subtype).getFrequencyForWord(subtype, word)
 
     private fun assembleCandidates() {
         val assemblyRevision = nextAssemblyRevision.incrementAndGet()
