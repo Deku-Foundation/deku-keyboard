@@ -44,7 +44,6 @@ import org.deku.foundation.dekukeyboard.lib.kotlin.guardedByLock
 import org.deku.foundation.dekukeyboard.lib.kotlin.collectLatestIn
 import org.k3lp.runtime.K3Content
 import org.k3lp.runtime.K3TextRange
-import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.properties.Delegates
 
 internal fun <T> selectSuggestionsForSession(
@@ -399,10 +398,18 @@ class NlpManager(context: Context) {
     }
 
     private class ProviderInstanceWrapper(val provider: NlpProvider) {
-        private var isInstanceAlive = AtomicBoolean(false)
+        private val lifecycleMutex = Mutex()
+        private var isInstanceAlive = false
 
         suspend fun createIfNecessary() {
-            if (!isInstanceAlive.getAndSet(true)) provider.create()
+            lifecycleMutex.withLock {
+                if (!isInstanceAlive) {
+                    // Mark the provider alive only after successful construction so a failed
+                    // initialization can be retried on the next subtype activation.
+                    provider.create()
+                    isInstanceAlive = true
+                }
+            }
         }
 
         suspend fun preload(subtype: Subtype) {
@@ -410,7 +417,13 @@ class NlpManager(context: Context) {
         }
 
         suspend fun destroyIfNecessary() {
-            if (isInstanceAlive.getAndSet(true)) provider.destroy()
+            lifecycleMutex.withLock {
+                if (isInstanceAlive) {
+                    // Keep the state alive if destroy throws; callers can retry cleanup safely.
+                    provider.destroy()
+                    isInstanceAlive = false
+                }
+            }
         }
     }
 
