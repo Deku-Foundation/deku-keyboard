@@ -62,6 +62,29 @@ class ArabicLanguageProviderTest : FunSpec({
             listOf("كسب" to 90, "كسمك" to 80)
     }
 
+    test("normalizes Arabic spelling variants for matching while preserving output spelling") {
+        normalizeArabicMatchKey("أنت") shouldBe "انت"
+        normalizeArabicMatchKey("على") shouldBe "علي"
+        normalizeArabicMatchKey("مدرسة") shouldBe "مدرسه"
+
+        val index = buildArabicWordPrefixIndex(listOf("إلى" to 100, "إليك" to 90))
+        findArabicWordPrefixSuggestions(index, "الى", 5, false) shouldBe listOf("إليك" to 90)
+    }
+
+    test("suggests Arabic candidates from common Arabizi input locally") {
+        val index = buildArabiziPrefixIndex(
+            listOf(
+                "سلام" to 100,
+                "مرحبا" to 90,
+                "مكتب" to 80,
+            ),
+        )
+
+        findArabiziPrefixSuggestions(index, "salam", 5, false) shouldBe listOf("سلام" to 100)
+        findArabiziPrefixSuggestions(index, "mar7aba", 5, false) shouldBe listOf("مرحبا" to 90)
+        findArabiziPrefixSuggestions(index, "maktab", 5, false) shouldBe listOf("مكتب" to 80)
+    }
+
     test("routes only Arabic primary subtypes to the Arabic dictionary") {
         supportsArabicDictionary(Subtype.DEFAULT.copy(primaryLocale = DekuLocale.fromTag("ar-DZ"))) shouldBe true
         supportsArabicDictionary(Subtype.DEFAULT.copy(primaryLocale = DekuLocale.fromTag("en-GB"))) shouldBe false
