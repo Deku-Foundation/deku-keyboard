@@ -97,15 +97,7 @@ class ExtensionController(
             "Only user-installed extensions can be deleted."
         }
 
-        val segments = extension.sourceRef.relativePath.split('/')
-        require(
-            segments.size == 2 &&
-                segments[0] == EXTENSIONS_PATH &&
-                segments[1] == extensionId &&
-                extensionId.isNotBlank() &&
-                '/' !in extensionId &&
-                '\\' !in extensionId
-        ) {
+        require(isSafeInstalledExtensionPath(extension.sourceRef.relativePath, extensionId)) {
             "Refusing to delete a path outside the installed extension directory."
         }
 
@@ -232,11 +224,7 @@ class ExtensionController(
 
         for (child in children) {
             val entryName = child.relativeTo(root).invariantSeparatorsPath
-            require(
-                entryName.isNotBlank() &&
-                    !entryName.startsWith("/") &&
-                    entryName.split('/').none { it == "." || it == ".." }
-            ) {
+            require(isSafeExtensionArchiveEntryName(entryName)) {
                 "Extension export contains an unsafe ZIP path."
             }
             if (child.isDirectory) {
@@ -382,4 +370,28 @@ class ExtensionController(
             }
         }
     }
+}
+
+/**
+ * Restricts destructive operations to one direct child of the extension root.
+ * Kept pure so traversal and identity assumptions can be regression-tested without Android storage.
+ */
+internal fun isSafeInstalledExtensionPath(relativePath: String, extensionId: String): Boolean {
+    val segments = relativePath.split('/')
+    return segments.size == 2 &&
+        segments[0] == ExtensionController.EXTENSIONS_PATH &&
+        segments[1] == extensionId &&
+        extensionId.isNotBlank() &&
+        '/' !in extensionId &&
+        '\\' !in extensionId
+}
+
+/**
+ * ZIP entry names must be relative POSIX paths. Reject Windows separators too because archives
+ * can later be extracted on another platform.
+ */
+internal fun isSafeExtensionArchiveEntryName(entryName: String): Boolean {
+    if (entryName.isBlank() || entryName.startsWith("/") || '\\' in entryName) return false
+    val segments = entryName.split('/')
+    return segments.all { it.isNotBlank() && it != "." && it != ".." }
 }
