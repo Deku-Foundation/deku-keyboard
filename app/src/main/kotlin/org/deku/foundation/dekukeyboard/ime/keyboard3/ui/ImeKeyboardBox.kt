@@ -36,11 +36,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastRoundToInt
@@ -52,6 +54,7 @@ import org.deku.foundation.dekukeyboard.ime.keyboard3.ImeIcons
 import org.deku.foundation.dekukeyboard.ime.keyboard3.ImeLayerIds
 import org.deku.foundation.dekukeyboard.ime.keyboard3.LocalImeController
 import org.deku.foundation.dekukeyboard.ime.keyboard3.interaction.LongPress
+import org.deku.foundation.dekukeyboard.ime.keyboard3.interaction.PopupGeometry
 import org.deku.foundation.dekukeyboard.ime.keyboard3.interaction.rememberPointerTracker
 import org.deku.foundation.dekukeyboard.ime.keyboard3.interaction.trackPointerInput
 import org.deku.foundation.dekukeyboard.ime.keyboard3.touch.TouchKey
@@ -76,6 +79,7 @@ import org.k3lp.lib.text.asK3String
 @Composable
 fun ImeKeyboardBox(
     modifier: Modifier = Modifier,
+    popupAboveHeight: Dp = 0.dp,
 ) {
     val prefs by DekuPreferenceStore
     val density = LocalDensity.current
@@ -87,6 +91,8 @@ fun ImeKeyboardBox(
     val touchLayerId by remember { derivedStateOf { imeState.touchLayerId } }
 
     val windowSpec by windowController.activeWindowSpec.collectAsState()
+    val rootInsets by windowController.activeRootInsets.collectAsState()
+    val windowInsets by windowController.activeWindowInsets.collectAsState()
     val keyMarginHPx by remember {
         derivedStateOf { with(density) { windowSpec.keyMarginH.toPx() } }
     }
@@ -154,12 +160,41 @@ fun ImeKeyboardBox(
             } ?: TouchLayer.Empty
         }
 
-        val pointerTracker = rememberPointerTracker(activeTouchKeyboard)
+        val keyboardRowHeightDp = DekuImeSizing.keyboardRowBaseHeight
+        val popupViewportBounds = remember(
+            rootInsets,
+            windowInsets,
+            popupAboveHeight,
+            keyboardRowHeightDp,
+            activeTouchKeyboard.rowCount,
+        ) {
+            val keyboardHeightPx = with(density) {
+                (keyboardRowHeightDp * activeTouchKeyboard.rowCount).toPx()
+            }
+            val smartbarHeightPx = with(density) { popupAboveHeight.toPx() }
+            val rootTopPx = rootInsets.boundsPx.top.toFloat()
+            val windowTopPx = (windowInsets?.boundsPx?.top ?: rootInsets.boundsPx.top).toFloat()
+            val keyboardTopInRootPx = windowTopPx + smartbarHeightPx
+            val availableAboveKeyboardPx =
+                (keyboardTopInRootPx - rootTopPx).coerceAtLeast(smartbarHeightPx)
+            val viewportTop = if (keyboardHeightPx > 0f) {
+                -(availableAboveKeyboardPx / keyboardHeightPx)
+            } else {
+                0f
+            }
+            Rect(0f, viewportTop.coerceAtMost(0f), 1f, 1f)
+        }
+        val popupGeometryState = rememberUpdatedState(
+            PopupGeometry(
+                viewportBounds = popupViewportBounds,
+                layoutDirection = imeState.flags.layoutDirection,
+            ),
+        )
+        val pointerTracker = rememberPointerTracker(activeTouchKeyboard, popupGeometryState)
         val trackedOutputPointer by pointerTracker.trackedOutputPointer.collectAsState()
         val trackedPeekPointer by pointerTracker.trackedPeekPointer.collectAsState()
         val trackedMultiTapSeq by pointerTracker.trackedMultiTapSeq.collectAsState()
 
-        val keyboardRowHeightDp = DekuImeSizing.keyboardRowBaseHeight
         val peekLineWidthPx = with(density) { 8.dp.toPx() }
 
         Box(
