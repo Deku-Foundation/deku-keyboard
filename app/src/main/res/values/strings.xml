@@ -131,9 +131,10 @@
     <string name="settings__localization__display_keyboard_labels_in_subtype_language" comment="Label of Display keyboard labels in subtype language preference">Display keyboard labels in subtype language</string>
     <string name="settings__localization__group_subtypes__label" comment="Label of subtypes group">Subtypes</string>
     <string name="settings__localization__subtype_add_title" comment="Title of subtype dialog when adding a new subtype">Add subtype</string>
-    <string name="settings__localization__language_pack_title" comment="Title of the language pack manager screen for managing installed and custom language packs">Manage installed language packs</string>
-    <string name="settings__localization__language_pack_summary" comment="Summary of preference item for adding a new language pack">Experimental: manage extensions that add support for specific languages (shape-based Chinese input for now)</string>
-    <string name="settings__localization__language_pack_info">Standard typing languages and character layouts are bundled with Deku Keyboard and configured in Languages &amp; layouts. Language packs are optional extensions for specialized input methods. Import only language packs from sources you trust.</string>
+    <string name="settings__localization__language_pack_title" comment="Title of the offline language resources screen">Offline languages and layouts</string>
+    <string name="settings__localization__language_pack_summary" comment="Summary of preference item for offline language resources">Browse built-in typing languages and character layouts. Specialized language-pack extensions are not currently supported.</string>
+    <string name="settings__localization__language_pack_info">Deku Keyboard includes typing languages and character layouts locally. Add or switch a language in Languages &amp; layouts. Specialized language-pack extensions are not supported in this build; no online download is required for bundled languages.</string>
+    <string name="settings__localization__browse_languages">Browse bundled languages</string>
     <string name="settings__localization__active_language">Active language</string>
     <string name="settings__localization__loading">Loading language settings…</string>
 
