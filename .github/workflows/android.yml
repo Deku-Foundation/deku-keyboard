@@ -235,7 +235,7 @@ jobs:
 
           keyboard_ui_path = root / "app/src/main/kotlin/org/deku/foundation/dekukeyboard/ime/keyboard3/ui/ImeKeyboardBox.kt"
           keyboard_ui = keyboard_ui_path.read_text(encoding="utf-8")
-          key_ui_marker = "@Composable\\nprivate fun ImeKeyboardKeyBox("
+          key_ui_marker = "@Composable\nprivate fun ImeKeyboardKeyBox("
           keyboard_ui_parts = keyboard_ui.split(key_ui_marker, maxsplit=1)
           if len(keyboard_ui_parts) != 2:
               raise SystemExit("Unable to locate the individual key composable for popup-coordinate validation.")
