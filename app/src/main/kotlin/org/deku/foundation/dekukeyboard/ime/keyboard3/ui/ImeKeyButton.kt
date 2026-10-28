@@ -93,7 +93,7 @@ fun ImeKeyButton(
 
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
-    val pressScale by animateFloatAsState(
+    val pressScale = animateFloatAsState(
         targetValue = if (isPressed) 0.94f else 1f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioNoBouncy,
@@ -117,8 +117,8 @@ fun ImeKeyButton(
         attributes = attributes,
         selector = selector,
         modifier = modifier.graphicsLayer {
-            scaleX = pressScale
-            scaleY = pressScale
+            scaleX = pressScale.value
+            scaleY = pressScale.value
         },
         clickAndSemanticsModifier = Modifier
             .indication(interactionSource, ripple())
