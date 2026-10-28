@@ -64,7 +64,7 @@ fun LongPressBox(
         }
     }
 
-    // Keep the ordinary key preview immediate; animate only the larger long-press panel below
+    // Keep the ordinary key preview immediate; animate only the larger long-press panel
     // so animation never delays visual feedback while the user types rapidly.
     if (showSimplePopup) {
         SnyggBox(
