@@ -30,7 +30,6 @@ import androidx.compose.ui.unit.dp
 import org.deku.foundation.dekukeyboard.R
 import org.deku.foundation.dekukeyboard.app.LocalNavController
 import org.deku.foundation.dekukeyboard.app.Routes
-import org.deku.foundation.dekukeyboard.app.ext.ExtensionImportScreenType
 import org.deku.foundation.dekukeyboard.lib.compose.DekuScreen
 import org.deku.foundation.dekukeyboard.lib.compose.stringRes
 
@@ -54,16 +53,15 @@ fun LanguagePackManagerScreen(action: LanguagePackManagerScreenAction?) = DekuSc
                 text = stringRes(R.string.settings__localization__language_pack_info),
                 style = MaterialTheme.typography.bodyLarge,
             )
-            Button(
-                modifier = Modifier.fillMaxWidth(),
-                enabled = action == LanguagePackManagerScreenAction.MANAGE,
-                onClick = {
-                    navController.navigate(
-                        Routes.Ext.Import(ExtensionImportScreenType.EXT_LANGUAGEPACK, null)
-                    )
-                },
-            ) {
-                Text(stringRes(R.string.action__import))
+            if (action == LanguagePackManagerScreenAction.MANAGE) {
+                Button(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = {
+                        navController.navigate(Routes.Settings.SubtypeAdd)
+                    },
+                ) {
+                    Text(stringRes(R.string.settings__localization__browse_languages))
+                }
             }
         }
     }
