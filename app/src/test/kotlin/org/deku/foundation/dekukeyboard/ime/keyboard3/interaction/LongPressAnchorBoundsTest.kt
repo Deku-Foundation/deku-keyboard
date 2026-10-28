@@ -56,8 +56,13 @@ class LongPressAnchorBoundsTest : FunSpec({
     }
 
     test("preserves popup size while moving overflow back inside right and bottom edges") {
-        clampPopupBoundsToViewport(Rect(0.9f, 0.9f, 1.1f, 1.1f)) shouldBe
-            Rect(0.8f, 0.8f, 1f, 1f)
+        val clamped = clampPopupBoundsToViewport(Rect(0.9f, 0.9f, 1.1f, 1.1f))
+        val expected = Rect(0.8f, 0.8f, 1f, 1f)
+
+        (abs(clamped.left - expected.left) < 0.00001f) shouldBe true
+        (abs(clamped.top - expected.top) < 0.00001f) shouldBe true
+        (abs(clamped.right - expected.right) < 0.00001f) shouldBe true
+        (abs(clamped.bottom - expected.bottom) < 0.00001f) shouldBe true
     }
 
     test("rejects non-finite popup geometry") {
