@@ -30,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import org.deku.foundation.dekukeyboard.R
 import org.deku.foundation.dekukeyboard.app.DekuPreferenceStore
+import org.deku.foundation.dekukeyboard.ime.keyboard.DekuImeSizing
 import org.deku.foundation.dekukeyboard.ime.keyboard3.LocalImeController
 import org.deku.foundation.dekukeyboard.ime.keyboard3.ui.ImeKeyboardBox
 import org.deku.foundation.dekukeyboard.ime.smartbar.IncognitoDisplayMode
@@ -46,6 +47,7 @@ fun TextInputLayout(
 ) {
     val prefs by DekuPreferenceStore
     val imeController = LocalImeController.current
+    val popupAboveHeight = DekuImeSizing.smartbarUiHeight()
 
     val imeState by imeController.activeState.collectAsState()
     val isActionsOverflowVisible by remember {
@@ -79,7 +81,7 @@ fun TextInputLayout(
                         painter = painterResource(R.drawable.ic_incognito),
                     )
                 }
-                ImeKeyboardBox()
+                ImeKeyboardBox(popupAboveHeight = popupAboveHeight)
             }
         }
     }
