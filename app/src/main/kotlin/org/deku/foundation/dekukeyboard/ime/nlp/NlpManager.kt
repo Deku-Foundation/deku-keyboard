@@ -24,6 +24,8 @@ import org.deku.foundation.dekukeyboard.clipboardManager
 import org.deku.foundation.dekukeyboard.ime.clipboard.provider.ClipboardItem
 import org.deku.foundation.dekukeyboard.ime.clipboard.provider.ItemType
 import org.deku.foundation.dekukeyboard.ime.core.Subtype
+import org.deku.foundation.dekukeyboard.ime.editor.ImeOptions
+import org.deku.foundation.dekukeyboard.ime.editor.InputAttributes
 import org.deku.foundation.dekukeyboard.ime.media.emoji.EmojiSuggestionProvider
 import org.deku.foundation.dekukeyboard.ime.nlp.arabic.ArabicLanguageProvider
 import org.deku.foundation.dekukeyboard.ime.nlp.latin.LatinLanguageProvider
@@ -46,16 +48,24 @@ import org.k3lp.runtime.K3Content
 import org.k3lp.runtime.K3TextRange
 import kotlin.properties.Delegates
 
+internal fun shouldBlockNlpSuggestions(
+    isIncognitoMode: Boolean,
+    inputAttributes: InputAttributes,
+    imeOptions: ImeOptions,
+): Boolean =
+    isIncognitoMode ||
+        imeOptions.flagNoPersonalizedLearning ||
+        inputAttributes.blocksSuggestionsAndLearning
+
 internal fun <T> selectSuggestionsForSession(
     isPrivateSession: Boolean,
     suggestionsFromCurrentSession: List<T>,
     suggestionsWereGeneratedPrivately: Boolean,
     clipboardSuggestions: List<T>,
 ): List<T> = when {
-    isPrivateSession ->
-        if (suggestionsWereGeneratedPrivately) suggestionsFromCurrentSession else emptyList()
-    clipboardSuggestions.isNotEmpty() -> clipboardSuggestions
+    isPrivateSession -> emptyList()
     suggestionsWereGeneratedPrivately -> emptyList()
+    clipboardSuggestions.isNotEmpty() -> clipboardSuggestions
     else -> suggestionsFromCurrentSession
 }
 
@@ -113,12 +123,16 @@ class NlpManager(context: Context) {
     init {
         // Input fields may switch to password mode without changing the selected language. Clear
         // visible/stored candidates on that boundary so results from the prior field are not shown.
-        var lastPasswordFieldState: Boolean? = null
+        var lastRestrictedEditorState: Boolean? = null
         imeController.activeState.collectLatestIn(scope) { state ->
-            val isPasswordField = state.editor.info.inputAttributes.isPasswordField
-            if (lastPasswordFieldState != isPasswordField) {
-                lastPasswordFieldState = isPasswordField
-                if (isPasswordField) {
+            val isRestricted = shouldBlockNlpSuggestions(
+                isIncognitoMode = state.flags.isIncognitoMode,
+                inputAttributes = state.editor.info.inputAttributes,
+                imeOptions = state.editor.info.imeOptions,
+            )
+            if (lastRestrictedEditorState != isRestricted) {
+                lastRestrictedEditorState = isRestricted
+                if (isRestricted) {
                     clearSuggestions()
                 } else {
                     assembleCandidates()
@@ -215,7 +229,7 @@ class NlpManager(context: Context) {
         followingWords: List<String>,
         maxSuggestionCount: Int,
     ): SpellingResult {
-        if (isSensitiveEditor()) return SpellingResult.unspecified()
+        if (isNlpRestrictedEditor()) return SpellingResult.unspecified()
         return getSpellingProvider(subtype).spell(
             subtype = subtype,
             word = word,
@@ -230,7 +244,7 @@ class NlpManager(context: Context) {
     suspend fun determineLocalComposing(
         textBeforeSelection: CharSequence, breakIterators: BreakIteratorGroup, localLastCommitPosition: Int
     ): K3TextRange {
-        if (isSensitiveEditor()) return K3TextRange(0, 0)
+        if (isNlpRestrictedEditor()) return K3TextRange(0, 0)
         return getSuggestionProvider(subtypeManager.activeSubtype).determineLocalComposing(
             subtypeManager.activeSubtype, textBeforeSelection, breakIterators, localLastCommitPosition
         )
@@ -246,18 +260,24 @@ class NlpManager(context: Context) {
         }
     }
 
-    private fun isSensitiveEditor(): Boolean =
-        imeController.snapshotState().editor.info.inputAttributes.isPasswordField
+    private fun isNlpRestrictedEditor(): Boolean {
+        val state = imeController.snapshotState()
+        return shouldBlockNlpSuggestions(
+            isIncognitoMode = state.flags.isIncognitoMode,
+            inputAttributes = state.editor.info.inputAttributes,
+            imeOptions = state.editor.info.imeOptions,
+        )
+    }
 
     fun isSuggestionOn(): Boolean {
-        if (isSensitiveEditor()) return false
+        if (isNlpRestrictedEditor()) return false
         return prefs.suggestion.enabled.get()
             || prefs.emoji.suggestionEnabled.get()
             || providerForcesSuggestionOn(subtypeManager.activeSubtype)
     }
 
     fun suggest(subtype: Subtype, content: K3Content) {
-        if (isSensitiveEditor()) {
+        if (isNlpRestrictedEditor()) {
             clearSuggestions()
             return
         }
@@ -292,7 +312,7 @@ class NlpManager(context: Context) {
             }
             // A field may become a password field while an off-main-thread provider is
             // running. Never publish results after that transition.
-            if (isSensitiveEditor()) return@launch
+            if (isNlpRestrictedEditor()) return@launch
             internalSuggestionsGuard.withLock {
                 if (internalSuggestions.requestTime < reqTime) {
                     internalSuggestions = InternalSuggestionSnapshot(
@@ -309,7 +329,7 @@ class NlpManager(context: Context) {
     }
 
     fun suggestDirectly(suggestions: List<SuggestionCandidate>) {
-        if (isSensitiveEditor()) {
+        if (isNlpRestrictedEditor()) {
             clearSuggestions()
             return
         }
@@ -339,7 +359,7 @@ class NlpManager(context: Context) {
     }
 
     fun getAutoCommitCandidate(): SuggestionCandidate? {
-        if (isSensitiveEditor()) return null
+        if (isNlpRestrictedEditor()) return null
         return activeCandidates.firstOrNull { it.isEligibleForAutoCommit }
     }
 
