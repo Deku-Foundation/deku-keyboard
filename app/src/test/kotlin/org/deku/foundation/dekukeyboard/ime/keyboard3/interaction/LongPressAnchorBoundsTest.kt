@@ -123,18 +123,20 @@ class LongPressAnchorBoundsTest : FunSpec({
         val longPress = LongPress(
             anchorBounds = Rect(0.4f, 0.6f, 0.5f, 0.7f),
             extendedBounds = Rect(0.3f, 0.4f, 0.6f, 0.7f),
+            pointerDownPosition = Offset(0.55f, 0.62f),
         )
         val position = resolveLongPressPointerPosition(longPress, Offset(0.55f, 0.68f))
             ?: error("Expected the release point to resolve inside the popup")
 
-        (abs(position.x - 0.55f) < 0.00001f) shouldBe true
-        (abs(position.y - 0.58f) < 0.00001f) shouldBe true
+        (abs(position.x - 0.45f) < 0.00001f) shouldBe true
+        (abs(position.y - 0.51f) < 0.00001f) shouldBe true
     }
 
     test("rejects a pointer release outside the expanded popup instead of clamping to an edge key") {
         val longPress = LongPress(
             anchorBounds = Rect(0.4f, 0.4f, 0.5f, 0.5f),
             extendedBounds = Rect(0.3f, 0.3f, 0.6f, 0.6f),
+            pointerDownPosition = Offset(0.55f, 0.45f),
         )
 
         resolveLongPressPointerPosition(longPress, Offset(0.55f, 0.95f)) shouldBe null
