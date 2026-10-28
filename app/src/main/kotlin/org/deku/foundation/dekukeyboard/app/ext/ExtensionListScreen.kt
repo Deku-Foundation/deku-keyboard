@@ -80,7 +80,6 @@ enum class ExtensionListScreenType(
         launchExtensionCreate = null,
     );
 }
-}
 
 @Composable
 fun ExtensionListScreen(type: ExtensionListScreenType, showUpdate: Boolean) = DekuScreen {
