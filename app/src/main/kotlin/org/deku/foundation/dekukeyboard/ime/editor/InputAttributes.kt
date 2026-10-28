@@ -30,6 +30,22 @@ value class InputAttributes private constructor(val raw: Int) {
     val type: Type
         get() = Type.fromInt(raw and InputType.TYPE_MASK_CLASS)
 
+    /**
+     * True for text and numeric password editor variations. Keyboard NLP, learning, and candidate
+     * generation must not process content from these fields, even if the host omitted
+     * IME_FLAG_NO_PERSONALIZED_LEARNING.
+     */
+    val isPasswordField: Boolean
+        get() = when (type) {
+            Type.TEXT -> variation in setOf(
+                Variation.PASSWORD,
+                Variation.VISIBLE_PASSWORD,
+                Variation.WEB_PASSWORD,
+            )
+            Type.NUMBER -> variation == Variation.PASSWORD
+            else -> false
+        }
+
     val variation: Variation
         get() = when (type) {
             Type.DATETIME -> when (raw and InputType.TYPE_MASK_VARIATION) {
