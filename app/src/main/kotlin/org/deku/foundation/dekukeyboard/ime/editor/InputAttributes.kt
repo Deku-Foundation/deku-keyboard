@@ -37,11 +37,12 @@ value class InputAttributes private constructor(val raw: Int) {
      */
     val isPasswordField: Boolean
         get() = when (type) {
-            Type.TEXT -> variation in setOf(
+            Type.TEXT -> when (variation) {
                 Variation.PASSWORD,
                 Variation.VISIBLE_PASSWORD,
-                Variation.WEB_PASSWORD,
-            )
+                Variation.WEB_PASSWORD -> true
+                else -> false
+            }
             Type.NUMBER -> variation == Variation.PASSWORD
             else -> false
         }
