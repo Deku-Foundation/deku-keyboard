@@ -115,9 +115,9 @@ internal fun calculatePopupBounds(
 }
 
 /**
- * Map the current pointer coordinate to the expanded popup's selection space. Subtracting the
- * anchor height keeps pointer movement aligned with the popup row; use this for both move and up
- * events so a release without a final move event cannot select a stale candidate.
+ * Map pointer movement relative to the original touch-down onto the popup's selection space.
+ * The same transformation is used for move and release events so a release without a final move
+ * event cannot commit a stale candidate.
  */
 internal fun resolveLongPressPointerPosition(
     longPress: LongPress,
