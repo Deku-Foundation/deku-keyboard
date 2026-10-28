@@ -16,10 +16,14 @@
 
 package org.deku.foundation.dekukeyboard.ime.extension
 
+import android.content.Context
 import androidx.compose.runtime.staticCompositionLocalOf
 import org.deku.foundation.dekukeyboard.ime.io.DekuRef
 import org.deku.foundation.dekukeyboard.ime.io.Storage
 import org.deku.foundation.dekukeyboard.ime.io.StorageController
+import org.deku.foundation.dekukeyboard.ime.io.StorageMultiplexer
+import org.deku.foundation.dekukeyboard.ime.io.FileStorage
+import org.deku.foundation.dekukeyboard.ime.io.copy
 import org.deku.foundation.dekukeyboard.ime.io.readJson
 import org.deku.foundation.dekukeyboard.ime.keyboard3.extension.Keyboard3Extension
 import org.deku.foundation.dekukeyboard.ime.theme.ThemeExtension
@@ -30,7 +34,15 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
+import java.io.BufferedOutputStream
+import java.io.File
+import java.io.FileOutputStream
+import java.util.UUID
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
 import org.deku.foundation.dekukeyboard.lib.kotlin.collectIn
@@ -44,9 +56,11 @@ val LocalExtensionController = staticCompositionLocalOf<ExtensionController> {
 }
 
 class ExtensionController(
-    storageController: StorageController,
+    private val context: Context,
+    private val storageController: StorageController,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val extensionIoMutex = Mutex()
 
     private val eventChannel = Channel<Event>(Channel.RENDEZVOUS)
     private val mutableIndex = MutableIndex(storageController.activeStorage.value)
@@ -67,12 +81,174 @@ class ExtensionController(
         }
     }
 
-    fun delete(extension: Extension<*>): Boolean {
-        TODO()
+    /**
+     * Deletes an installed, user-managed extension. Bundled APK assets can never be deleted.
+     *
+     * The controller verifies the extension against the current index and confines deletion to
+     * exactly one child of the internal extensions directory before touching storage.
+     */
+    suspend fun delete(extension: Extension<*>): Boolean = extensionIoMutex.withLock {
+        val extensionId = extension.manifest.meta.id
+        val indexedExtension = activeIndex.value.extensions[extensionId]
+        if (indexedExtension?.sourceRef != extension.sourceRef) {
+            return@withLock false
+        }
+        require(extension.canDelete() && extension.sourceRef.isInternal) {
+            "Only user-installed extensions can be deleted."
+        }
+
+        val segments = extension.sourceRef.relativePath.split('/')
+        require(
+            segments.size == 2 &&
+                segments[0] == EXTENSIONS_PATH &&
+                segments[1] == extensionId &&
+                extensionId.isNotBlank() &&
+                '/' !in extensionId &&
+                '\\\\' !in extensionId
+        ) {
+            "Refusing to delete a path outside the installed extension directory."
+        }
+
+        val storage = storageController.activeStorage.value
+        check(storage.canAccessUnderlyingMedium(extension.sourceRef)) {
+            "Extension storage is currently unavailable."
+        }
+        check(storage.exists(extension.sourceRef)) {
+            "The selected extension no longer exists."
+        }
+        storage.deleteRecursively(extension.sourceRef)
+        eventChannel.send(Event.ResetStorage(storage))
+        true
     }
 
-    fun export(extension: Extension<*>, ref: DekuRef) {
-        TODO()
+    /**
+     * Exports an extension as a .flex ZIP archive. The archive contains the extension's contents
+     * at its root (including extension.json), matching the importer's package convention.
+     *
+     * Output is restricted to content:// destinations supplied by Android's document picker.
+     * Files are staged under app cache and removed on both success and failure.
+     */
+    suspend fun export(extension: Extension<*>, ref: DekuRef) = extensionIoMutex.withLock {
+        val indexedExtension = activeIndex.value.extensions[extension.manifest.meta.id]
+        check(indexedExtension?.sourceRef == extension.sourceRef) {
+            "The selected extension is no longer installed."
+        }
+        require(extension.sourceRef.isInternal || extension.sourceRef.isAssets) {
+            "Unsupported extension source."
+        }
+        require(ref.isExternal && ref.uri.scheme == "content") {
+            "Extension exports must target a document-provider content URI."
+        }
+
+        val storage = storageController.activeStorage.value
+        check(storage.canAccessUnderlyingMedium(extension.sourceRef)) {
+            "Extension storage is currently unavailable."
+        }
+        check(storage.exists(extension.sourceRef)) {
+            "The selected extension no longer exists."
+        }
+
+        val token = UUID.randomUUID().toString()
+        val stagingRoot = DekuRef.cache("extension-export/$token")
+        val archiveRef = DekuRef.cache("extension-export/$token.flex")
+        val stagingParent = DekuRef.cache("extension-export")
+        try {
+            storage.mkdirs(stagingParent)
+            copyExtensionTree(storage, extension.sourceRef, stagingRoot)
+            val stagingDirectory = resolveLocalFile(storage, stagingRoot)
+            val archiveFile = resolveLocalFile(storage, archiveRef)
+            check(stagingDirectory.isDirectory) { "Extension staging directory was not created." }
+            archiveFile.parentFile?.let { parent ->
+                if (!parent.exists() && !parent.mkdirs()) {
+                    error("Could not create extension export cache directory.")
+                }
+            }
+
+            ZipOutputStream(BufferedOutputStream(FileOutputStream(archiveFile))).use { zip ->
+                writeZipDirectory(stagingDirectory, stagingDirectory, zip)
+            }
+
+            val output = checkNotNull(context.contentResolver.openOutputStream(ref.uri, "w")) {
+                "The document provider did not open the selected export destination."
+            }
+            output.use { destination ->
+                archiveFile.inputStream().use { source -> source.copyTo(destination) }
+            }
+        } finally {
+            runCatching {
+                if (storage.exists(stagingRoot)) storage.deleteRecursively(stagingRoot)
+            }
+            runCatching { storage.delete(archiveRef, mustExist = false) }
+        }
+    }
+
+    private fun copyExtensionTree(
+        storage: Storage,
+        source: DekuRef,
+        destination: DekuRef,
+    ) {
+        val selectedStorage = (storage as? StorageMultiplexer)?.selectStorageBy(source)
+        val isDirectory = when (selectedStorage) {
+            is FileStorage -> resolveLocalFile(storage, source).isDirectory
+            else -> storage.list(source).isNotEmpty()
+        }
+
+        if (isDirectory) {
+            storage.mkdirs(destination)
+            for (child in storage.list(source)) {
+                val childName = child.pathName
+                require(
+                    childName.isNotBlank() &&
+                        childName != "." &&
+                        childName != ".." &&
+                        '/' !in childName &&
+                        '\\\\' !in childName
+                ) {
+                    "Extension contains an invalid path segment."
+                }
+                copyExtensionTree(storage, child, destination.subRef(childName))
+            }
+        } else {
+            Storage.copy(storage, source, storage, destination)
+        }
+    }
+
+    private fun resolveLocalFile(storage: Storage, ref: DekuRef): File {
+        val multiplexer = storage as? StorageMultiplexer
+            ?: error("The active storage cannot resolve local export files.")
+        val fileStorage = multiplexer.selectStorageBy(ref) as? FileStorage
+            ?: error("The export staging reference does not point to a local file.")
+        return File(fileStorage.resolveCanonicalPath(ref).toString())
+    }
+
+    private fun writeZipDirectory(
+        root: File,
+        directory: File,
+        zip: ZipOutputStream,
+    ) {
+        val children = checkNotNull(directory.listFiles()) {
+            "Could not read staged extension files."
+        }.sortedBy { it.name }
+
+        for (child in children) {
+            val entryName = child.relativeTo(root).invariantSeparatorsPath
+            require(
+                entryName.isNotBlank() &&
+                    !entryName.startsWith("/") &&
+                    entryName.split('/').none { it == "." || it == ".." }
+            ) {
+                "Extension export contains an unsafe ZIP path."
+            }
+            if (child.isDirectory) {
+                zip.putNextEntry(ZipEntry("$entryName/"))
+                zip.closeEntry()
+                writeZipDirectory(root, child, zip)
+            } else {
+                zip.putNextEntry(ZipEntry(entryName))
+                child.inputStream().use { it.copyTo(zip) }
+                zip.closeEntry()
+            }
+        }
     }
 
     private sealed interface Event {
