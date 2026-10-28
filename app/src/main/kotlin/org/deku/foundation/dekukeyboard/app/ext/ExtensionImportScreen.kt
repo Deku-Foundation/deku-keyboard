@@ -36,7 +36,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import org.deku.foundation.dekukeyboard.R
@@ -194,7 +193,7 @@ fun ExtensionImportScreen(type: ExtensionImportScreenType, initUuid: String?) = 
             ) {
                 Text(
                     text = if (isImporting) {
-                        stringRes(R.string.state__loading)
+                        stringRes(R.string.ext__import__in_progress)
                     } else {
                         stringRes(R.string.action__import)
                     },
