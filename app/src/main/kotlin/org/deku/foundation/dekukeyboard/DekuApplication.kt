@@ -102,7 +102,7 @@ class DekuApplication : Application() {
             CrashUtility.install(this)
 
             storageController = AndroidStorageController(this)
-            extensionController = ExtensionController(storageController)
+            extensionController = ExtensionController(this, storageController)
             imeController = ImeController(storageController, clipboardManager.value)
             themeController = ThemeController(
                 storageController,
