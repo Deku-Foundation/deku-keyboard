@@ -481,7 +481,9 @@ abstract class DekuPreferenceModel : PreferenceModel() {
         )
         val landscapeInputUiMode = enum(
             key = "keyboard__landscape_input_ui_mode",
-            default = LandscapeInputUiMode.DYNAMICALLY_SHOW,
+            // Keep the keyboard anchored to the bottom by default. Full-screen extract mode is
+            // still available as an explicit preference for users who want it on landscape.
+            default = LandscapeInputUiMode.NEVER_SHOW,
         )
         val keySpacingVertical = int(
             key = "keyboard__key_spacing_vertical",
