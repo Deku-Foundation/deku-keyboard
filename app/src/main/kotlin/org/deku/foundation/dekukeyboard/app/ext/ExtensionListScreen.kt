@@ -77,9 +77,9 @@ enum class ExtensionListScreenType(
         id = "ext-keyboard3",
         titleResId = R.string.ext__list__ext_keyboard,
         predicate = { it is Keyboard3Extension },
-        launchExtensionCreate = null,//{ it.navigate(Routes.Ext.Edit("null", KeyboardExtension.SERIAL_TYPE)) },
-    ),
-    ;
+        launchExtensionCreate = null,
+    );
+}
 }
 
 @Composable
