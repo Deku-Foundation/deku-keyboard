@@ -107,7 +107,7 @@ jobs:
               root / "gradle/tools.versions.toml",
           ]
           forbidden_dependency = re.compile(
-              r"firebase|com\\.google\\.android\\.gms|play-services|mlkit",
+              r"firebase|com\.google\.android\.gms|play-services|mlkit",
               re.IGNORECASE,
           )
           for gradle_path in gradle_inputs:
