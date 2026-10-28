@@ -118,10 +118,6 @@ internal fun calculatePopupBounds(
  * anchor height keeps pointer movement aligned with the popup row; use this for both move and up
  * events so a release without a final move event cannot select a stale candidate.
  */
- Subtracting the
- * anchor height keeps pointer movement aligned with the popup row; use this for both move and up
- * events so a release without a final move event cannot select a stale candidate.
- */
 internal fun resolveLongPressPointerPosition(
     longPress: LongPress,
     normalizedPosition: Offset,
