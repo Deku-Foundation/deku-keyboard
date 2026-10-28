@@ -17,6 +17,7 @@
 package org.deku.foundation.dekukeyboard.ime.extension
 
 import android.content.Context
+import android.net.Uri
 import androidx.compose.runtime.staticCompositionLocalOf
 import org.deku.foundation.dekukeyboard.ime.io.DekuRef
 import org.deku.foundation.dekukeyboard.ime.io.Storage
@@ -36,12 +37,18 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.io.asSource
+import kotlinx.io.buffered
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
+import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
 import java.io.File
+import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.util.UUID
 import java.util.zip.ZipEntry
+import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
@@ -111,6 +118,163 @@ class ExtensionController(
         storage.deleteRecursively(extension.sourceRef)
         eventChannel.send(Event.ResetStorage(storage))
         true
+    }
+
+    /**
+     * Imports a local .flex extension through Android's Storage Access Framework.
+     *
+     * The ZIP is extracted into cache with path traversal, duplicate-entry, entry-count, per-file,
+     * and total-size guards. Only the two manifest types currently indexed by Deku are accepted.
+     */
+    suspend fun importExtension(ref: DekuRef, expectedType: String? = null): String =
+        extensionIoMutex.withLock {
+            require(ref.isExternal && ref.uri.scheme == "content") {
+                "Choose an extension from local document storage."
+            }
+            val storage = storageController.activeStorage.value
+            val sourceStream = checkNotNull(context.contentResolver.openInputStream(ref.uri)) {
+                "The document provider could not open the selected extension."
+            }
+            val token = UUID.randomUUID().toString()
+            val stagingParent = DekuRef.cache("extension-import")
+            val stagingRoot = DekuRef.cache("extension-import/$token")
+            try {
+                storage.mkdirs(stagingParent)
+                storage.mkdirs(stagingRoot)
+                val stagingDirectory = resolveLocalFile(storage, stagingRoot)
+                check(stagingDirectory.isDirectory) { "Could not create the import staging directory." }
+
+                var entryCount = 0
+                var totalUncompressedBytes = 0L
+                val entryNames = HashSet<String>()
+                BufferedInputStream(sourceStream).use { bufferedInput ->
+                    ZipInputStream(bufferedInput).use { zip ->
+                        while (true) {
+                            val entry = zip.nextEntry ?: break
+                            entryCount += 1
+                            require(entryCount <= MAX_IMPORT_ENTRIES) {
+                                "The extension contains too many archive entries."
+                            }
+                            val entryName = entry.name.removeSuffix("/")
+                            require(isSafeExtensionArchiveEntryName(entryName)) {
+                                "The extension contains an unsafe ZIP path."
+                            }
+                            require(entryNames.add(entryName)) {
+                                "The extension contains a duplicate ZIP entry: $entryName"
+                            }
+
+                            val outputFile = File(stagingDirectory, entryName)
+                            val rootPath = stagingDirectory.canonicalPath + File.separator
+                            require(outputFile.canonicalPath.startsWith(rootPath)) {
+                                "The extension archive attempts to write outside its staging directory."
+                            }
+
+                            if (entry.isDirectory) {
+                                require(zip.read() == -1) {
+                                    "Directory entries must not contain file data."
+                                }
+                                check(outputFile.isDirectory || outputFile.mkdirs()) {
+                                    "Could not create an extension directory."
+                                }
+                            } else {
+                                check(outputFile.parentFile?.let { it.isDirectory || it.mkdirs() } == true) {
+                                    "Could not create an extension parent directory."
+                                }
+                                var entryBytes = 0L
+                                FileOutputStream(outputFile).use { output ->
+                                    val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+                                    while (true) {
+                                        val read = zip.read(buffer)
+                                        if (read < 0) break
+                                        entryBytes += read
+                                        totalUncompressedBytes += read
+                                        require(entryBytes <= MAX_IMPORT_ENTRY_BYTES) {
+                                            "An extension file exceeds the per-file size limit."
+                                        }
+                                        require(totalUncompressedBytes <= MAX_IMPORT_TOTAL_BYTES) {
+                                            "The unpacked extension exceeds the total size limit."
+                                        }
+                                        output.write(buffer, 0, read)
+                                    }
+                                }
+                            }
+                            zip.closeEntry()
+                        }
+                    }
+                }
+
+                val manifestFile = File(stagingDirectory, ExtensionDefaults.MANIFEST_FILE_NAME)
+                require(manifestFile.isFile) {
+                    "The selected ZIP is not a Deku extension: extension.json is missing at its root."
+                }
+                val manifest = ExtensionJson.decodeFromString<ExtensionManifest>(
+                    manifestFile.readText(Charsets.UTF_8),
+                )
+                check(manifest.meta.validate()) { "The extension metadata is invalid." }
+                val manifestType = when (manifest) {
+                    is Keyboard3Extension.Manifest -> Keyboard3Extension.SERIAL_TYPE
+                    is ThemeExtension.Manifest -> ThemeExtension.SERIAL_TYPE
+                    else -> error("This extension type is not supported by Deku Keyboard.")
+                }
+                val expectedTypeName = if (expectedType == ThemeExtension.SERIAL_TYPE) "theme" else "keyboard"
+                require(expectedType == null || expectedType == manifestType) {
+                    "The selected file is not a $expectedTypeName extension."
+                }
+                val extensionId = manifest.meta.id
+                val destinationRoot = DekuRef.internal("$EXTENSIONS_PATH/$extensionId")
+                require(activeIndex.value.extensions[extensionId] == null && !storage.exists(destinationRoot)) {
+                    "An extension with ID '$extensionId' is already installed. Remove the existing extension first."
+                }
+                check(storage.canAccessUnderlyingMedium(destinationRoot)) {
+                    "Internal extension storage is currently unavailable."
+                }
+
+                try {
+                    storage.mkdirs(DekuRef.internal(EXTENSIONS_PATH))
+                    copyLocalDirectoryIntoStorage(storage, stagingDirectory, destinationRoot)
+                } catch (error: Throwable) {
+                    runCatching {
+                        if (storage.exists(destinationRoot)) storage.deleteRecursively(destinationRoot)
+                    }
+                    throw error
+                }
+
+                eventChannel.send(Event.ResetStorage(storage))
+                extensionId
+            } finally {
+                sourceStream.close()
+                runCatching {
+                    if (storage.exists(stagingRoot)) storage.deleteRecursively(stagingRoot)
+                }
+            }
+        }
+
+    private fun copyLocalDirectoryIntoStorage(
+        storage: Storage,
+        sourceDirectory: File,
+        destination: DekuRef,
+    ) {
+        storage.mkdirs(destination)
+        val children = checkNotNull(sourceDirectory.listFiles()) {
+            "Could not read extracted extension files."
+        }.sortedBy { it.name }
+        for (child in children) {
+            require(isSafeExtensionArchiveEntryName(child.name)) {
+                "The extension contains an unsafe file name."
+            }
+            val target = destination.subRef(Uri.encode(child.name))
+            if (child.isDirectory) {
+                copyLocalDirectoryIntoStorage(storage, child, target)
+            } else {
+                FileInputStream(child).use { input ->
+                    input.asSource().use { source ->
+                        storage.sink(target).buffered().use { sink ->
+                            sink.transferFrom(source)
+                        }
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -391,7 +555,17 @@ internal fun isSafeInstalledExtensionPath(relativePath: String, extensionId: Str
  * can later be extracted on another platform.
  */
 internal fun isSafeExtensionArchiveEntryName(entryName: String): Boolean {
-    if (entryName.isBlank() || entryName.startsWith("/") || '\\' in entryName) return false
+    if (
+        entryName.isBlank() ||
+        entryName.startsWith("/") ||
+        '\' in entryName ||
+        ':' in entryName ||
+        entryName.any { it.code < 0x20 }
+    ) return false
     val segments = entryName.split('/')
-    return segments.all { it.isNotBlank() && it != "." && it != ".." }
+    return segments.all { it.isNotBlank() && it != "." && it != ".." && it.length <= 240 }
 }
+
+private const val MAX_IMPORT_ENTRIES = 512
+private const val MAX_IMPORT_ENTRY_BYTES = 16L * 1024L * 1024L
+private const val MAX_IMPORT_TOTAL_BYTES = 64L * 1024L * 1024L
