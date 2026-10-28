@@ -230,6 +230,7 @@ class NlpManager(context: Context) {
     suspend fun determineLocalComposing(
         textBeforeSelection: CharSequence, breakIterators: BreakIteratorGroup, localLastCommitPosition: Int
     ): K3TextRange {
+        if (isSensitiveEditor()) return K3TextRange.Empty
         return getSuggestionProvider(subtypeManager.activeSubtype).determineLocalComposing(
             subtypeManager.activeSubtype, textBeforeSelection, breakIterators, localLastCommitPosition
         )
@@ -308,6 +309,10 @@ class NlpManager(context: Context) {
     }
 
     fun suggestDirectly(suggestions: List<SuggestionCandidate>) {
+        if (isSensitiveEditor()) {
+            clearSuggestions()
+            return
+        }
         val reqTime = SystemClock.uptimeMillis()
         runBlocking {
             internalSuggestionsGuard.withLock {
