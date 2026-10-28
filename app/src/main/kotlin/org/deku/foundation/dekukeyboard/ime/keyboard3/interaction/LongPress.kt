@@ -37,6 +37,7 @@ data class LongPress(
     val extendedJob: Job? = null,
     val popupViewportBounds: Rect = Rect(0f, 0f, 1f, 1f),
     val layoutDirection: LayoutDirection = LayoutDirection.Ltr,
+    val pointerDownPosition: Offset? = null,
 ) {
     fun shouldShowSimplePopup(): Boolean {
         // The expanded popup already contains the anchor key; keeping the simple preview visible
@@ -123,14 +124,19 @@ internal fun resolveLongPressPointerPosition(
     normalizedPosition: Offset,
 ): Offset? {
     val bounds = longPress.extendedBounds
-    if (bounds.isEmpty || longPress.anchorBounds.isEmpty) return null
+    val pointerDownPosition = longPress.pointerDownPosition
+    if (bounds.isEmpty || longPress.anchorBounds.isEmpty || pointerDownPosition == null) {
+        return null
+    }
 
-    // Convert the finger's keyboard-local position to the popup row's selection space.
+    // Map pointer movement relative to the original key-down to the popup's anchor center.
+    // This keeps the default candidate focused while the finger is still, and tracks the same
+    // movement delta when the finger slides into the popup above the keyboard.
     // Do not clamp: leaving the actual popup surface must cancel instead of committing an
     // unrelated edge candidate.
     val selectionPosition = Offset(
-        x = normalizedPosition.x,
-        y = normalizedPosition.y - longPress.anchorBounds.height,
+        x = longPress.anchorBounds.center.x + normalizedPosition.x - pointerDownPosition.x,
+        y = longPress.anchorBounds.center.y + normalizedPosition.y - pointerDownPosition.y,
     )
     return selectionPosition.takeIf(bounds::contains)
 }
