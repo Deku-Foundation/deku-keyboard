@@ -197,7 +197,11 @@ class ImeController(
             val keyVariation: KeyVariation
             when (info.inputAttributes.type) {
                 InputAttributes.Type.NUMBER -> {
-                    keyVariation = KeyVariation.NORMAL
+                    keyVariation = if (info.inputAttributes.isPasswordField) {
+                        KeyVariation.PASSWORD
+                    } else {
+                        KeyVariation.NORMAL
+                    }
                     newTouchLayerId = ImeLayerIds.Numpad
                 }
                 InputAttributes.Type.PHONE -> {
@@ -232,11 +236,17 @@ class ImeController(
                 }
             }
             val initialSelection = info.initialSelection
-            val initialSurrounding = K3SurroundingText(
-                textBefore = info.getInitialTextBeforeCursor(20)?.toString() ?: "",
-                textSelected = info.getInitialSelectedText()?.toString() ?: "",
-                textAfter = info.getInitialTextAfterCursor(20)?.toString() ?: "",
-            )
+            // Never request the surrounding text of a password field. The empty state also
+            // prevents an earlier field's transient text from being reused across an editor switch.
+            val initialSurrounding = if (info.inputAttributes.isPasswordField) {
+                K3SurroundingText.Empty
+            } else {
+                K3SurroundingText(
+                    textBefore = info.getInitialTextBeforeCursor(20)?.toString() ?: "",
+                    textSelected = info.getInitialSelectedText()?.toString() ?: "",
+                    textAfter = info.getInitialTextAfterCursor(20)?.toString() ?: "",
+                )
+            }
 
             val rememberCapsLockState = prefs.typing.rememberCapsLockState.get() &&
                 state.flags.inputShiftState == InputShiftState.CAPS_LOCK
