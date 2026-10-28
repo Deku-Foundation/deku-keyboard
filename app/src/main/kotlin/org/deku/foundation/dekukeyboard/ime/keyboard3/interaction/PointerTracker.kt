@@ -332,6 +332,10 @@ class PointerTracker(
             }
             trackedPeekPointer.value = null
             lastUpKeyState = LastUpKey(trackedPointer.downKey, up.uptimeMillis)
+            interactionController.performFeedback(
+                InteractionKind.KeyRelease,
+                trackedPointer.downKey.attrs.output,
+            )
         }
         trackedOutputPointer.value?.takeIf { it.id == up.id }?.let { trackedPointer ->
             trackedPointer.longPress.extendedJob?.cancel()
@@ -357,6 +361,10 @@ class PointerTracker(
             trackedPeekPointer.update { it?.copy(peekMustSwitchBack = true) }
             trackedOutputPointer.value = null
             lastUpKeyState = LastUpKey(trackedPointer.downKey, up.uptimeMillis)
+            interactionController.performFeedback(
+                InteractionKind.KeyRelease,
+                trackedPointer.downKey.attrs.output,
+            )
         }
         trackedMultiTapSeq.update { multiTapSeq ->
             if (multiTapSeq != null) {
@@ -429,6 +437,8 @@ class PointerTracker(
         longPressTimeout: Duration,
     ): Job = scope.launch(Dispatchers.Default) {
         delay(longPressTimeout)
+        var showedPopup = false
+        var pressedOutput: org.k3lp.lib.text.K3StringOrDescriptor? = null
         mutateLocked {
             trackedMultiTapSeq.value?.let { multiTapSeq ->
                 multiTapSeq.commitJob?.cancel()
@@ -451,6 +461,15 @@ class PointerTracker(
                     extendedKeys = extendedKeys,
                 ),
             )
+            pressedOutput = trackedPointer.downKey.attrs.output
+            showedPopup = true
+        }
+        if (showedPopup) {
+            // View/audio feedback must execute on the main thread, outside mutationGuard so pointer
+            // release cannot deadlock waiting for the long-press job to finish.
+            withContext(Dispatchers.Main.immediate) {
+                interactionController.performFeedback(InteractionKind.LongPress, pressedOutput)
+            }
         }
     }
 }
