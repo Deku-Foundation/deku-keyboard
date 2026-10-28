@@ -319,7 +319,7 @@ private fun ImeKeyboardKeyBox(
     }
     // Use a draw-layer transform for press feedback so the key grid is not remeasured
     // on each animation frame.
-    val pressScale by animateFloatAsState(
+    val pressScale = animateFloatAsState(
         targetValue = if (isPressed) 0.94f else 1f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioNoBouncy,
@@ -335,8 +335,8 @@ private fun ImeKeyboardKeyBox(
         attributes = attributes,
         selector = selector,
         modifier = modifier.graphicsLayer {
-            scaleX = pressScale
-            scaleY = pressScale
+            scaleX = pressScale.value
+            scaleY = pressScale.value
         },
     ) {
         Row(
