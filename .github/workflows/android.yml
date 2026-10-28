@@ -196,8 +196,72 @@ jobs:
               if required not in attribution:
                   raise SystemExit(f"Arabic dictionary attribution missing required provenance: {required}")
 
+          manifest_path = root / "app/src/main/AndroidManifest.xml"
+          manifest = ET.parse(manifest_path).getroot()
+          android_namespace = "{http://schemas.android.com/apk/res/android}"
+          permissions = {
+              item.attrib.get(android_namespace + "name", "")
+              for item in manifest.findall("uses-permission")
+          }
+          if "android.permission.INTERNET" in permissions:
+              raise SystemExit("Deku Keyboard must remain network-permission-free.")
+
+          dependency_files = [
+              root / "app/build.gradle.kts",
+              root / "build.gradle.kts",
+              root / "settings.gradle.kts",
+              root / "gradle/libs.versions.toml",
+          ]
+          forbidden_dependencies = (
+              "com.google.firebase",
+              "com.google.mlkit",
+              "com.google.android.gms:play-services",
+              "com.google.android.play:",
+              "com.amplitude",
+              "com.mixpanel",
+              "com.segment.analytics",
+              "io.sentry",
+          )
+          for dependency_file in dependency_files:
+              if not dependency_file.is_file():
+                  continue
+              dependency_text = dependency_file.read_text(encoding="utf-8").lower()
+              matched = [name for name in forbidden_dependencies if name in dependency_text]
+              if matched:
+                  raise SystemExit(
+                      f"Offline/privacy policy dependency check failed in {dependency_file.relative_to(root)}: "
+                      + ", ".join(matched)
+                  )
+
+          keyboard_ui_path = root / "app/src/main/kotlin/org/deku/foundation/dekukeyboard/ime/keyboard3/ui/ImeKeyboardBox.kt"
+          keyboard_ui = keyboard_ui_path.read_text(encoding="utf-8")
+          key_ui_marker = "@Composable\\nprivate fun ImeKeyboardKeyBox("
+          keyboard_ui_parts = keyboard_ui.split(key_ui_marker, maxsplit=1)
+          if len(keyboard_ui_parts) != 2:
+              raise SystemExit("Unable to locate the individual key composable for popup-coordinate validation.")
+          keyboard_layer_source, key_layer_source = keyboard_ui_parts
+          if keyboard_layer_source.count("LongPressBox(") != 1 or "LongPressBox(" in key_layer_source:
+              raise SystemExit(
+                  "Key preview/long-press surfaces must be rendered by the keyboard-root overlay, "
+                  "not inside a key-local coordinate space."
+              )
+          if "popupAboveHeight.toPx()" not in keyboard_layer_source:
+              raise SystemExit("Popup geometry must account for the measured Smartbar region above the key rows.")
+
+          popup_test_path = root / "app/src/test/kotlin/org/deku/foundation/dekukeyboard/ime/keyboard3/interaction/LongPressAnchorBoundsTest.kt"
+          popup_tests = popup_test_path.read_text(encoding="utf-8")
+          required_popup_cases = (
+              "keeps a top-row popup above the key when the IME root has space above the keyboard",
+              "fits the top-row preview into a short toolbar region instead of flipping below",
+              "clamps a wider popup to the viewport at the physical right edge",
+          )
+          missing_popup_cases = [case for case in required_popup_cases if case not in popup_tests]
+          if missing_popup_cases:
+              raise SystemExit("Popup geometry regression tests missing: " + "; ".join(missing_popup_cases))
+
           print(f"Verified Deku package identity, {len(xml_files)} Android XML resources, {len(presets)} locale presets, and {len(arabic_words)} Arabic MSA dictionary rows.")
           print(f"All {len({p.get('preferred', {}).get('characters', '').rsplit(':', 1)[-1] for p in presets})} referenced character layouts exist.")
+          print("Verified: no INTERNET permission, no prohibited cloud/analytics/Play Services ML dependencies, and popup overlays use keyboard-root coordinates.")
           print("No legacy package or upstream add-ons endpoint found in active source.")
           PY
 
