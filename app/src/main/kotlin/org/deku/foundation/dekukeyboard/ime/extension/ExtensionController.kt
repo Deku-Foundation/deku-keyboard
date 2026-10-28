@@ -558,7 +558,7 @@ internal fun isSafeExtensionArchiveEntryName(entryName: String): Boolean {
     if (
         entryName.isBlank() ||
         entryName.startsWith("/") ||
-        '\' in entryName ||
+        '\\' in entryName ||
         ':' in entryName ||
         entryName.any { it.code < 0x20 }
     ) return false
