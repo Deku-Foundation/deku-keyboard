@@ -128,12 +128,23 @@ class ExtensionController(
      */
     suspend fun importExtension(ref: DekuRef, expectedType: String? = null): String =
         extensionIoMutex.withLock {
-            require(ref.isExternal && ref.uri.scheme == "content") {
+            val storage = storageController.activeStorage.value
+            val isDocumentUri = ref.isExternal && ref.uri.scheme == "content"
+            val isImportedWorkspaceFile = ref.isCache && ref.relativePath.startsWith("workspaces/")
+            require(isDocumentUri || isImportedWorkspaceFile) {
                 "Choose an extension from local document storage."
             }
-            val storage = storageController.activeStorage.value
-            val sourceStream = checkNotNull(context.contentResolver.openInputStream(ref.uri)) {
-                "The document provider could not open the selected extension."
+            if (isImportedWorkspaceFile) {
+                check(resolveLocalFile(storage, ref).isFile) {
+                    "The selected workspace file no longer exists."
+                }
+            }
+            val sourceStream = if (isDocumentUri) {
+                checkNotNull(context.contentResolver.openInputStream(ref.uri)) {
+                    "The document provider could not open the selected extension."
+                }
+            } else {
+                resolveLocalFile(storage, ref).inputStream()
             }
             val token = UUID.randomUUID().toString()
             val stagingParent = DekuRef.cache("extension-import")
