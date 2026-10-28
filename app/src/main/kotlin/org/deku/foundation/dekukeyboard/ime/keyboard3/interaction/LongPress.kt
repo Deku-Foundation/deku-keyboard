@@ -121,16 +121,18 @@ internal fun calculatePopupBounds(
 internal fun resolveLongPressPointerPosition(
     longPress: LongPress,
     normalizedPosition: Offset,
-): Offset {
+): Offset? {
     val bounds = longPress.extendedBounds
-    if (bounds.isEmpty) return normalizedPosition
-    return Offset(
-        x = normalizedPosition.x.coerceIn(bounds.left, bounds.right),
-        y = (normalizedPosition.y - longPress.anchorBounds.height).coerceIn(
-            bounds.top,
-            (bounds.bottom - 0.01f).coerceAtLeast(bounds.top),
-        ),
+    if (bounds.isEmpty || longPress.anchorBounds.isEmpty) return null
+
+    // Convert the finger's keyboard-local position to the popup row's selection space.
+    // Do not clamp: leaving the actual popup surface must cancel instead of committing an
+    // unrelated edge candidate.
+    val selectionPosition = Offset(
+        x = normalizedPosition.x,
+        y = normalizedPosition.y - longPress.anchorBounds.height,
     )
+    return selectionPosition.takeIf(bounds::contains)
 }
 
 /**
