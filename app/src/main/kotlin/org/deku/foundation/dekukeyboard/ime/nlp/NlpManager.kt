@@ -230,7 +230,7 @@ class NlpManager(context: Context) {
     suspend fun determineLocalComposing(
         textBeforeSelection: CharSequence, breakIterators: BreakIteratorGroup, localLastCommitPosition: Int
     ): K3TextRange {
-        if (isSensitiveEditor()) return K3TextRange.Empty
+        if (isSensitiveEditor()) return K3TextRange(0, 0)
         return getSuggestionProvider(subtypeManager.activeSubtype).determineLocalComposing(
             subtypeManager.activeSubtype, textBeforeSelection, breakIterators, localLastCommitPosition
         )
