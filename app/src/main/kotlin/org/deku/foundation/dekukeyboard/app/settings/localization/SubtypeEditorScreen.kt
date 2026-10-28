@@ -218,9 +218,11 @@ fun SubtypeEditorScreen(id: Long?) = DekuScreen {
                             return@Button
                         }
                         errorMessageId = null
-                        // Adding a layout does not have to change the active language immediately.
-                        // The localization list marks the active subtype and lets the user switch
-                        // deliberately, while preserving their existing typing context.
+                        // Adding a language should immediately affect the keyboard; English remains
+                        // in the configured list as an explicit fallback/switch target.
+                        subtypeManager.subtypes
+                            .lastOrNull { it.equalsExcludingId(candidate) }
+                            ?.let { subtypeManager.switchToSubtypeById(it.id) }
                         navController.popBackStack()
                     } else {
                         subtypeManager.modifySubtypeWithSameId(candidate.copy(id = id))

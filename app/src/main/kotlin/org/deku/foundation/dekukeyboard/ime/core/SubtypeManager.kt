@@ -200,6 +200,11 @@ class SubtypeManager(context: Context) {
                 }
             }
             persistNewSubtypeList(newSubtypeList)
+            // Keep the live keyboard model in sync when the active subtype's locale or layout is
+            // edited; otherwise the previous model remains active until the next manual switch.
+            if (activeSubtype.id == subtypeToModify.id) {
+                activeSubtype = subtypeToModify
+            }
         }
     }
 

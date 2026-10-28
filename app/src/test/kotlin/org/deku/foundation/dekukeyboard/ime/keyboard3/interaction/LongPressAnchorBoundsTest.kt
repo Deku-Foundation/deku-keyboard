@@ -49,4 +49,18 @@ class LongPressAnchorBoundsTest : FunSpec({
     test("returns an empty anchor for invalid key geometry") {
         calculateLongPressAnchorBounds(Rect.Zero) shouldBe Rect.Zero
     }
+
+    test("clamps overflowing popup bounds to the normalized keyboard viewport") {
+        clampPopupBoundsToViewport(Rect(-0.2f, -0.1f, 1.2f, 1.1f)) shouldBe
+            Rect(0f, 0f, 1f, 1f)
+    }
+
+    test("preserves popup size while moving overflow back inside right and bottom edges") {
+        clampPopupBoundsToViewport(Rect(0.9f, 0.9f, 1.1f, 1.1f)) shouldBe
+            Rect(0.8f, 0.8f, 1f, 1f)
+    }
+
+    test("rejects non-finite popup geometry") {
+        clampPopupBoundsToViewport(Rect(Float.NaN, 0f, 1f, 1f)) shouldBe Rect.Zero
+    }
 })

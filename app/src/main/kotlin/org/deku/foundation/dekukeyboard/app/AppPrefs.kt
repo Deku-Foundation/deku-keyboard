@@ -377,6 +377,10 @@ abstract class DekuPreferenceModel : PreferenceModel() {
             key = "input_feedback__audio_feat_key_press",
             default = true,
         )
+        val audioFeatKeyRelease = boolean(
+            key = "input_feedback__audio_feat_key_release",
+            default = false,
+        )
         val audioFeatKeyLongPress = boolean(
             key = "input_feedback__audio_feat_key_long_press",
             default = false,
@@ -401,6 +405,10 @@ abstract class DekuPreferenceModel : PreferenceModel() {
         val hapticFeatKeyPress = boolean(
             key = "input_feedback__haptic_feat_key_press",
             default = true,
+        )
+        val hapticFeatKeyRelease = boolean(
+            key = "input_feedback__haptic_feat_key_release",
+            default = false,
         )
         val hapticFeatKeyLongPress = boolean(
             key = "input_feedback__haptic_feat_key_long_press",

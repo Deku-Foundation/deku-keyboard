@@ -56,6 +56,12 @@ fun InputFeedbackScreen() = DekuScreen {
                 enabledIf = { prefs.inputFeedback.audioEnabled isEqualTo true },
             )
             SwitchPreference(
+                prefs.inputFeedback.audioFeatKeyRelease,
+                title = stringRes(R.string.pref__input_feedback__audio_feat_key_release__label),
+                summary = stringRes(R.string.pref__input_feedback__any_feat_key_release__summary),
+                enabledIf = { prefs.inputFeedback.audioEnabled isEqualTo true },
+            )
+            SwitchPreference(
                 prefs.inputFeedback.audioFeatKeyLongPress,
                 title = stringRes(R.string.pref__input_feedback__audio_feat_key_long_press__label),
                 summary = stringRes(R.string.pref__input_feedback__any_feat_key_long_press__summary),
@@ -92,6 +98,12 @@ fun InputFeedbackScreen() = DekuScreen {
                 prefs.inputFeedback.hapticFeatKeyPress,
                 title = stringRes(R.string.pref__input_feedback__haptic_feat_key_press__label),
                 summary = stringRes(R.string.pref__input_feedback__any_feat_key_press__summary),
+                enabledIf = { prefs.inputFeedback.hapticEnabled isEqualTo true },
+            )
+            SwitchPreference(
+                prefs.inputFeedback.hapticFeatKeyRelease,
+                title = stringRes(R.string.pref__input_feedback__haptic_feat_key_release__label),
+                summary = stringRes(R.string.pref__input_feedback__any_feat_key_release__summary),
                 enabledIf = { prefs.inputFeedback.hapticEnabled isEqualTo true },
             )
             SwitchPreference(

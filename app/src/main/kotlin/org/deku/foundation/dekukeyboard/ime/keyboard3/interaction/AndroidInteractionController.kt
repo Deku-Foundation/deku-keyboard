@@ -84,7 +84,7 @@ private class AndroidInteractionController(
         prefs.inputFeedback.audioEnabled.asFlow(),
         prefs.inputFeedback.audioVolume.asFlow(),
         prefs.inputFeedback.audioFeatKeyPress.asFlow(),
-        prefs.inputFeedback.audioFeatKeyPress.asFlow(), // TODO should be release
+        prefs.inputFeedback.audioFeatKeyRelease.asFlow(),
         prefs.inputFeedback.audioFeatKeyRepeatedAction.asFlow(),
         prefs.inputFeedback.audioFeatKeyLongPress.asFlow(),
         prefs.inputFeedback.audioFeatGestureSwipe.asFlow(),
@@ -92,7 +92,7 @@ private class AndroidInteractionController(
         // Haptic
         prefs.inputFeedback.hapticEnabled.asFlow(),
         prefs.inputFeedback.hapticFeatKeyPress.asFlow(),
-        prefs.inputFeedback.hapticFeatKeyPress.asFlow(), // TODO should be release
+        prefs.inputFeedback.hapticFeatKeyRelease.asFlow(),
         prefs.inputFeedback.hapticFeatKeyRepeatedAction.asFlow(),
         prefs.inputFeedback.hapticFeatKeyLongPress.asFlow(),
         prefs.inputFeedback.hapticFeatGestureSwipe.asFlow(),

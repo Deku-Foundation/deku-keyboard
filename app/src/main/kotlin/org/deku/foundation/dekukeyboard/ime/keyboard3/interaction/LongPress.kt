@@ -56,6 +56,27 @@ data class LongPress(
     }
 }
 
+/**
+ * Keep normalized popup geometry inside the keyboard viewport. Long-press mappings may contain
+ * more alternatives than fit beside an edge key; without clamping, their union can exceed the
+ * keyboard bounds and create an oversized popup surface or invalid Compose constraints.
+ */
+internal fun clampPopupBoundsToViewport(bounds: Rect): Rect {
+    if (
+        bounds.isEmpty ||
+        !bounds.left.isFinite() || !bounds.top.isFinite() ||
+        !bounds.right.isFinite() || !bounds.bottom.isFinite() ||
+        bounds.width <= 0f || bounds.height <= 0f
+    ) {
+        return Rect.Zero
+    }
+    val width = bounds.width.coerceAtMost(1f)
+    val height = bounds.height.coerceAtMost(1f)
+    val left = bounds.left.coerceIn(0f, 1f - width)
+    val top = bounds.top.coerceIn(0f, 1f - height)
+    return Rect(left, top, left + width, top + height)
+}
+
 fun layoutExtendedLongPressKeys(
     extendedKeys: List<TouchPopupKey>,
     anchorBounds: Rect,
@@ -100,9 +121,11 @@ fun layoutExtendedLongPressKeys(
                 }
             }
             popupKey.withNewBounds(
-                anchorBounds.translate(
-                    translateX = xFactor * anchorBounds.width,
-                    translateY = yFactor * anchorBounds.height,
+                clampPopupBoundsToViewport(
+                    anchorBounds.translate(
+                        translateX = xFactor * anchorBounds.width,
+                        translateY = yFactor * anchorBounds.height,
+                    )
                 )
             )
         }

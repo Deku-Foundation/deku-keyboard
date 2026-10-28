@@ -425,6 +425,7 @@
     <string name="pref__input_feedback__audio_enabled__summary_disabled" comment="Preference summary">Never play sounds for input events, regardless of system settings</string>
     <string name="pref__input_feedback__audio_volume__label" comment="Preference title">Sound volume for input events</string>
     <string name="pref__input_feedback__audio_feat_key_press__label" comment="Preference title">Key press sounds</string>
+    <string name="pref__input_feedback__audio_feat_key_release__label" comment="Preference title">Key release sounds</string>
     <string name="pref__input_feedback__audio_feat_key_long_press__label" comment="Preference title">Key long press sounds</string>
     <string name="pref__input_feedback__audio_feat_key_repeated_action__label" comment="Preference title">Key repeated action sounds</string>
     <string name="pref__input_feedback__audio_feat_gesture_swipe__label" comment="Preference title">Gesture swipe sounds</string>
@@ -433,11 +434,13 @@
     <string name="pref__input_feedback__haptic_enabled__label" comment="Preference title">Enable haptic feedback</string>
     <string name="pref__input_feedback__haptic_enabled__summary_disabled" comment="Preference summary">Never vibrate for input events, regardless of system settings</string>
     <string name="pref__input_feedback__haptic_feat_key_press__label" comment="Preference title">Key press vibration</string>
+    <string name="pref__input_feedback__haptic_feat_key_release__label" comment="Preference title">Key release vibration</string>
     <string name="pref__input_feedback__haptic_feat_key_long_press__label" comment="Preference title">Key long press vibration</string>
     <string name="pref__input_feedback__haptic_feat_key_repeated_action__label" comment="Preference title">Key repeated action vibration</string>
     <string name="pref__input_feedback__haptic_feat_gesture_swipe__label" comment="Preference title">Gesture swipe vibration</string>
     <string name="pref__input_feedback__haptic_feat_gesture_moving_swipe__label" comment="Preference title">Gesture moving swipe vibration</string>
     <string name="pref__input_feedback__any_feat_key_press__summary" comment="Preference summary">e.g. keys, buttons, emoji tabs</string>
+    <string name="pref__input_feedback__any_feat_key_release__summary" comment="Preference summary">Feedback when a pressed key is released</string>
     <string name="pref__input_feedback__any_feat_key_long_press__summary" comment="Preference summary">e.g. popup menu</string>
     <string name="pref__input_feedback__any_feat_key_repeated_action__summary" comment="Preference summary">e.g. delete key</string>
     <string name="pref__input_feedback__any_feat_gesture_swipe__summary" comment="Preference summary">not implemented</string>
