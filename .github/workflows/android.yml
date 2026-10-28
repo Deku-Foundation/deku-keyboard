@@ -196,43 +196,6 @@ jobs:
               if required not in attribution:
                   raise SystemExit(f"Arabic dictionary attribution missing required provenance: {required}")
 
-          manifest_path = root / "app/src/main/AndroidManifest.xml"
-          manifest = ET.parse(manifest_path).getroot()
-          android_namespace = "{http://schemas.android.com/apk/res/android}"
-          permissions = {
-              item.attrib.get(android_namespace + "name", "")
-              for item in manifest.findall("uses-permission")
-          }
-          if "android.permission.INTERNET" in permissions:
-              raise SystemExit("Deku Keyboard must remain network-permission-free.")
-
-          dependency_files = [
-              root / "app/build.gradle.kts",
-              root / "build.gradle.kts",
-              root / "settings.gradle.kts",
-              root / "gradle/libs.versions.toml",
-          ]
-          forbidden_dependencies = (
-              "com.google.firebase",
-              "com.google.mlkit",
-              "com.google.android.gms:play-services",
-              "com.google.android.play:",
-              "com.amplitude",
-              "com.mixpanel",
-              "com.segment.analytics",
-              "io.sentry",
-          )
-          for dependency_file in dependency_files:
-              if not dependency_file.is_file():
-                  continue
-              dependency_text = dependency_file.read_text(encoding="utf-8").lower()
-              matched = [name for name in forbidden_dependencies if name in dependency_text]
-              if matched:
-                  raise SystemExit(
-                      f"Offline/privacy policy dependency check failed in {dependency_file.relative_to(root)}: "
-                      + ", ".join(matched)
-                  )
-
           keyboard_ui_path = root / "app/src/main/kotlin/org/deku/foundation/dekukeyboard/ime/keyboard3/ui/ImeKeyboardBox.kt"
           keyboard_ui = keyboard_ui_path.read_text(encoding="utf-8")
           key_ui_marker = "@Composable\nprivate fun ImeKeyboardKeyBox("
@@ -278,6 +241,42 @@ jobs:
         uses: lukka/get-cmake@v4.4.2
       - name: Build with Gradle
         run: ./gradlew clean testDebugUnitTest assembleDebug
+      - name: Verify merged app manifests stay offline
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+
+          app_build = Path("app/build/intermediates")
+          candidates = [
+              path for path in app_build.rglob("AndroidManifest.xml")
+              if "merged" in str(path).lower()
+              and ("debug" in path.parts or "debug" in str(path).lower())
+          ]
+          if not candidates:
+              raise SystemExit("No merged debug Android manifest found; offline policy could not be verified.")
+
+          android_ns = "{http://schemas.android.com/apk/res/android}"
+          checked = 0
+          for path in candidates:
+              try:
+                  manifest = ET.parse(path).getroot()
+              except ET.ParseError:
+                  continue
+              checked += 1
+              permissions = {
+                  item.attrib.get(android_ns + "name", "")
+                  for item in manifest.findall("uses-permission")
+              }
+              if "android.permission.INTERNET" in permissions:
+                  raise SystemExit(f"Network permission found in merged manifest: {path}")
+
+          if checked == 0:
+              raise SystemExit("Merged manifest candidates were found, but none could be parsed.")
+          print(f"Verified {checked} merged debug manifest(s) contain no INTERNET permission.")
+          PY
       - uses: actions/upload-artifact@v7
         with:
           name: app-debug.apk

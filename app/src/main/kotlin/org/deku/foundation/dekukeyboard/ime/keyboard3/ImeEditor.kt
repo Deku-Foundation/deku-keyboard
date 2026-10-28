@@ -17,6 +17,7 @@
 package org.deku.foundation.dekukeyboard.ime.keyboard3
 
 import android.content.ClipDescription
+import android.content.Context
 import android.content.ContentUris
 import android.os.Build
 import android.os.SystemClock
@@ -25,7 +26,6 @@ import android.view.KeyEvent
 import android.view.inputmethod.InputConnection
 import androidx.core.view.inputmethod.InputConnectionCompat
 import androidx.core.view.inputmethod.InputContentInfoCompat
-import org.deku.foundation.dekukeyboard.DekuApplication
 import org.deku.foundation.dekukeyboard.ime.clipboard.provider.ClipboardFileStorage
 import org.deku.foundation.dekukeyboard.ime.clipboard.provider.ClipboardItem
 import org.deku.foundation.dekukeyboard.ime.editor.DekuEditorInfo
@@ -85,6 +85,7 @@ internal fun splitSurroundingText(
 open class ImeEditor(
     val ic: WeakReference<InputConnection>,
     val info: DekuEditorInfo,
+    private val applicationContext: Context? = null,
 ) : K3Editor {
     /**
      * Reads the current selection from the live InputConnection rather than from the cached
@@ -175,7 +176,7 @@ open class ImeEditor(
         val uri = item.uri ?: return false
         val mimeTypes = item.mimeTypes
         val id = ContentUris.parseId(uri)
-        val appContext = DekuApplication.getHack() // TODO this is a hack
+        val appContext = applicationContext ?: return false
         val file = ClipboardFileStorage.getFileForId(appContext, id)
         if (!file.exists()) return false
         val inputContentInfo = InputContentInfoCompat(

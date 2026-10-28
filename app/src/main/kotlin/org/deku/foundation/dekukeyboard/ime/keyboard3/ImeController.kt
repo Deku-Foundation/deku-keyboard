@@ -80,9 +80,10 @@ val LocalImeController = staticCompositionLocalOf<ImeController> {
 
 class ImeController(
     storageController: StorageController,
-    val clipboardManager: ClipboardManager, // TODO ClipboardController
+    val clipboardManager: ClipboardManager,
     initialState: ImeState = ImeState(),
     val touchModelCache: TouchModelCache = TouchModelCache(),
+    private val application: DekuApplication? = null,
 ) : K3InputMethod<ImeState, ImeEditor, ImeController.UpdateImeStateScope>(
     initialState = initialState,
 ) {
@@ -252,7 +253,7 @@ class ImeController(
                 state.flags.inputShiftState == InputShiftState.CAPS_LOCK
 
             state = state.copy(
-                editor = ImeEditor(ic, info),
+                editor = ImeEditor(ic, info, application),
                 touchLayerId = when {
                     rememberCapsLockState && newTouchLayerId.isTextLayer() -> ImeLayerIds.Caps
                     else -> newTouchLayerId
@@ -401,13 +402,13 @@ class ImeController(
                     )
                 }
                 ImeActions.SwitchToPrevSubtype -> {
-                    DekuApplication.getHack().subtypeManager.value.switchToPrevSubtype()
+                    application?.subtypeManager?.value?.switchToPrevSubtype()
                     state = state.copy(
                         flags = state.flags.withSubtypeSelectionVisible(false),
                     )
                 }
                 ImeActions.SwitchToNextSubtype -> {
-                    DekuApplication.getHack().subtypeManager.value.switchToNextSubtype()
+                    application?.subtypeManager?.value?.switchToNextSubtype()
                     state = state.copy(
                         flags = state.flags.withSubtypeSelectionVisible(false),
                     )
