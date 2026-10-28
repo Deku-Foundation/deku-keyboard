@@ -257,6 +257,7 @@ class PointerTracker internal constructor(
                         } else null,
                         popupViewportBounds = geometry.viewportBounds,
                         layoutDirection = geometry.layoutDirection,
+                        pointerDownPosition = down.position.normalized(size),
                     )
                 } else LongPress.None,
                 repeatJob = if (downKey.isRepeatable) {
