@@ -45,6 +45,20 @@ class LongPressAnchorBoundsTest : FunSpec({
         (anchor.right <= viewportBounds.right && anchor.bottom <= viewportBounds.bottom) shouldBe true
     }
 
+    test("fits the top-row preview into a short toolbar region instead of flipping below") {
+        val keyBounds = Rect(0.2f, 0f, 0.3f, 0.25f)
+        val toolbarViewport = Rect(0f, -0.15f, 1f, 1f)
+        val anchor = calculateLongPressAnchorBounds(
+            keyBounds = keyBounds,
+            viewportBounds = toolbarViewport,
+            layoutDirection = LayoutDirection.Ltr,
+        )
+
+        (anchor.top >= toolbarViewport.top) shouldBe true
+        (anchor.bottom < keyBounds.top) shouldBe true
+        (anchor.height < keyBounds.height * 0.9f) shouldBe true
+    }
+
     test("flips below only when the available container has no room above the top-row key") {
         val keyBounds = Rect(0.2f, 0f, 0.3f, 0.1f)
         val anchor = calculateLongPressAnchorBounds(
@@ -111,9 +125,19 @@ class LongPressAnchorBoundsTest : FunSpec({
             extendedBounds = Rect(0.3f, 0.4f, 0.6f, 0.7f),
         )
         val position = resolveLongPressPointerPosition(longPress, Offset(0.55f, 0.68f))
+            ?: error("Expected the release point to resolve inside the popup")
 
         (abs(position.x - 0.55f) < 0.00001f) shouldBe true
         (abs(position.y - 0.58f) < 0.00001f) shouldBe true
+    }
+
+    test("rejects a pointer release outside the expanded popup instead of clamping to an edge key") {
+        val longPress = LongPress(
+            anchorBounds = Rect(0.4f, 0.4f, 0.5f, 0.5f),
+            extendedBounds = Rect(0.3f, 0.3f, 0.6f, 0.6f),
+        )
+
+        resolveLongPressPointerPosition(longPress, Offset(0.55f, 0.95f)) shouldBe null
     }
 
     test("clamps overflowing popup bounds to the normalized keyboard viewport") {
