@@ -233,11 +233,6 @@ fun ImeKeyboardBox(
                             } == true
                     }
                 }
-                val longPress by remember {
-                    derivedStateOf {
-                        trackedOutputPointer?.takeIf { it.downKey == touchKey }?.longPress ?: LongPress.None
-                    }
-                }
                 val multiTapIndex by remember {
                     derivedStateOf {
                         trackedMultiTapSeq?.takeIf { it.touchKey == touchKey }?.multiTapIndex ?: -1
@@ -250,7 +245,6 @@ fun ImeKeyboardBox(
                         else -> null
                     },
                     isPressed = isPressed,
-                    longPress = longPress,
                     multiTapIndex = multiTapIndex,
                     modifier = Modifier
                         .layout { measurable, constraints ->
@@ -280,6 +274,28 @@ fun ImeKeyboardBox(
                     )
                 }
             }
+
+            val activePopupKey = trackedOutputPointer?.downKey
+            val activePopupOutput = activePopupKey?.attrs?.output
+            val popupAttributes: SnyggQueryAttributes = remember(activePopupOutput) {
+                buildMap {
+                    if (activePopupOutput != null) {
+                        put(DekuImeUi.Attr.Output, activePopupOutput.asAttrValue())
+                    }
+                }
+            }
+            val activePopupMultiTapIndex = trackedMultiTapSeq
+                ?.takeIf { it.touchKey == activePopupKey }
+                ?.multiTapIndex ?: -1
+
+            LongPressBox(
+                longPress = trackedOutputPointer?.longPress ?: LongPress.None,
+                longPressSimpleDisplayOverride = activePopupKey
+                    ?.multiTapKeys
+                    ?.getOrNull(activePopupMultiTapIndex)
+                    ?.display,
+                attributes = popupAttributes,
+            )
         }
     }
 }
@@ -289,7 +305,6 @@ private fun ImeKeyboardKeyBox(
     touchKey: TouchKey,
     displayOverride: K3StringOrDescriptor?,
     isPressed: Boolean,
-    longPress: LongPress,
     multiTapIndex: Int,
     modifier: Modifier = Modifier,
 ) {
@@ -357,11 +372,5 @@ private fun ImeKeyboardKeyBox(
                 display = touchKey.longPressKeyHint,
             )
         }
-        // TODO flick hints
     }
-    LongPressBox(
-        longPress = longPress,
-        longPressSimpleDisplayOverride = multiTapKeys.getOrNull(multiTapIndex)?.display,
-        attributes = attributes,
-    )
 }
