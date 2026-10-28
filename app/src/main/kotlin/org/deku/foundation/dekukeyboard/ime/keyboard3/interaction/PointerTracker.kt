@@ -17,11 +17,13 @@
 package org.deku.foundation.dekukeyboard.ime.keyboard3.interaction
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.input.pointer.PointerId
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.changedToDown
@@ -29,6 +31,7 @@ import androidx.compose.ui.input.pointer.changedToUp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastAll
 import androidx.compose.ui.util.fastCoerceAtLeast
@@ -102,26 +105,35 @@ data class PeekLine(
     val end: Offset,
 )
 
-internal fun calculateLongPressAnchorBounds(keyBounds: Rect): Rect {
-    if (keyBounds.isEmpty || keyBounds.width <= 0f || keyBounds.height <= 0f) {
+internal data class PopupGeometry(
+    val viewportBounds: Rect,
+    val layoutDirection: LayoutDirection,
+)
+
+internal fun calculateLongPressAnchorBounds(
+    keyBounds: Rect,
+    viewportBounds: Rect = Rect(0f, 0f, 1f, 1f),
+    layoutDirection: LayoutDirection = LayoutDirection.Ltr,
+): Rect {
+    if (
+        keyBounds.isEmpty || keyBounds.width <= 0f || keyBounds.height <= 0f ||
+        viewportBounds.isEmpty || viewportBounds.width <= 0f || viewportBounds.height <= 0f
+    ) {
         return Rect.Zero
     }
 
-    // Key bounds and popup bounds use normalized keyboard coordinates. Derive the popup width
-    // from the actual key so the same placement works on narrow/wide layouts and in landscape.
-    val width = keyBounds.width.coerceIn(MIN_LONG_PRESS_ANCHOR_DIMENSION, 1f)
-    val height = (keyBounds.height * 0.9f).coerceIn(MIN_LONG_PRESS_ANCHOR_DIMENSION, 1f)
-    val left = (keyBounds.center.x - width / 2f).coerceIn(0f, 1f - width)
-    val preferredTop = keyBounds.top - height * 1.2f
-    val top = if (preferredTop >= 0f) {
-        preferredTop.coerceAtMost(1f - height)
-    } else {
-        // At the very top edge there is no space above the key. Place the popup below it
-        // instead of clipping it at y=0 or covering the character that was pressed.
-        keyBounds.bottom.coerceAtMost(1f - height)
-    }
-
-    return Rect(left, top, left + width, top + height)
+    // Geometry stays normalized to the keyboard width/height. The viewport may extend above
+    // y=0 by exactly the area available in the containing IME root window.
+    val width = keyBounds.width.coerceAtMost(viewportBounds.width)
+        .coerceAtLeast(MIN_LONG_PRESS_ANCHOR_DIMENSION)
+    val height = (keyBounds.height * 0.9f).coerceAtMost(viewportBounds.height)
+        .coerceAtLeast(MIN_LONG_PRESS_ANCHOR_DIMENSION)
+    return calculatePopupBounds(
+        keyBounds = keyBounds,
+        containerBounds = viewportBounds,
+        popupSize = Size(width, height),
+        layoutDirection = layoutDirection,
+    )
 }
 
 private const val MIN_LONG_PRESS_ANCHOR_DIMENSION = 0.01f
@@ -140,6 +152,7 @@ class PointerTracker(
     val interactionController: InteractionController,
     val showSimplePopups: Boolean,
     val peekDistanceSqMin: Float,
+    private val popupGeometry: State<PopupGeometry>,
 ) {
     private val mutationGuard = Mutex()
 
@@ -215,13 +228,18 @@ class PointerTracker(
                 down = down,
                 downKey = downKey,
                 longPress = if (downKey.isSuitableForPopup) {
-                    val anchorBounds = calculateLongPressAnchorBounds(downKey.bounds)
+                    val geometry = popupGeometry.value
+                    val anchorBounds = calculateLongPressAnchorBounds(
+                        keyBounds = downKey.bounds,
+                        viewportBounds = geometry.viewportBounds,
+                        layoutDirection = geometry.layoutDirection,
+                    )
                     LongPress(
                         anchorBounds = anchorBounds,
                         simpleBounds = if (showSimplePopups && downKey.isSuitableForSimplePopup) {
-                            anchorBounds.copy(
-                                bottom = anchorBounds.bottom + anchorBounds.height * 1.2f,
-                            )
+                            // The preview surface is exactly the popup rect. Extending its background
+                            // down through the key made the preview look vertically stretched/mirrored.
+                            anchorBounds
                         } else Rect.Zero,
                         simpleLabel = downKey.display,
                         simpleIndicateExtended = downKey.isSuitableForExtendedPopup,
@@ -231,6 +249,8 @@ class PointerTracker(
                         extendedJob = if (downKey.isSuitableForExtendedPopup) {
                             launchExtendedLongPressJob(longPressTimeout)
                         } else null,
+                        popupViewportBounds = geometry.viewportBounds,
+                        layoutDirection = geometry.layoutDirection,
                     )
                 } else LongPress.None,
                 repeatJob = if (downKey.isRepeatable) {
@@ -447,7 +467,12 @@ class PointerTracker(
             val trackedPointer = trackedOutputPointer.value ?: return@mutateLocked
             val longPress = trackedPointer.longPress
             val anchorBounds = longPress.anchorBounds
-            val extendedKeys = layoutExtendedLongPressKeys(longPress.extendedKeys, anchorBounds)
+            val extendedKeys = layoutExtendedLongPressKeys(
+                extendedKeys = longPress.extendedKeys,
+                anchorBounds = anchorBounds,
+                viewportBounds = longPress.popupViewportBounds,
+                layoutDirection = longPress.layoutDirection,
+            )
             val extendedBounds = anchorBounds.copy(
                 left = extendedKeys.fastFold(anchorBounds.left) { acc, key -> minOf(acc, key.bounds.left) },
                 top = extendedKeys.fastFold(anchorBounds.top) { acc, key -> minOf(acc, key.bounds.top) },
@@ -477,6 +502,7 @@ class PointerTracker(
 @Composable
 fun rememberPointerTracker(
     touchKeyboard: TouchKeyboard,
+    popupGeometry: State<PopupGeometry>,
 ): PointerTracker {
     val prefs by DekuPreferenceStore
     val density = LocalDensity.current
@@ -488,7 +514,7 @@ fun rememberPointerTracker(
     val peekDistanceSqMin = with(density) { flickKeyDistanceThresholdDp.dp.toPx().pow(2) }
 
     val pointerTracker = remember(touchKeyboard, showSimplePopups, peekDistanceSqMin) {
-        PointerTracker(touchKeyboard, imeController, interactionController, showSimplePopups, peekDistanceSqMin)
+        PointerTracker(touchKeyboard, imeController, interactionController, showSimplePopups, peekDistanceSqMin, popupGeometry)
     }
 
     return pointerTracker
