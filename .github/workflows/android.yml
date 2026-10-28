@@ -88,6 +88,38 @@ jobs:
               except ET.ParseError as exc:
                   raise SystemExit(f"Malformed Android XML in {path.relative_to(root)}: {exc}") from exc
 
+          # The keyboard's privacy contract is enforced in CI, not only described in docs.
+          manifest_path = root / "app/src/main/AndroidManifest.xml"
+          manifest_root = ET.parse(manifest_path).getroot()
+          android_ns = "{http://schemas.android.com/apk/res/android}"
+          network_permission = "android.permission.INTERNET"
+          declared_permissions = {
+              node.attrib.get(android_ns + "name", "")
+              for node in manifest_root.findall("uses-permission")
+          }
+          if network_permission in declared_permissions:
+              raise SystemExit("Privacy policy violation: the keyboard must not declare INTERNET permission.")
+
+          # Keep inference strictly local: cloud-backed Google SDKs are not allowed in app dependencies.
+          gradle_inputs = [
+              root / "app/build.gradle.kts",
+              root / "gradle/libs.versions.toml",
+              root / "gradle/tools.versions.toml",
+          ]
+          forbidden_dependency = re.compile(
+              r"firebase|com\\.google\\.android\\.gms|play-services|mlkit",
+              re.IGNORECASE,
+          )
+          for gradle_path in gradle_inputs:
+              if not gradle_path.is_file():
+                  continue
+              gradle_text = gradle_path.read_text(encoding="utf-8")
+              if forbidden_dependency.search(gradle_text):
+                  raise SystemExit(
+                      "Privacy policy violation: prohibited cloud/Google ML dependency token in "
+                      + gradle_path.relative_to(root).as_posix()
+                  )
+
           base_strings = (resources / "values/strings.xml").read_text(encoding="utf-8")
           if 'name="ext__home__visit_store"' in base_strings:
               raise SystemExit("Obsolete upstream add-ons-store button string is still active.")
