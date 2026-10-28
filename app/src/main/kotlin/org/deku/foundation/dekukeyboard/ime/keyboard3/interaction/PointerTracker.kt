@@ -331,11 +331,15 @@ class PointerTracker internal constructor(
                     longPress = longPress,
                     normalizedPosition = move.position.normalized(size),
                 )
-                val newFocusedIndex = longPress.getNearestKeyIndex(position)
-                if (newFocusedIndex != longPress.extendedFocusedIndex) {
-                    trackedOutputPointer.value = trackedPointer.copy(
-                        longPress = longPress.copy(extendedFocusedIndex = newFocusedIndex),
-                    )
+                if (position == null) {
+                    cancelOutput()
+                } else {
+                    val newFocusedIndex = longPress.getNearestKeyIndex(position)
+                    if (newFocusedIndex != longPress.extendedFocusedIndex) {
+                        trackedOutputPointer.value = trackedPointer.copy(
+                            longPress = longPress.copy(extendedFocusedIndex = newFocusedIndex),
+                        )
+                    }
                 }
             }
         }
@@ -377,8 +381,8 @@ class PointerTracker internal constructor(
                             longPress = longPress,
                             normalizedPosition = up.position.normalized(size),
                         )
-                        val releaseIndex = longPress.getNearestKeyIndex(releasePosition)
-                        longPress.extendedKeys.getOrNull(releaseIndex)?.data?.output
+                        val releaseIndex = releasePosition?.let(longPress::getNearestKeyIndex)
+                        releaseIndex?.let { longPress.extendedKeys.getOrNull(it)?.data?.output }
                     }
                     else -> trackedPointer.downKey.attrs.output
                 }
