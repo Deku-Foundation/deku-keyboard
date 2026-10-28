@@ -91,8 +91,6 @@ fun ImeKeyboardBox(
     val touchLayerId by remember { derivedStateOf { imeState.touchLayerId } }
 
     val windowSpec by windowController.activeWindowSpec.collectAsState()
-    val rootInsets by windowController.activeRootInsets.collectAsState()
-    val windowInsets by windowController.activeWindowInsets.collectAsState()
     val keyMarginHPx by remember {
         derivedStateOf { with(density) { windowSpec.keyMarginH.toPx() } }
     }
@@ -162,8 +160,6 @@ fun ImeKeyboardBox(
 
         val keyboardRowHeightDp = DekuImeSizing.keyboardRowBaseHeight
         val popupViewportBounds = remember(
-            rootInsets,
-            windowInsets,
             popupAboveHeight,
             keyboardRowHeightDp,
             activeTouchKeyboard.rowCount,
@@ -171,14 +167,12 @@ fun ImeKeyboardBox(
             val keyboardHeightPx = with(density) {
                 (keyboardRowHeightDp * activeTouchKeyboard.rowCount).toPx()
             }
+            // TextInputLayout places Smartbar immediately above the keyboard. Use that measured
+            // layout height as the drawable/touchable budget: including the unused area above the
+            // IME window would allow popups to escape the service's reported touchable region.
             val smartbarHeightPx = with(density) { popupAboveHeight.toPx() }
-            val rootTopPx = rootInsets.boundsPx.top.toFloat()
-            val windowTopPx = (windowInsets?.boundsPx?.top ?: rootInsets.boundsPx.top).toFloat()
-            val keyboardTopInRootPx = windowTopPx + smartbarHeightPx
-            val availableAboveKeyboardPx =
-                (keyboardTopInRootPx - rootTopPx).coerceAtLeast(smartbarHeightPx)
             val viewportTop = if (keyboardHeightPx > 0f) {
-                -(availableAboveKeyboardPx / keyboardHeightPx)
+                -(smartbarHeightPx / keyboardHeightPx)
             } else {
                 0f
             }
