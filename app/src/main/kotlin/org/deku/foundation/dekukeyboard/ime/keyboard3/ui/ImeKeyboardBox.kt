@@ -67,6 +67,8 @@ import org.deku.foundation.dekukeyboard.lib.compose.toMm
 import org.deku.foundation.dekukeyboard.lib.snygg.SnyggQueryAttributes
 import org.deku.foundation.dekukeyboard.lib.snygg.SnyggSelector
 import org.deku.foundation.dekukeyboard.lib.snygg.ui.SnyggBox
+import org.deku.foundation.dekukeyboard.lib.snygg.ui.rememberSnyggThemeQuery
+import org.deku.foundation.dekukeyboard.lib.snygg.value.SnyggStaticColorValue
 import org.k3lp.lib.text.K3String
 import org.k3lp.lib.text.K3StringOrDescriptor
 import org.k3lp.lib.text.asK3String
@@ -121,6 +123,11 @@ fun ImeKeyboardBox(
 
     val devtoolsEnabled by prefs.devtools.enabled.collectAsState()
     val debugShowTouchBoundaries by prefs.devtools.showKeyTouchBoundaries.collectAsState()
+    // Read the glide-trail foreground from the active Snygg keyboard theme so system/dynamic
+    // accents and user-selected palettes apply to peek feedback as well.
+    val glideTrailStyle = rememberSnyggThemeQuery(DekuImeUi.GlideTrail.elementName)
+    val glideTrailColor = (glideTrailStyle.foreground as? SnyggStaticColorValue)?.color
+        ?: Color(0xFF4CAF50)
 
     BoxWithConstraints {
         val deviceWidthMm = remember(constraints.maxWidth) {
@@ -174,7 +181,7 @@ fun ImeKeyboardBox(
                         val peekLine = trackedPeekPointer.peekLine
                         if (peekLine != null) {
                             drawLine(
-                                color = androidx.compose.material3.MaterialTheme.colorScheme.primary,
+                                color = glideTrailColor,
                                 start = peekLine.start,
                                 end = peekLine.end,
                                 strokeWidth = peekLineWidthPx,
