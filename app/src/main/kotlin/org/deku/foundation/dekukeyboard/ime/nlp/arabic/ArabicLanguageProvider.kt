@@ -84,9 +84,9 @@ class ArabicLanguageProvider(context: Context) : SpellingProvider, SuggestionPro
             }
             wordPrefixIndex = buildArabicWordPrefixIndex(scoredWords)
             arabiziPrefixIndex = buildArabiziPrefixIndex(scoredWords)
-            wordFrequency = scoredWords.associate { (word, frequency) ->
-                normalizeArabicMatchKey(word) to frequency
-            }
+            wordFrequency = scoredWords
+                .groupBy({ (word, _) -> normalizeArabicMatchKey(word) }, { it.second })
+                .mapValues { (_, frequencies) -> frequencies.maxOrNull() ?: 0 }
             wordsByFrequency = parsedWords
         }
     }
@@ -225,7 +225,7 @@ internal fun buildArabicWordPrefixIndex(
     return words.asSequence()
         .map { (word, frequency) -> normalizeArabicWord(word) to frequency }
         .filter { (word, _) -> normalizeArabicMatchKey(word).length >= 2 && containsArabicScript(word) }
-        .distinctBy { normalizeArabicMatchKey(it.first) }
+        .distinctBy { it.first }
         .groupBy { (word, _) -> normalizeArabicMatchKey(word).take(2) }
         .mapValues { (_, entries) ->
             entries.sortedWith(
