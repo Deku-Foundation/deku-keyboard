@@ -35,7 +35,9 @@ data class LongPress(
     val extendedJob: Job? = null,
 ) {
     fun shouldShowSimplePopup(): Boolean {
-        return !simpleBounds.isEmpty
+        // The expanded popup already contains the anchor key; keeping the simple preview visible
+        // at the same time draws two popup surfaces over one another.
+        return !simpleBounds.isEmpty && !shouldShowExtendedPopup()
     }
 
     fun shouldShowExtendedPopup(): Boolean {
@@ -54,6 +56,26 @@ data class LongPress(
     companion object {
         val None = LongPress()
     }
+}
+
+/**
+ * Map the current pointer coordinate to the expanded popup's selection space. Subtracting the
+ * anchor height keeps pointer movement aligned with the popup row; use this for both move and up
+ * events so a release without a final move event cannot select a stale candidate.
+ */
+internal fun resolveLongPressPointerPosition(
+    longPress: LongPress,
+    normalizedPosition: Offset,
+): Offset {
+    val bounds = longPress.extendedBounds
+    if (bounds.isEmpty) return normalizedPosition
+    return Offset(
+        x = normalizedPosition.x.coerceIn(bounds.left, bounds.right),
+        y = (normalizedPosition.y - longPress.anchorBounds.height).coerceIn(
+            bounds.top,
+            (bounds.bottom - 0.01f).coerceAtLeast(bounds.top),
+        ),
+    )
 }
 
 /**

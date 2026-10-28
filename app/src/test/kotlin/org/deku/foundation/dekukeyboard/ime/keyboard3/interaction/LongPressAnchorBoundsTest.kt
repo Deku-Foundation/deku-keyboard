@@ -10,6 +10,7 @@
 
 package org.deku.foundation.dekukeyboard.ime.keyboard3.interaction
 
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
@@ -48,6 +49,25 @@ class LongPressAnchorBoundsTest : FunSpec({
 
     test("returns an empty anchor for invalid key geometry") {
         calculateLongPressAnchorBounds(Rect.Zero) shouldBe Rect.Zero
+    }
+
+    test("shows simple popup only before expanded popup is visible") {
+        LongPress(simpleBounds = Rect(0f, 0f, 0.1f, 0.1f)).shouldShowSimplePopup() shouldBe true
+        LongPress(
+            simpleBounds = Rect(0f, 0f, 0.1f, 0.1f),
+            extendedBounds = Rect(0.1f, 0.1f, 0.4f, 0.4f),
+        ).shouldShowSimplePopup() shouldBe false
+    }
+
+    test("uses the release coordinate to resolve expanded popup selection") {
+        val longPress = LongPress(
+            anchorBounds = Rect(0.4f, 0.6f, 0.5f, 0.7f),
+            extendedBounds = Rect(0.3f, 0.4f, 0.6f, 0.7f),
+        )
+        val position = resolveLongPressPointerPosition(longPress, Offset(0.55f, 0.68f))
+
+        (abs(position.x - 0.55f) < 0.00001f) shouldBe true
+        (abs(position.y - 0.58f) < 0.00001f) shouldBe true
     }
 
     test("clamps overflowing popup bounds to the normalized keyboard viewport") {

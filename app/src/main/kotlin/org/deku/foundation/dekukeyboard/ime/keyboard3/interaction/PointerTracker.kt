@@ -301,14 +301,10 @@ class PointerTracker(
         trackedOutputPointer.value?.takeIf { it.id == move.id }?.let { trackedPointer ->
             val longPress = trackedPointer.longPress
             if (longPress.shouldShowExtendedPopup()) {
-                val position = move.position.normalized(size).let { position ->
-                    Offset(
-                        x = (position.x)
-                            .fastCoerceIn(longPress.extendedBounds.left, longPress.extendedBounds.right),
-                        y = (position.y - longPress.anchorBounds.height)
-                            .fastCoerceIn(longPress.extendedBounds.top, longPress.extendedBounds.bottom - 0.01f),
-                    )
-                }
+                val position = resolveLongPressPointerPosition(
+                    longPress = longPress,
+                    normalizedPosition = move.position.normalized(size),
+                )
                 val newFocusedIndex = longPress.getNearestKeyIndex(position)
                 if (newFocusedIndex != longPress.extendedFocusedIndex) {
                     trackedOutputPointer.value = trackedPointer.copy(
@@ -344,8 +340,15 @@ class PointerTracker(
                 val output = when {
                     trackedPointer.downKey == trackedMultiTapSeq.value?.touchKey -> null
                     trackedPointer.longPress.shouldShowExtendedPopup() -> {
-                        trackedPointer.longPress.extendedKeys.getOrNull(trackedPointer.longPress.extendedFocusedIndex)
-                            ?.data?.output
+                        val longPress = trackedPointer.longPress
+                        // Pointer-up can carry a newer coordinate than the last coalesced move event.
+                        // Resolve the release point before committing so the visible selection wins.
+                        val releasePosition = resolveLongPressPointerPosition(
+                            longPress = longPress,
+                            normalizedPosition = up.position.normalized(size),
+                        )
+                        val releaseIndex = longPress.getNearestKeyIndex(releasePosition)
+                        longPress.extendedKeys.getOrNull(releaseIndex)?.data?.output
                     }
                     else -> trackedPointer.downKey.attrs.output
                 }
