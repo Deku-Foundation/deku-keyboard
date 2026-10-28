@@ -17,7 +17,7 @@
 package org.deku.foundation.dekukeyboard.ime.nlp
 
 import android.content.Context
-import android.os.SystemClock
+import java.util.concurrent.atomic.AtomicLong
 import android.util.LruCache
 import org.deku.foundation.dekukeyboard.app.DekuPreferenceStore
 import org.deku.foundation.dekukeyboard.clipboardManager
@@ -42,7 +42,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import org.deku.foundation.dekukeyboard.lib.kotlin.guardedByLock
 import org.deku.foundation.dekukeyboard.lib.kotlin.collectLatestIn
 import org.k3lp.runtime.K3Content
 import org.k3lp.runtime.K3TextRange
@@ -83,16 +82,13 @@ class NlpManager(context: Context) {
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private val clipboardSuggestionProvider = ClipboardSuggestionProvider(context)
     private val emojiSuggestionProvider = EmojiSuggestionProvider(context)
-    private val providers = guardedByLock {
-        mapOf(
-            LatinLanguageProvider.ProviderId to ProviderInstanceWrapper(LatinLanguageProvider(context)),
-            ArabicLanguageProvider.ProviderId to ProviderInstanceWrapper(ArabicLanguageProvider(context)),
-            //HanShapeBasedLanguageProvider.ProviderId to ProviderInstanceWrapper(HanShapeBasedLanguageProvider(context)),
-        )
-    }
-    // lock unnecessary because values constant
-    private val providersForceSuggestionOn = mutableMapOf<String, Boolean>()
+    private val providers = mapOf(
+        LatinLanguageProvider.ProviderId to ProviderInstanceWrapper(LatinLanguageProvider(context)),
+        ArabicLanguageProvider.ProviderId to ProviderInstanceWrapper(ArabicLanguageProvider(context)),
+    )
 
+    private val nextSuggestionRevision = AtomicLong()
+    private val nextAssemblyRevision = AtomicLong()
     private val internalSuggestionsGuard = Mutex()
     private data class InternalSuggestionSnapshot(
         val requestTime: Long,
@@ -101,12 +97,12 @@ class NlpManager(context: Context) {
     )
     private var internalSuggestions by Delegates.observable(
         InternalSuggestionSnapshot(
-            requestTime = SystemClock.uptimeMillis(),
+            requestTime = nextSuggestionRevision.incrementAndGet(),
             candidates = emptyList(),
             isPrivateSession = false,
         ),
     ) { _, _, _ ->
-        scope.launch { assembleCandidates() }
+        assembleCandidates()
     }
 
     private val _activeCandidatesFlow = MutableStateFlow(listOf<SuggestionCandidate>())
@@ -191,28 +187,24 @@ class NlpManager(context: Context) {
             providerId
         }
 
-    private suspend fun getSpellingProvider(subtype: Subtype): SpellingProvider {
+    private fun getSpellingProvider(subtype: Subtype): SpellingProvider {
         val providerId = resolveProviderId(subtype, subtype.nlpProviders.spelling)
-        return providers.withLock { it[providerId] }?.provider as? SpellingProvider
-            ?: FallbackNlpProvider
+        return providers[providerId]?.provider as? SpellingProvider ?: FallbackNlpProvider
     }
 
-    private suspend fun getSuggestionProvider(subtype: Subtype): SuggestionProvider {
+    private fun getSuggestionProvider(subtype: Subtype): SuggestionProvider {
         val providerId = resolveProviderId(subtype, subtype.nlpProviders.suggestion)
-        return providers.withLock { it[providerId] }?.provider as? SuggestionProvider
-            ?: FallbackNlpProvider
+        return providers[providerId]?.provider as? SuggestionProvider ?: FallbackNlpProvider
     }
 
     fun preload(subtype: Subtype) {
         scope.launch {
             emojiSuggestionProvider.preload(subtype)
-            providers.withLock { providers ->
-                subtype.nlpProviders.forEach { _, configuredProviderId ->
-                    val providerId = resolveProviderId(subtype, configuredProviderId)
-                    providers[providerId]?.let { provider ->
-                        provider.createIfNecessary()
-                        provider.preload(subtype)
-                    }
+            subtype.nlpProviders.forEach { _, configuredProviderId ->
+                val providerId = resolveProviderId(subtype, configuredProviderId)
+                providers[providerId]?.let { provider ->
+                    provider.createIfNecessary()
+                    provider.preload(subtype)
                 }
             }
         }
@@ -251,13 +243,7 @@ class NlpManager(context: Context) {
     }
 
     fun providerForcesSuggestionOn(subtype: Subtype): Boolean {
-        // Using a cache because I have no idea how fast the runBlocking is
-        val providerId = resolveProviderId(subtype, subtype.nlpProviders.suggestion)
-        return providersForceSuggestionOn.getOrPut(providerId) {
-            runBlocking {
-                getSuggestionProvider(subtype).forcesSuggestionOn
-            }
-        }
+        return getSuggestionProvider(subtype).forcesSuggestionOn
     }
 
     private fun isNlpRestrictedEditor(): Boolean {
@@ -281,7 +267,7 @@ class NlpManager(context: Context) {
             clearSuggestions()
             return
         }
-        val reqTime = SystemClock.uptimeMillis()
+        val reqTime = nextSuggestionRevision.incrementAndGet()
         val isPrivateSession = imeController.snapshotState().flags.isIncognitoMode
         scope.launch {
             val emojiSuggestions = when {
@@ -333,27 +319,46 @@ class NlpManager(context: Context) {
             clearSuggestions()
             return
         }
-        val reqTime = SystemClock.uptimeMillis()
-        runBlocking {
-            internalSuggestionsGuard.withLock {
-                internalSuggestions = InternalSuggestionSnapshot(
-                    requestTime = reqTime,
-                    candidates = suggestions,
-                    isPrivateSession = imeController.snapshotState().flags.isIncognitoMode,
+        val reqTime = nextSuggestionRevision.incrementAndGet()
+        nextAssemblyRevision.incrementAndGet()
+        scope.launch {
+            val state = imeController.snapshotState()
+            if (
+                shouldBlockNlpSuggestions(
+                    isIncognitoMode = state.flags.isIncognitoMode,
+                    inputAttributes = state.editor.info.inputAttributes,
+                    imeOptions = state.editor.info.imeOptions,
                 )
+            ) {
+                activeCandidates = emptyList()
+                return@launch
+            }
+            internalSuggestionsGuard.withLock {
+                if (internalSuggestions.requestTime < reqTime) {
+                    internalSuggestions = InternalSuggestionSnapshot(
+                        requestTime = reqTime,
+                        candidates = suggestions,
+                        isPrivateSession = state.flags.isIncognitoMode,
+                    )
+                }
             }
         }
     }
 
     fun clearSuggestions() {
-        val reqTime = SystemClock.uptimeMillis()
-        runBlocking {
+        val reqTime = nextSuggestionRevision.incrementAndGet()
+        nextAssemblyRevision.incrementAndGet()
+        activeCandidates = emptyList()
+        scope.launch {
+            val isPrivateSession = imeController.snapshotState().flags.isIncognitoMode
             internalSuggestionsGuard.withLock {
-                internalSuggestions = InternalSuggestionSnapshot(
-                    requestTime = reqTime,
-                    candidates = emptyList(),
-                    isPrivateSession = imeController.snapshotState().flags.isIncognitoMode,
-                )
+                if (internalSuggestions.requestTime < reqTime) {
+                    internalSuggestions = InternalSuggestionSnapshot(
+                        requestTime = reqTime,
+                        candidates = emptyList(),
+                        isPrivateSession = isPrivateSession,
+                    )
+                }
             }
         }
     }
@@ -364,18 +369,13 @@ class NlpManager(context: Context) {
     }
 
     fun removeSuggestion(subtype: Subtype, candidate: SuggestionCandidate): Boolean {
-        return runBlocking { candidate.sourceProvider?.removeSuggestion(subtype, candidate) == true }.also { result ->
-            if (result) {
-                scope.launch {
-                    // Need to re-trigger the suggestions algorithm
-                    if (candidate is ClipboardSuggestionCandidate) {
-                        assembleCandidates()
-                    } else {
-                        suggest(subtypeManager.activeSubtype, imeController.snapshotState().content)
-                    }
-                }
-            }
+        if (isNlpRestrictedEditor() || candidate !is ClipboardSuggestionCandidate) return false
+
+        scope.launch {
+            val removed = candidate.sourceProvider?.removeSuggestion(subtype, candidate) == true
+            if (removed) assembleCandidates()
         }
+        return true
     }
 
     fun getListOfWords(subtype: Subtype): List<String> {
@@ -387,36 +387,54 @@ class NlpManager(context: Context) {
     }
 
     private fun assembleCandidates() {
-        runBlocking {
-            val imeSnapshot = imeController.snapshotState()
-            val isPrivateSession = imeSnapshot.flags.isIncognitoMode
-            val clipboardCandidates = if (isPrivateSession) {
-                emptyList()
-            } else {
-                clipboardSuggestionProvider.suggest(
-                    subtype = Subtype.DEFAULT,
-                    content = imeSnapshot.content,
-                    maxCandidateCount = 8,
-                    allowPossiblyOffensive = !prefs.suggestion.blockPossiblyOffensive.get(),
-                    isPrivateSession = false,
+        val assemblyRevision = nextAssemblyRevision.incrementAndGet()
+        scope.launch {
+            assembleCandidatesNow(assemblyRevision)
+        }
+    }
+
+    private suspend fun assembleCandidatesNow(assemblyRevision: Long) {
+        val imeSnapshot = imeController.snapshotState()
+        val isPrivateSession = imeSnapshot.flags.isIncognitoMode
+        val stateIsRestricted = shouldBlockNlpSuggestions(
+            isIncognitoMode = isPrivateSession,
+            inputAttributes = imeSnapshot.editor.info.inputAttributes,
+            imeOptions = imeSnapshot.editor.info.imeOptions,
+        )
+        if (stateIsRestricted) {
+            activeCandidates = emptyList()
+            return
+        }
+
+        val clipboardCandidates = clipboardSuggestionProvider.suggest(
+            subtype = Subtype.DEFAULT,
+            content = imeSnapshot.content,
+            maxCandidateCount = 8,
+            allowPossiblyOffensive = !prefs.suggestion.blockPossiblyOffensive.get(),
+            isPrivateSession = false,
+        )
+        val candidates = if (isSuggestionOn()) {
+            internalSuggestionsGuard.withLock {
+                val storedSuggestions = internalSuggestions
+                selectSuggestionsForSession(
+                    isPrivateSession = isPrivateSession,
+                    suggestionsFromCurrentSession = storedSuggestions.candidates,
+                    suggestionsWereGeneratedPrivately = storedSuggestions.isPrivateSession,
+                    clipboardSuggestions = clipboardCandidates,
                 )
             }
-            val candidates = if (isSuggestionOn()) {
-                internalSuggestionsGuard.withLock {
-                    val storedSuggestions = internalSuggestions
-                    selectSuggestionsForSession(
-                        isPrivateSession = isPrivateSession,
-                        suggestionsFromCurrentSession = storedSuggestions.candidates,
-                        suggestionsWereGeneratedPrivately = storedSuggestions.isPrivateSession,
-                        clipboardSuggestions = clipboardCandidates,
-                    )
-                }
-            } else {
-                emptyList()
-            }
-            activeCandidates = candidates
-            autoExpandCollapseSmartbarActions(candidates, NlpInlineAutofill.suggestions.value)
+        } else {
+            emptyList()
         }
+
+        if (
+            assemblyRevision != nextAssemblyRevision.get() ||
+            isNlpRestrictedEditor()
+        ) {
+            return
+        }
+        activeCandidates = candidates
+        autoExpandCollapseSmartbarActions(candidates, NlpInlineAutofill.suggestions.value)
     }
 
     fun autoExpandCollapseSmartbarActions(list1: List<*>?, list2: List<*>?) {
