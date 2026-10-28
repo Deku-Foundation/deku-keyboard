@@ -8,26 +8,26 @@
 
 ### A. Long-press alternatives placed below the pressed key
 
-The previous `calculateLongPressAnchorBounds()` in `PointerTracker.kt` preferred a normalized position above the key, but its fallback explicitly selected `keyBounds.bottom` when the preferred top was negative. Because the key grid uses normalized coordinates with the top of the keyboard at `y = 0`, the first row almost always entered this fallback. This is a placement policy bug, not evidence of an inverted Y axis.
+The previous `calculateLongPressAnchorBounds()` in [PointerTracker.kt](../../app/src/main/kotlin/org/deku/foundation/dekukeyboard/ime/keyboard3/interaction/PointerTracker.kt#L113) preferred a normalized position above the key, but its fallback explicitly selected `keyBounds.bottom` when the preferred top was negative. The replacement geometry and container clamping live in [LongPress.kt](../../app/src/main/kotlin/org/deku/foundation/dekukeyboard/ime/keyboard3/interaction/LongPress.kt#L73). Because the key grid uses normalized coordinates with the top of the keyboard at `y = 0`, the first row almost always entered this fallback. This is a placement policy bug, not evidence of an inverted Y axis.
 
 The extended-popup layout also constrained bounds to `[0, 1]`, so the popup could not occupy measured space in the Smartbar above the key grid.
 
 ### B. Key-press preview stretched below the key
 
-The previous `simpleBounds` extended the popup surface below `anchorBounds` by adding `1.2 × anchor height` to its bottom. That made the visible surface substantially larger than the preview itself and overlapped the key row underneath. The active Compose key layout uses positive Y offsets and `graphicsLayer` scale only; source inspection found no negative scale or `rotationX` transform responsible for mirroring.
+The previous `simpleBounds` in [PointerTracker.kt](../../app/src/main/kotlin/org/deku/foundation/dekukeyboard/ime/keyboard3/interaction/PointerTracker.kt#L237) extended the popup surface below `anchorBounds` by adding `1.2 × anchor height` to its bottom. The surface now matches the calculated anchor. That made the visible surface substantially larger than the preview itself and overlapped the key row underneath. The active Compose key layout uses positive Y offsets and `graphicsLayer` scale only; source inspection found no negative scale or `rotationX` transform responsible for mirroring.
 
 ### C. Popup selection could lag or commit an edge candidate
 
-The previous long-press pointer mapping subtracted a constant anchor height and clamped the position to the popup bounds. This tied selection to an assumed offset rather than the original touch point. It could also keep the pointer inside the selection area after the finger had left the popup, allowing an edge candidate to be committed unexpectedly.
+The previous long-press pointer mapping in [LongPress.kt](../../app/src/main/kotlin/org/deku/foundation/dekukeyboard/ime/keyboard3/interaction/LongPress.kt#L121) subtracted a constant anchor height and clamped the position to the popup bounds. The active move/release path is in [PointerTracker.kt](../../app/src/main/kotlin/org/deku/foundation/dekukeyboard/ime/keyboard3/interaction/PointerTracker.kt#L327). This tied selection to an assumed offset rather than the original touch point. It could also keep the pointer inside the selection area after the finger had left the popup, allowing an edge candidate to be committed unexpectedly.
 
 ### D. Press feedback was too subtle
 
-The key surface already used `animateFloatAsState` with `graphicsLayer`, so the animation was not completely absent in source. Its scale changed only from `1.0` to `0.965` (a 3.5% reduction), making feedback weak. The target was adjusted to `0.94`; actual tactile/visual quality still needs device testing.
+The key surface in [ImeKeyboardBox.kt](../../app/src/main/kotlin/org/deku/foundation/dekukeyboard/ime/keyboard3/ui/ImeKeyboardBox.kt#L311) and [ImeKeyButton.kt](../../app/src/main/kotlin/org/deku/foundation/dekukeyboard/ime/keyboard3/ui/ImeKeyButton.kt#L96) already used `animateFloatAsState` with `graphicsLayer`, so the animation was not completely absent in source. Its scale changed only from `1.0` to `0.965` (a 3.5% reduction), making feedback weak. The target was adjusted to `0.94`; actual tactile/visual quality still needs device testing.
 
 ## 2. Changes on `dev`
 
 - Added a pure `calculatePopupBounds(keyBounds, containerBounds, popupSize, layoutDirection)` helper. It validates geometry, prefers above-key placement, respects LTR/RTL logical-start alignment for wider popups, and clamps inside the supplied container.
-- The popup viewport now includes only the measured Smartbar height above the keyboard. This avoids inventing additional drawable/touchable space outside the IME window.
+- The popup viewport calculation in [ImeKeyboardBox.kt](../../app/src/main/kotlin/org/deku/foundation/dekukeyboard/ime/keyboard3/ui/ImeKeyboardBox.kt#L164) now includes only the measured Smartbar height above the keyboard, passed from [TextInputLayout.kt](../../app/src/main/kotlin/org/deku/foundation/dekukeyboard/ime/text/TextInputLayout.kt#L50). This avoids inventing additional drawable/touchable space outside the IME window.
 - The preview height is reduced when necessary to fit the available space above top-row keys. It flips below only when the supplied container has no usable room above.
 - The simple-preview surface now uses the same bounds as the preview instead of extending down into the keyboard.
 - The pointer tracker captures the initial normalized touch-down point and maps subsequent motion relative to the popup anchor. Move and release use the same mapping; leaving the expanded popup cancels instead of clamping to an edge item.
@@ -119,7 +119,7 @@ This inventory is based on GitHub code-search hits plus direct reads of the matc
 - `app/src/main/kotlin/org/deku/foundation/dekukeyboard/app/settings/advanced/RestoreScreen.kt:93` — coroutine scope behavior during restore.
 - `app/src/main/kotlin/org/deku/foundation/dekukeyboard/ime/text/keyboard/TextKeyData.kt:78` — generated/static key-list maintenance.
 - `app/src/main/kotlin/org/deku/foundation/dekukeyboard/ime/keyboard3/interaction/AndroidInteractionController.kt:203` — text-handle haptics currently follow system feedback behavior.
-- `app/src/main/kotlin/org/deku/foundation/dekukeyboard/ime/keyboard3/interaction/ImeWindowControllerActionsTest.kt:227` — test missing offset-regression coverage.
+- `app/src/test/kotlin/org/deku/foundation/dekukeyboard/ime/window/ImeWindowControllerActionsTest.kt:227` — test missing offset-regression coverage.
 - `app/src/main/kotlin/org/deku/foundation/dekukeyboard/ime/smartbar/quickaction/QuickAction.kt:106,146` — consolidate resize/one-handed actions only if behavior parity is retained.
 - `lib/snygg/src/commonMain/kotlin/org/deku/foundation/dekukeyboard/lib/snygg/value/SnyggUriValue.kt:26` — validate URI grammar with adversarial tests.
 - `lib/snygg/src/commonMain/kotlin/org/deku/foundation/dekukeyboard/lib/snygg/SnyggPropertySetEditor.kt:116` — pattern-property support.
