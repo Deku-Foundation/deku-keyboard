@@ -111,6 +111,20 @@ class NlpManager(context: Context) {
     var debugOverlayVersion = MutableStateFlow(0)
 
     init {
+        // Input fields may switch to password mode without changing the selected language. Clear
+        // visible/stored candidates on that boundary so results from the prior field are not shown.
+        var lastPasswordFieldState: Boolean? = null
+        imeController.activeState.collectLatestIn(scope) { state ->
+            val isPasswordField = state.editor.info.inputAttributes.isPasswordField
+            if (lastPasswordFieldState != isPasswordField) {
+                lastPasswordFieldState = isPasswordField
+                if (isPasswordField) {
+                    clearSuggestions()
+                } else {
+                    assembleCandidates()
+                }
+            }
+        }
         clipboardManager.primaryClipFlow.collectLatestIn(scope) {
             assembleCandidates()
         }
@@ -201,6 +215,7 @@ class NlpManager(context: Context) {
         followingWords: List<String>,
         maxSuggestionCount: Int,
     ): SpellingResult {
+        if (isSensitiveEditor()) return SpellingResult.unspecified()
         return getSpellingProvider(subtype).spell(
             subtype = subtype,
             word = word,
@@ -230,12 +245,21 @@ class NlpManager(context: Context) {
         }
     }
 
-    fun isSuggestionOn(): Boolean =
-        prefs.suggestion.enabled.get()
+    private fun isSensitiveEditor(): Boolean =
+        imeController.snapshotState().editor.info.inputAttributes.isPasswordField
+
+    fun isSuggestionOn(): Boolean {
+        if (isSensitiveEditor()) return false
+        return prefs.suggestion.enabled.get()
             || prefs.emoji.suggestionEnabled.get()
             || providerForcesSuggestionOn(subtypeManager.activeSubtype)
+    }
 
     fun suggest(subtype: Subtype, content: K3Content) {
+        if (isSensitiveEditor()) {
+            clearSuggestions()
+            return
+        }
         val reqTime = SystemClock.uptimeMillis()
         val isPrivateSession = imeController.snapshotState().flags.isIncognitoMode
         scope.launch {
@@ -265,6 +289,9 @@ class NlpManager(context: Context) {
                     )
                 }
             }
+            // A field may become a password field while an off-main-thread provider is
+            // running. Never publish results after that transition.
+            if (isSensitiveEditor()) return@launch
             internalSuggestionsGuard.withLock {
                 if (internalSuggestions.requestTime < reqTime) {
                     internalSuggestions = InternalSuggestionSnapshot(
@@ -307,6 +334,7 @@ class NlpManager(context: Context) {
     }
 
     fun getAutoCommitCandidate(): SuggestionCandidate? {
+        if (isSensitiveEditor()) return null
         return activeCandidates.firstOrNull { it.isEligibleForAutoCommit }
     }
 
