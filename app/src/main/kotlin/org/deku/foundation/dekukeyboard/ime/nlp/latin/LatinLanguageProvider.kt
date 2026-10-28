@@ -24,7 +24,6 @@ import org.deku.foundation.dekukeyboard.ime.nlp.SpellingResult
 import org.deku.foundation.dekukeyboard.ime.nlp.SuggestionCandidate
 import org.deku.foundation.dekukeyboard.ime.nlp.SuggestionProvider
 import org.deku.foundation.dekukeyboard.ime.nlp.WordSuggestionCandidate
-import org.deku.foundation.dekukeyboard.lib.devtools.flogDebug
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.builtins.MapSerializer
@@ -143,19 +142,11 @@ class LatinLanguageProvider(context: Context) : SpellingProvider, SuggestionProv
         }
     }
 
-    override suspend fun notifySuggestionAccepted(subtype: Subtype, candidate: SuggestionCandidate) {
-        // We can use flogDebug, flogInfo, flogWarning and flogError for debug logging, which is a wrapper for Logcat
-        flogDebug { candidate.toString() }
-    }
+    override suspend fun notifySuggestionAccepted(subtype: Subtype, candidate: SuggestionCandidate) = Unit
 
-    override suspend fun notifySuggestionReverted(subtype: Subtype, candidate: SuggestionCandidate) {
-        flogDebug { candidate.toString() }
-    }
+    override suspend fun notifySuggestionReverted(subtype: Subtype, candidate: SuggestionCandidate) = Unit
 
-    override suspend fun removeSuggestion(subtype: Subtype, candidate: SuggestionCandidate): Boolean {
-        flogDebug { candidate.toString() }
-        return false
-    }
+    override suspend fun removeSuggestion(subtype: Subtype, candidate: SuggestionCandidate): Boolean = false
 
     override suspend fun getListOfWords(subtype: Subtype): List<String> {
         if (!supportsEnglishDictionary(subtype)) return emptyList()
