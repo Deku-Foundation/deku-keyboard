@@ -105,7 +105,7 @@ data class PeekLine(
     val end: Offset,
 )
 
-internal data class PopupGeometry(
+data class PopupGeometry(
     val viewportBounds: Rect,
     val layoutDirection: LayoutDirection,
 )
@@ -146,7 +146,7 @@ private data class LastUpKey(
 // All pointer-event mutations and the delayed long-press expansion are serialized by
 // mutationGuard. Keep launches UNDISPATCHED in trackPointerInput so events acquire the mutex
 // in dispatch order and the focused popup key cannot lag behind the user's release.
-class PointerTracker(
+class PointerTracker internal constructor(
     val touchKeyboard: TouchKeyboard,
     val imeController: ImeController,
     val interactionController: InteractionController,
@@ -500,7 +500,7 @@ class PointerTracker(
 }
 
 @Composable
-fun rememberPointerTracker(
+internal fun rememberPointerTracker(
     touchKeyboard: TouchKeyboard,
     popupGeometry: State<PopupGeometry>,
 ): PointerTracker {
