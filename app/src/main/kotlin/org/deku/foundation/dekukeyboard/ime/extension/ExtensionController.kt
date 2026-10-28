@@ -104,7 +104,7 @@ class ExtensionController(
                 segments[1] == extensionId &&
                 extensionId.isNotBlank() &&
                 '/' !in extensionId &&
-                '\\\\' !in extensionId
+                '\\' !in extensionId
         ) {
             "Refusing to delete a path outside the installed extension directory."
         }
@@ -202,7 +202,7 @@ class ExtensionController(
                         childName != "." &&
                         childName != ".." &&
                         '/' !in childName &&
-                        '\\\\' !in childName
+                        '\\' !in childName
                 ) {
                     "Extension contains an invalid path segment."
                 }
