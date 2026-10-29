@@ -585,7 +585,7 @@ class ImeController(
                 return false
             }
 
-            val didCommit = if (state.content.composingText.isNotEmpty()) {
+            val didCommit = if (state.content.compositionText?.isNotEmpty() == true) {
                 super.finalizeComposingText(text)
             } else {
                 super.commitText(text)
