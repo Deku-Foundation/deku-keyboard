@@ -246,16 +246,88 @@ internal fun findArabicWordPrefixSuggestions(
         return emptyList()
     }
 
-    return index[normalizedPrefix.take(2)].orEmpty()
-        .asSequence()
-        .filter { (word, _) ->
-            val matchKey = normalizeArabicMatchKey(word)
-            matchKey.startsWith(normalizedPrefix) && matchKey != normalizedPrefix
+    val candidatesByMatchKey = linkedMapOf<String, Pair<String, Int>>()
+
+    fun collectCandidates(rootPrefix: String, outputPrefix: String?) {
+        if (rootPrefix.length < 2) return
+
+        val bucket = index[rootPrefix.take(2)].orEmpty()
+        if (outputPrefix != null && bucket.any { (word, _) ->
+            normalizeArabicMatchKey(word) == rootPrefix
+        }) {
+            return
         }
-        .filter { (word, _) -> allowPossiblyOffensive || normalizeArabicMatchKey(word) !in KNOWN_ARABIC_OFFENSIVE_TERMS }
+
+        for ((word, frequency) in bucket) {
+            val wordMatchKey = normalizeArabicMatchKey(word)
+            if (!wordMatchKey.startsWith(rootPrefix) || wordMatchKey == rootPrefix) continue
+            if (!allowPossiblyOffensive && normalizeArabicMatchKey(word) in KNOWN_ARABIC_OFFENSIVE_TERMS) {
+                continue
+            }
+
+            val candidate = if (outputPrefix == null) word else outputPrefix + word
+            val candidateMatchKey = normalizeArabicMatchKey(candidate)
+            if (candidateMatchKey == normalizedPrefix) continue
+
+            val existing = candidatesByMatchKey[candidateMatchKey]
+            if (existing == null || frequency > existing.second) {
+                candidatesByMatchKey[candidateMatchKey] = candidate to frequency
+            }
+        }
+    }
+
+    collectCandidates(normalizedPrefix, outputPrefix = null)
+    for (proclitic in COMMON_ARABIC_PROCLITICS) {
+        val normalizedProclitic = normalizeArabicMatchKey(proclitic)
+        if (!normalizedPrefix.startsWith(normalizedProclitic)) continue
+
+        val rootPrefix = normalizedPrefix.removePrefix(normalizedProclitic)
+        if (rootPrefix.length < 2) continue
+
+        val typedProclitic = takeArabicPrefixForMatchLength(prefix, normalizedProclitic.length)
+        collectCandidates(rootPrefix, outputPrefix = typedProclitic)
+    }
+
+    return candidatesByMatchKey.values
+        .sortedWith(compareByDescending<Pair<String, Int>> { it.second }.thenBy { it.first })
         .take(maxCandidateCount.coerceAtMost(9))
-        .toList()
 }
+
+private val COMMON_ARABIC_PROCLITICS = listOf(
+    "وبال",
+    "فبال",
+    "وال",
+    "فال",
+    "بال",
+    "كال",
+    "ولل",
+    "فلل",
+    "لل",
+    "ال",
+    "و",
+    "ف",
+    "ب",
+    "ك",
+    "ل",
+)
+
+private fun takeArabicPrefixForMatchLength(value: String, matchLength: Int): String {
+    var index = 0
+    var matchedCharacters = 0
+    while (index < value.length && matchedCharacters < matchLength) {
+        if (!isArabicDiacriticOrTatweel(value[index])) matchedCharacters += 1
+        index += 1
+    }
+    while (index < value.length && isArabicDiacriticOrTatweel(value[index])) index++
+    return value.substring(0, index)
+}
+
+private fun isArabicDiacriticOrTatweel(character: Char): Boolean =
+    character == '\u0640' ||
+        character in '\u0610'..'\u061A' ||
+        character in '\u064B'..'\u065F' ||
+        character == '\u0670' ||
+        character in '\u06D6'..'\u06ED'
 
 internal fun buildArabiziPrefixIndex(
     words: List<Pair<String, Int>>,

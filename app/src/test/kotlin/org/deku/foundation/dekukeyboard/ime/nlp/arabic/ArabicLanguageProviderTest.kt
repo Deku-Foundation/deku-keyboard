@@ -85,6 +85,34 @@ class ArabicLanguageProviderTest : FunSpec({
         findArabiziPrefixSuggestions(index, "maktab", 5, false) shouldBe listOf("مكتب" to 80)
     }
 
+    test("completes Arabic words when common proclitics are already typed") {
+        val index = buildArabicWordPrefixIndex(
+            listOf(
+                "كتاب" to 100,
+                "كتابة" to 90,
+                "سلام" to 80,
+            ),
+        )
+
+        findArabicWordPrefixSuggestions(index, "والكت", 5, false) shouldBe
+            listOf("والكتاب" to 100, "والكتابة" to 90)
+        findArabicWordPrefixSuggestions(index, "بالسلا", 5, false) shouldBe
+            listOf("بالسلام" to 80)
+    }
+
+    test("preserves diacritics that belong to the typed proclitic") {
+        val index = buildArabicWordPrefixIndex(listOf("كتاب" to 100))
+
+        findArabicWordPrefixSuggestions(index, "وَالْكِت", 5, false) shouldBe
+            listOf("وَالْكتاب" to 100)
+    }
+
+    test("does not append a clitic to a complete base word as if it were still a prefix") {
+        val index = buildArabicWordPrefixIndex(listOf("كتاب" to 100, "كتابك" to 90))
+
+        findArabicWordPrefixSuggestions(index, "والكتاب", 5, false) shouldBe emptyList()
+    }
+
     test("routes only Arabic primary subtypes to the Arabic dictionary") {
         supportsArabicDictionary(Subtype.DEFAULT.copy(primaryLocale = DekuLocale.fromTag("ar-DZ"))) shouldBe true
         supportsArabicDictionary(Subtype.DEFAULT.copy(primaryLocale = DekuLocale.fromTag("en-GB"))) shouldBe false
