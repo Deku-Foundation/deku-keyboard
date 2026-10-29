@@ -254,7 +254,7 @@ fun QuickActionsEditorPanel() {
                     elementName = DekuImeUi.SmartbarActionsEditorHeaderButton.elementName,
                     modifier = Modifier.fillMaxHeight().aspectRatio(1f),
                     onClick = {
-                        imeController.updateStateBlocking {
+                        imeController.updateStateAsync {
                             state = state.copy(
                                 flags = state.flags
                                     .withActionsEditorVisible(false),
