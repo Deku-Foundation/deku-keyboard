@@ -18,7 +18,6 @@ package org.deku.foundation.dekukeyboard.app.settings.theme
 
 import android.icu.lang.UCharacter
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -30,7 +29,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
@@ -200,7 +198,6 @@ internal fun EditRuleDialog(
                 }
             }
 
-            // TODO: Move to toplevel @Composable function
             (currentRule as? SnyggElementRule)?.apply {
                 if (elementName == SnyggEmptyRuleForAdding.elementName) {
                     return@apply
@@ -217,7 +214,6 @@ internal fun EditRuleDialog(
                         modifier = Modifier.dekuHorizontalScroll(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        // TODO: avoid code duplication
                         DekuChip(
                             onClick = { updateCurrentRule(SnyggSelector.PRESSED) },
                             text = when (level) {
@@ -302,17 +298,6 @@ internal fun EditRuleDialog(
                         }
                     }
                 }
-
-                /* TODO migrate to layerId
-                EnumLikeAttributeBox(
-                    text = stringRes(R.string.settings__theme_editor__rule_modes),
-                    enumClass = KeyboardMode::class,
-                    attribute = DekuImeUi.Attr.Mode,
-                    attributes = attributes,
-                    setAttributes = { currentRule = copy(attributes = it) },
-                    level = level,
-                )
-                */
 
                 EnumLikeAttributeBox(
                     text = stringRes(R.string.settings__theme_editor__rule_shift_states),
@@ -476,7 +461,6 @@ private fun EditCodeValueDialog(
     }
 }
 
-@Composable
 internal fun resolveTextKeyPreviewLabel(data: TextKeyData): String? =
     data.label.takeIf { it.isNotBlank() }
         ?: data.code.takeIf { it > 0 && Character.isValidCodePoint(it) }
