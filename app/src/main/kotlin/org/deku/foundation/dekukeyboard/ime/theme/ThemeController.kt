@@ -164,7 +164,6 @@ class ThemeController(
 
     data class ThemeIndex(
         val extensions: Map<String, ThemeExtension>,
-        // TODO review this cache mechanism
         val cachedThemes: MutableList<Theme>,
     )
 
