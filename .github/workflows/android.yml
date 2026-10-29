@@ -101,6 +101,29 @@ jobs:
           if network_permission in declared_permissions:
               raise SystemExit("Privacy policy violation: the keyboard must not declare INTERNET permission.")
 
+          legacy_backup_path = resources / "xml/backup_rules.xml"
+          legacy_backup = ET.parse(legacy_backup_path).getroot()
+          if legacy_backup.tag != "full-backup-content":
+              raise SystemExit("Legacy Android backup rules must use <full-backup-content>.")
+          if any(
+              rule.attrib.get("domain") == "database"
+              and rule.attrib.get("path") == "deku_user_dictionary"
+              for rule in legacy_backup.findall("include")
+          ):
+              raise SystemExit("Privacy policy violation: the local user dictionary must not be backed up by default.")
+
+          extraction_path = resources / "xml/data_extraction_rules.xml"
+          extraction = ET.parse(extraction_path).getroot()
+          if extraction.tag != "data-extraction-rules":
+              raise SystemExit("Android 12+ backup rules must use <data-extraction-rules>.")
+          if manifest_root.find("application").attrib.get(android_ns + "dataExtractionRules") != "@xml/data_extraction_rules":
+              raise SystemExit("The manifest must point dataExtractionRules at the Android 12+ rules file.")
+          for transfer in extraction:
+              if transfer.tag not in {"cloud-backup", "device-transfer"}:
+                  continue
+              if any(rule.attrib.get("domain") == "database" for rule in transfer.findall("include")):
+                  raise SystemExit("Privacy policy violation: database contents must not be included in backup or device transfer.")
+
           if (root / "lib/native").exists() or (root / "libnative/dummy").exists():
               raise SystemExit("The unused Rust/JNI dummyAdd smoke-test module must not return as an application dependency.")
           for kotlin_file in (root / "app/src/main/kotlin").rglob("*.kt"):
