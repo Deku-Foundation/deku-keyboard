@@ -37,7 +37,6 @@ class ExtensionIndex(
      * @return the Url
      */
     internal fun generateUpdateUrl(
-        version: String = BuildConfig.DEKU_ADDONS_API_VERSION,
         host: String = BuildConfig.DEKU_ADDONS_STORE_URL,
     ): String {
         // Do not send update metadata to the upstream store. Deku has no owned update service yet.
@@ -46,8 +45,6 @@ class ExtensionIndex(
             scheme("https")
             authority(host)
             appendPath("check-updates")
-            // TODO: Uncomment when version is supported by the addons store api
-            //appendPath(version)
             encodedFragment(
                 buildString {
                     append("data={")
