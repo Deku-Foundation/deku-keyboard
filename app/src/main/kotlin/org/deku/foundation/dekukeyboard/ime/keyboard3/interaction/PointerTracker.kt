@@ -192,6 +192,7 @@ class PointerTracker internal constructor(
 
         val downLayerId = imeController.snapshotState().touchLayerId
         val downKey = touchKeyboard.findKey(downLayerId, down.position.normalized(size)) ?: return
+        if (downKey.isShiftKey) imeController.setTouchShiftKeyPressed(true)
 
         val timingOptions = interactionController.activeTimingOptions.value
         val keyRepeatTimeout = timingOptions.getKeyRepeatTimeout(downKey.attrs.output)
@@ -362,6 +363,7 @@ class PointerTracker internal constructor(
                 }
             }
             trackedPeekPointer.value = null
+            if (trackedPointer.downKey.isShiftKey) imeController.setTouchShiftKeyPressed(false)
             lastUpKeyState = LastUpKey(trackedPointer.downKey, up.uptimeMillis)
             interactionController.performFeedback(
                 InteractionKind.KeyRelease,
@@ -391,6 +393,7 @@ class PointerTracker internal constructor(
             }
             trackedPeekPointer.update { it?.copy(peekMustSwitchBack = true) }
             trackedOutputPointer.value = null
+            if (trackedPointer.downKey.isShiftKey) imeController.setTouchShiftKeyPressed(false)
             lastUpKeyState = LastUpKey(trackedPointer.downKey, up.uptimeMillis)
             interactionController.performFeedback(
                 InteractionKind.KeyRelease,
@@ -445,6 +448,7 @@ class PointerTracker internal constructor(
                 switchTouchLayer(trackedPointer.downLayerId)
             }
         }
+        if (trackedPointer.downKey.isShiftKey) imeController.setTouchShiftKeyPressed(false)
     }
 
     private suspend fun cancelOutput() {
@@ -452,6 +456,7 @@ class PointerTracker internal constructor(
         val trackedPointer = trackedOutputPointer.getAndUpdate { null } ?: return
         trackedPointer.longPress.extendedJob?.cancel()
         trackedPointer.repeatJob?.cancel()
+        if (trackedPointer.downKey.isShiftKey) imeController.setTouchShiftKeyPressed(false)
     }
 
     private suspend fun cancelMultiTap() {
