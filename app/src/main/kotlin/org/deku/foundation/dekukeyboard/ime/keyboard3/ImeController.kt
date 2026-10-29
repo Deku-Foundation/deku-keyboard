@@ -585,7 +585,7 @@ class ImeController(
                 return false
             }
 
-            val didCommit = super.commitText(text)
+            val didCommit = state.editor.commitText(text)
             if (didCommit) {
                 expectedContentQueue.push(state.content)
                 reevaluateInputShiftState()

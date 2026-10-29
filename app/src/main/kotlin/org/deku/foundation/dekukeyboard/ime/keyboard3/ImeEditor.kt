@@ -142,6 +142,17 @@ open class ImeEditor(
         ic.endBatchEdit()
     }
 
+    /**
+     * Commits accepted text through the active editor connection.
+     *
+     * Android replaces the current composing region when one is active; otherwise it inserts at
+     * the current selection. The call must stay on the IME interaction path.
+     */
+    fun commitText(text: String, newCursorPosition: Int = 1): Boolean {
+        val inputConnection = ic.get() ?: return false
+        return inputConnection.commitText(text, newCursorPosition)
+    }
+
     fun deleteSurroundingText(charsBefore: Int, charsAfter: Int) {
         val ic = ic.get() ?: return
         ic.deleteSurroundingText(charsBefore, charsAfter)
