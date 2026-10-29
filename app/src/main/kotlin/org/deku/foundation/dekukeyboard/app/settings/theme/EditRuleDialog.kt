@@ -601,14 +601,18 @@ private fun EditCodeValueDialog(
 }
 
 @Composable
+internal fun resolveTextKeyPreviewLabel(data: TextKeyData): String? =
+    data.label.takeIf { it.isNotBlank() }
+        ?: data.code.takeIf { it > 0 && Character.isValidCodePoint(it) }
+            ?.let { String(Character.toChars(it)) }
+
+@Composable
 private fun TextKeyDataPreviewBox(
     textKeyData: TextKeyData?,
     modifier: Modifier = Modifier,
 ) {
     val data = textKeyData ?: TextKeyData.UNSPECIFIED
-
-    val label = "" // TODO remember(data) { evaluator.computeLabel(data) }
-    val icon = null // TODO remember(data) { evaluator.computeImageVector(data) }
+    val label = remember(data) { resolveTextKeyPreviewLabel(data) }
     val displayName = remember(data) {
         if (data.code > 0) {
             UCharacter.getName(data.code) ?: UCharacter.getExtendedName(data.code)
@@ -630,15 +634,9 @@ private fun TextKeyDataPreviewBox(
                 .align(Alignment.CenterVertically),
             contentAlignment = Alignment.Center,
         ) {
-            if (icon != null) {
-                Icon(
-                    modifier = Modifier.requiredSize(24.dp),
-                    imageVector = icon,
-                    contentDescription = null,
-                )
-            } else if (label != null) {
+            label?.let {
                 Text(
-                    text = label,
+                    text = it,
                     fontSize = 16.sp,
                     maxLines = 1,
                     softWrap = false,
