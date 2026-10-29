@@ -252,30 +252,51 @@ internal fun findArabicWordPrefixSuggestions(
         if (rootPrefix.length < 2) return
 
         val bucket = index[rootPrefix.take(2)].orEmpty()
-        if (outputPrefix != null && bucket.any { (word, _) ->
+        val hasExactRoot = outputPrefix != null && bucket.any { (word, _) ->
             normalizeArabicMatchKey(word) == rootPrefix
-        }) {
-            return
         }
 
         for ((word, frequency) in bucket) {
             val wordMatchKey = normalizeArabicMatchKey(word)
-            if (!wordMatchKey.startsWith(rootPrefix) || wordMatchKey == rootPrefix) continue
-            if (!allowPossiblyOffensive && normalizeArabicMatchKey(word) in KNOWN_ARABIC_OFFENSIVE_TERMS) {
-                continue
+            val baseIsBlocked = !allowPossiblyOffensive &&
+                wordMatchKey in KNOWN_ARABIC_OFFENSIVE_TERMS
+
+            if (!baseIsBlocked && !hasExactRoot &&
+                wordMatchKey.startsWith(rootPrefix) && wordMatchKey != rootPrefix
+            ) {
+                val candidate = if (outputPrefix == null) word else outputPrefix + word
+                addArabicCandidate(candidatesByMatchKey, candidate, frequency, normalizedPrefix, allowPossiblyOffensive)
             }
 
-            val candidate = if (outputPrefix == null) word else outputPrefix + word
-            val candidateMatchKey = normalizeArabicMatchKey(candidate)
-            if (candidateMatchKey == normalizedPrefix) continue
+            if (baseIsBlocked) continue
 
-            val existing = candidatesByMatchKey[candidateMatchKey]
-            if (existing == null || frequency > existing.second) {
-                candidatesByMatchKey[candidateMatchKey] = candidate to frequency
+            val suffixStems = if (word.endsWith('ة')) {
+                listOf(
+                    word to wordMatchKey,
+                    (word.dropLast(1) + "ت") to normalizeArabicMatchKey(word.dropLast(1) + "ت"),
+                )
+            } else {
+                listOf(word to wordMatchKey)
+            }
+            for ((stem, stemMatchKey) in suffixStems) {
+                if (!rootPrefix.startsWith(stemMatchKey)) continue
+                val typedSuffix = rootPrefix.removePrefix(stemMatchKey)
+                if (typedSuffix.isEmpty()) continue
+
+                for (suffix in ARABIC_PRONOUN_SUFFIXES) {
+                    if (!suffix.startsWith(typedSuffix) || suffix.length <= typedSuffix.length) continue
+                    val candidate = (outputPrefix ?: "") + stem + suffix
+                    addArabicCandidate(
+                        candidatesByMatchKey,
+                        candidate,
+                        frequency,
+                        normalizedPrefix,
+                        allowPossiblyOffensive,
+                    )
+                }
             }
         }
     }
-
     collectCandidates(normalizedPrefix, outputPrefix = null)
     for (proclitic in COMMON_ARABIC_PROCLITICS) {
         val normalizedProclitic = normalizeArabicMatchKey(proclitic)
@@ -310,6 +331,38 @@ private val COMMON_ARABIC_PROCLITICS = listOf(
     "ك",
     "ل",
 )
+
+private val ARABIC_PRONOUN_SUFFIXES = listOf(
+    "كما",
+    "هما",
+    "كم",
+    "كن",
+    "هم",
+    "هن",
+    "نا",
+    "ني",
+    "ها",
+    "ه",
+    "ك",
+    "ي",
+)
+
+private fun addArabicCandidate(
+    candidates: MutableMap<String, Pair<String, Int>>,
+    candidate: String,
+    frequency: Int,
+    normalizedPrefix: String,
+    allowPossiblyOffensive: Boolean,
+) {
+    val matchKey = normalizeArabicMatchKey(candidate)
+    if (!matchKey.startsWith(normalizedPrefix) || matchKey == normalizedPrefix) return
+    if (!allowPossiblyOffensive && matchKey in KNOWN_ARABIC_OFFENSIVE_TERMS) return
+
+    val existing = candidates[matchKey]
+    if (existing == null || frequency > existing.second) {
+        candidates[matchKey] = candidate to frequency
+    }
+}
 
 private fun takeArabicPrefixForMatchLength(value: String, matchLength: Int): String {
     var index = 0

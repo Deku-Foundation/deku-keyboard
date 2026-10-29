@@ -113,6 +113,20 @@ class ArabicLanguageProviderTest : FunSpec({
         findArabicWordPrefixSuggestions(index, "والكتاب", 5, false) shouldBe emptyList()
     }
 
+    test("completes partially typed Arabic pronoun suffixes from local dictionary words") {
+        val index = buildArabicWordPrefixIndex(
+            listOf(
+                "كتاب" to 100,
+                "مدرسة" to 90,
+            ),
+        )
+
+        findArabicWordPrefixSuggestions(index, "كتابك", 5, false) shouldBe
+            listOf("كتابكم" to 100, "كتابكما" to 100, "كتابكن" to 100)
+        findArabicWordPrefixSuggestions(index, "مدرستك", 5, false) shouldBe
+            listOf("مدرستكم" to 90, "مدرستكما" to 90, "مدرستكن" to 90)
+    }
+
     test("routes only Arabic primary subtypes to the Arabic dictionary") {
         supportsArabicDictionary(Subtype.DEFAULT.copy(primaryLocale = DekuLocale.fromTag("ar-DZ"))) shouldBe true
         supportsArabicDictionary(Subtype.DEFAULT.copy(primaryLocale = DekuLocale.fromTag("en-GB"))) shouldBe false
