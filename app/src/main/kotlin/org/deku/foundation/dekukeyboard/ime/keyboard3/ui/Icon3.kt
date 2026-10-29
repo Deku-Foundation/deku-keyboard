@@ -141,7 +141,9 @@ fun staticIcon3(value: K3Descriptor, context: Context): ImageVector? {
         ImeIcons.ArrowRight -> Icons.AutoMirrored.Filled.KeyboardArrowRight
         ImeIcons.ArrowUp -> Icons.Default.KeyboardArrowUp
         ImeIcons.Backspace -> Icons.AutoMirrored.Outlined.Backspace
-        ImeIcons.ClipboardClearPrimaryClip -> Icons.Default.DeleteSweep
+        ImeIcons.ClipboardClearPrimaryClip,
+        ImeIcons.ClipboardClearHistory,
+        ImeIcons.ClipboardClearFullHistory -> Icons.Default.DeleteSweep
         ImeIcons.ClipboardCopy -> Icons.Default.ContentCopy
         ImeIcons.ClipboardCut -> Icons.Default.ContentCut
         ImeIcons.ClipboardPaste -> Icons.Default.ContentPasteGo
@@ -160,13 +162,19 @@ fun staticIcon3(value: K3Descriptor, context: Context): ImageVector? {
         ImeIcons.ShiftLock -> context.vectorResource(R.drawable.ic_shift_lock)
         ImeIcons.ShiftOff -> context.vectorResource(R.drawable.ic_shift_off)
         ImeIcons.ShiftOn -> context.vectorResource(R.drawable.ic_shift_on)
-        ImeIcons.ShowKeyboard -> Icons.Default.KeyboardDoubleArrowUp // TODO
+        ImeIcons.ShowKeyboard -> Icons.Default.KeyboardDoubleArrowUp
         ImeIcons.SelectAll -> Icons.Default.SelectAll
         ImeIcons.Settings -> Icons.Default.Settings
         ImeIcons.SpaceBar -> Icons.Default.SpaceBar
         ImeIcons.ToggleActionsOverflow -> Icons.Default.MoreHoriz
         ImeIcons.ToggleAutocorrect -> Icons.Default.FontDownload
         ImeIcons.ToggleCompactLayout -> context.vectorResource(R.drawable.ic_accessibility_one_handed)
+        ImeIcons.CompactLayoutToLeft -> Icons.AutoMirrored.Filled.KeyboardArrowLeft
+        ImeIcons.CompactLayoutToRight -> Icons.AutoMirrored.Filled.KeyboardArrowRight
+        ImeIcons.SplitLayout -> context.vectorResource(R.drawable.ic_keyboard_split)
+        ImeIcons.MergeLayout -> context.vectorResource(R.drawable.ic_keyboard_merged)
+        ImeIcons.ToggleActionsEditor -> Icons.Default.Settings
+        ImeIcons.TogglePersonalizedLearning -> Icons.Default.FontDownload
         ImeIcons.ToggleFloatingWindow -> context.vectorResource(R.drawable.ic_floating_keyboard)
         ImeIcons.ToggleResizeMode -> context.vectorResource(R.drawable.ic_resize)
         ImeIcons.Undo -> Icons.AutoMirrored.Filled.Undo

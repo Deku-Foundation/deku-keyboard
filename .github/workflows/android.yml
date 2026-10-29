@@ -135,6 +135,16 @@ jobs:
               raise SystemExit("The upstream add-ons store endpoint must stay disabled until Deku owns a service.")
           emoji_compat_path = root / "app/src/main/kotlin/org/deku/foundation/dekukeyboard/ime/media/emoji/DekuEmojiCompat.kt"
           emoji_compat_source = emoji_compat_path.read_text(encoding="utf-8")
+          display_mappings_path = root / "app/src/main/assets/extensions/org.deku.foundation.dekukeyboard.k3.foundation/import/displays-implied.xml"
+          display_mappings = ET.parse(display_mappings_path).getroot()
+          placeholder_displays = [
+              item.attrib.get("output", "<missing-output>")
+              for item in display_mappings.findall("display")
+              if item.attrib.get("display", "").strip().upper() in {"TODO", "PLACEHOLDER", "TBD"}
+          ]
+          if placeholder_displays:
+              raise SystemExit("User-visible placeholder icon mappings remain: " + ", ".join(placeholder_displays))
+
           if "DefaultEmojiCompatConfig" in emoji_compat_source:
               raise SystemExit("EmojiCompat must not query downloadable-font providers; use bundled local metadata.")
           if "BundledEmojiCompatConfig(context)" not in emoji_compat_source:
