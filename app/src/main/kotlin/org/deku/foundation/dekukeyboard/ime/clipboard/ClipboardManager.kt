@@ -374,14 +374,8 @@ class ClipboardManager(
 
     fun pasteItem(item: ClipboardItem) {
         val imeController = appContext.imeController
-        // TODO this asks for a deadlock from ImeController update scope
-        imeController.updateStateBlocking {
-            emitClipboardItem(item).also { result ->
-                if (!result) {
-                    // TODO we have no access to interactionController here
-                    //appContext.showShortToastSync("Failed to paste item.")
-                }
-            }
+        imeController.updateStateAsync {
+            emitClipboardItem(item)
         }
     }
 
