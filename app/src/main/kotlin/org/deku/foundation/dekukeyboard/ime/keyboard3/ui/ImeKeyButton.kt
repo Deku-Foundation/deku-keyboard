@@ -147,17 +147,16 @@ fun ImeKeyButton(
                     val up = waitForUpOrCancellation()
                     repeatJob?.cancel()
                     if (up != null) {
+                        interactionSource.tryEmit(PressInteraction.Release(press))
                         interactionController.performFeedback(InteractionKind.KeyRelease, output)
+                    } else {
+                        interactionSource.tryEmit(PressInteraction.Cancel(press))
                     }
+                    val shouldEmitOnRelease = up != null && !didRepeatTrigger
                     scope.launch {
                         imeController.updateState {
-                            if (up != null) {
-                                interactionSource.tryEmit(PressInteraction.Release(press))
-                                if (!didRepeatTrigger) {
-                                    emit(output)
-                                }
-                            } else {
-                                interactionSource.tryEmit(PressInteraction.Cancel(press))
+                            if (shouldEmitOnRelease) {
+                                emit(output)
                             }
                         }
                     }
