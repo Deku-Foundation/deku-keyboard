@@ -47,6 +47,7 @@ import org.deku.foundation.dekukeyboard.ime.media.emoji.EmojiSuggestionType
 import org.deku.foundation.dekukeyboard.ime.nlp.BreakIterators
 import org.deku.foundation.dekukeyboard.ime.nlp.ClipboardSuggestionCandidate
 import org.deku.foundation.dekukeyboard.ime.nlp.SuggestionCandidate
+import org.deku.foundation.dekukeyboard.ime.nlp.shouldBlockNlpSuggestions
 import org.deku.foundation.dekukeyboard.ime.text.key.KeyVariation
 import org.deku.foundation.dekukeyboard.lib.DekuLocale
 import org.deku.foundation.dekukeyboard.lib.devtools.flogDebug
