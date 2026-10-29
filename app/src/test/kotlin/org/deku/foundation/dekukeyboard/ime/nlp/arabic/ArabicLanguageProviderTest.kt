@@ -13,7 +13,7 @@ class ArabicLanguageProviderTest : FunSpec({
         normalizeArabicWord("الى") shouldBe "الى"
     }
 
-    test("builds prefix buckets sorted by descending corpus rank") {
+    test("ranks prefix candidates and deduplicates normalized spelling variants") {
         val index = buildArabicWordPrefixIndex(
             listOf(
                 "كتابة" to 30,
@@ -28,7 +28,7 @@ class ArabicLanguageProviderTest : FunSpec({
             prefix = "كت",
             maxCandidateCount = 5,
             allowPossiblyOffensive = false,
-        ) shouldBe listOf("كتاب" to 100, "كتابه" to 60, "كتابة" to 30)
+        ) shouldBe listOf("كتاب" to 100, "كتابه" to 60)
     }
 
     test("does not suggest the complete current word") {
