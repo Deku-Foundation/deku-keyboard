@@ -282,6 +282,56 @@ jobs:
               raise SystemExit("Merged manifest candidates were found, but none could be parsed.")
           print(f"Verified {checked} merged debug manifest(s) contain no INTERNET permission.")
           PY
+      - name: Verify bundled language and layout assets are present in the APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          from zipfile import ZipFile
+
+          apk = Path("app/build/outputs/apk/debug/app-debug.apk")
+          if not apk.is_file():
+              raise SystemExit("Debug APK was not produced; bundled language assets could not be verified.")
+
+          locale_path = "assets/ime/keyboard/org.deku.foundation.dekukeyboard.localization/extension.json"
+          layout_manifest_path = "assets/ime/keyboard/org.deku.foundation.dekukeyboard.layouts/extension.json"
+          layout_root = "assets/ime/keyboard/org.deku.foundation.dekukeyboard.layouts/layouts/characters"
+
+          with ZipFile(apk) as archive:
+              names = set(archive.namelist())
+              missing_manifests = [path for path in (locale_path, layout_manifest_path) if path not in names]
+              if missing_manifests:
+                  raise SystemExit("Bundled catalog manifest(s) missing from APK: " + ", ".join(missing_manifests))
+
+              locale_manifest = json.loads(archive.read(locale_path))
+              layout_manifest = json.loads(archive.read(layout_manifest_path))
+              presets = locale_manifest.get("subtypePresets", [])
+              declared_layouts = {
+                  item.get("id")
+                  for item in layout_manifest.get("layouts", {}).get("characters", [])
+              }
+              if len(presets) < 50:
+                  raise SystemExit(f"Expected at least 50 bundled locale presets in APK, found {len(presets)}.")
+
+              missing_layouts = []
+              for preset in presets:
+                  language_tag = preset.get("languageTag", "<missing-language-tag>")
+                  layout_ref = preset.get("preferred", {}).get("characters", "")
+                  layout_id = layout_ref.rsplit(":", 1)[-1]
+                  asset_path = f"{layout_root}/{layout_id}.json"
+                  if not layout_id or layout_id not in declared_layouts or asset_path not in names:
+                      missing_layouts.append(f"{language_tag}: {asset_path}")
+
+              if missing_layouts:
+                  raise SystemExit("Bundled locale presets reference missing APK layouts:\\n" + "\\n".join(missing_layouts))
+
+              if f"{layout_root}/arabic.json" not in names:
+                  raise SystemExit("Arabic character layout is missing from the APK.")
+
+              print(f"Verified {len(presets)} locale presets and all referenced character layouts are packaged in the APK.")
+          PY
       - uses: actions/upload-artifact@v7
         with:
           name: app-debug.apk
