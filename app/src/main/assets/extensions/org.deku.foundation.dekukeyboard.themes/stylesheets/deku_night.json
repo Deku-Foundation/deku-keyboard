@@ -1,26 +1,26 @@
 {
   "$schema": "https://schemas.dekukeyboard.org/snygg/v2/stylesheet",
   "@defines": {
-    "--primary": "#4caf50",
-    "--primary-variant": "#388e3c",
-    "--secondary": "#f57c00",
-    "--secondary-variant": "#e65100",
-    "--background": "#212121",
-    "--background-variant": "#313131",
-    "--surface": "#424242",
-    "--surface-variant": "#616161",
-    "--popup-surface": "#343b49",
-    "--focused-popup-surface": "#59677f",
-    "--drag-marker": "#4caf50",
-    "--spacer-color": "rgba(255, 255, 255, 0.25)",
-    "--one-hand-background": "#1b5e20",
-    "--one-hand-foreground": "#eeeeee",
-    "--incognito-icon-color": "#ffffff11",
-    "--on-primary": "#f0f0f0",
-    "--on-background": "#dcdcdc",
-    "--on-background-disabled": "#dcdcdc48",
-    "--on-surface": "#ffffff",
-    "--on-surface-variant": "#a0a0a0",
+    "--primary": "#18C7B4",
+    "--primary-variant": "#129F93",
+    "--secondary": "#B8A7FF",
+    "--secondary-variant": "#9A86F8",
+    "--background": "#101722",
+    "--background-variant": "#1B2533",
+    "--surface": "#263445",
+    "--surface-variant": "#35445A",
+    "--popup-surface": "#202C40",
+    "--focused-popup-surface": "#334564",
+    "--drag-marker": "#18C7B4",
+    "--spacer-color": "rgba(234, 240, 246, 0.22)",
+    "--one-hand-background": "#123C38",
+    "--one-hand-foreground": "#EAF3F6",
+    "--incognito-icon-color": "#FFFFFF11",
+    "--on-primary": "#071F1D",
+    "--on-background": "#EAF0F6",
+    "--on-background-disabled": "#8391A2",
+    "--on-surface": "#F8FAFC",
+    "--on-surface-variant": "#B6C4D3",
     "--shape": "rounded-corner(8dp, 8dp, 8dp, 8dp)",
     "--shape-variant": "rounded-corner(12dp, 12dp, 12dp, 12dp)",
     "--shape-chip": "rounded-corner(50%, 50%, 50%, 50%)"
@@ -73,19 +73,19 @@
   },
   "key[code=10]": {
     "background": "var(--primary)",
-    "foreground": "var(--on-surface)"
+    "foreground": "var(--on-primary)"
   },
   "key[output=`@k3:action/enter`]": {
     "background": "var(--primary)",
-    "foreground": "var(--on-surface)"
+    "foreground": "var(--on-primary)"
   },
   "key[code=10]:pressed": {
     "background": "var(--primary-variant)",
-    "foreground": "var(--on-surface)"
+    "foreground": "var(--on-primary)"
   },
   "key[output=`@k3:action/enter`]:pressed": {
     "background": "var(--primary-variant)",
-    "foreground": "var(--on-surface)"
+    "foreground": "var(--on-primary)"
   },
   "key[code=32]": {
     "background": "var(--surface)",
