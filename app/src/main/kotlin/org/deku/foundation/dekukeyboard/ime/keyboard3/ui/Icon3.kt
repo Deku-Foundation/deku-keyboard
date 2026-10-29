@@ -119,8 +119,6 @@ fun Icon3(
                 ImeWindowMode.FIXED -> context.vectorResource(R.drawable.ic_floating_keyboard)
                 ImeWindowMode.FLOATING -> context.vectorResource(R.drawable.ic_floating_keyboard_disable)
             }
-            // TODO incognito mode???
-            // TODO char width/kata/hira icons???
             else -> staticIcon3(value, context)
         }
     }
