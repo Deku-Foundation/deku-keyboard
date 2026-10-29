@@ -585,11 +585,7 @@ class ImeController(
                 return false
             }
 
-            val didCommit = if (state.content.compositionText?.isNotEmpty() == true) {
-                super.finalizeComposingText(text)
-            } else {
-                super.commitText(text)
-            }
+            val didCommit = super.commitText(text)
             if (didCommit) {
                 expectedContentQueue.push(state.content)
                 reevaluateInputShiftState()
