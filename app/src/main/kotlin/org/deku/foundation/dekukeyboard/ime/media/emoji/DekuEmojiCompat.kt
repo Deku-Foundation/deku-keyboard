@@ -18,7 +18,7 @@ package org.deku.foundation.dekukeyboard.ime.media.emoji
 
 import android.annotation.SuppressLint
 import android.content.Context
-import androidx.emoji2.text.DefaultEmojiCompatConfig
+import androidx.emoji2.text.BundledEmojiCompatConfig
 import androidx.emoji2.text.EmojiCompat
 import org.deku.foundation.dekukeyboard.lib.devtools.flogError
 import org.deku.foundation.dekukeyboard.lib.devtools.flogInfo
@@ -105,7 +105,7 @@ object DekuEmojiCompat {
             }
         }
 
-        private val config: EmojiCompat.Config? = DefaultEmojiCompatConfig.create(context)?.apply {
+        private val config: EmojiCompat.Config? = BundledEmojiCompatConfig(context).apply {
             setReplaceAll(replaceAll)
             setMetadataLoadStrategy(EmojiCompat.LOAD_STRATEGY_MANUAL)
             registerInitCallback(initCallback)

@@ -132,6 +132,14 @@ jobs:
               raise SystemExit("Obsolete upstream add-ons-store button string is still active.")
           if "DEKU_ADDONS_STORE_URL" not in app_gradle or "beta.addons.florisboard.org" in app_gradle:
               raise SystemExit("The upstream add-ons store endpoint must stay disabled until Deku owns a service.")
+          emoji_compat_path = root / "app/src/main/kotlin/org/deku/foundation/dekukeyboard/ime/media/emoji/DekuEmojiCompat.kt"
+          emoji_compat_source = emoji_compat_path.read_text(encoding="utf-8")
+          if "DefaultEmojiCompatConfig" in emoji_compat_source:
+              raise SystemExit("EmojiCompat must not query downloadable-font providers; use bundled local metadata.")
+          if "BundledEmojiCompatConfig(context)" not in emoji_compat_source:
+              raise SystemExit("Bundled local emoji metadata is not configured.")
+          if "androidx-emoji2 = \"1.7.0\"" not in (root / "gradle/libs.versions.toml").read_text(encoding="utf-8"):
+              raise SystemExit("Emoji2 must use the verified stable 1.7.0 release.")
 
           project_settings = (root / "settings.gradle.kts").read_text(encoding="utf-8")
           if 'rootProject.name = "deku-keyboard"' not in project_settings:
