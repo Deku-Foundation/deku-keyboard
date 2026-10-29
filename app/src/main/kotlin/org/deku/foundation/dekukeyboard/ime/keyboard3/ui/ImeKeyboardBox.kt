@@ -130,7 +130,7 @@ fun ImeKeyboardBox(
     // accents and user-selected palettes apply to peek feedback as well.
     val glideTrailStyle = rememberSnyggThemeQuery(DekuImeUi.GlideTrail.elementName)
     val glideTrailColor = (glideTrailStyle.foreground as? SnyggStaticColorValue)?.color
-        ?: Color(0xFF4CAF50)
+        ?: Color(0xFF18C7B4)
 
     BoxWithConstraints {
         val deviceWidthMm = remember(constraints.maxWidth) {
