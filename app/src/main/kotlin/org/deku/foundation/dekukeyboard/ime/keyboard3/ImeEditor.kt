@@ -123,10 +123,6 @@ open class ImeEditor(
         )
     }
 
-    // TODO this function is very heavy => we need to optimize k3lp to provide:
-    //  insertAtSelection() (for simple appends)
-    //  deleteAroundSelection() for bksp/fw delete
-    //  in some cases replaceText() is needed due to the transform rules, but we abuse it waaaay too much
     override fun replaceText(
         range: IntRange,
         text: String,
