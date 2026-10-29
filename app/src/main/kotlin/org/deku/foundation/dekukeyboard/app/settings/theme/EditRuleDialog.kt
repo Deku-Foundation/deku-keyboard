@@ -18,10 +18,6 @@ package org.deku.foundation.dekukeyboard.app.settings.theme
 
 import android.icu.lang.UCharacter
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColor
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -36,32 +32,23 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.text.selection.LocalTextSelectionColors
-import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Pageview
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontStyle
@@ -69,9 +56,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.deku.foundation.dekukeyboard.R
 import org.deku.foundation.dekukeyboard.app.enumDisplayEntriesOf
-import org.deku.foundation.dekukeyboard.ime.keyboard3.interaction.InteractionController
-import org.deku.foundation.dekukeyboard.ime.keyboard3.interaction.LocalInteractionController
-import org.deku.foundation.dekukeyboard.ime.keyboard3.interaction.showShortToast
 import org.deku.foundation.dekukeyboard.ime.keyboard3.touch.InputShiftState
 import org.deku.foundation.dekukeyboard.ime.text.key.KeyCode
 import org.deku.foundation.dekukeyboard.ime.text.keyboard.TextKeyData
@@ -79,12 +63,10 @@ import org.deku.foundation.dekukeyboard.ime.theme.DekuImeUi
 import org.deku.foundation.dekukeyboard.ime.window.ImeWindowMode
 import org.deku.foundation.dekukeyboard.lib.NATIVE_NULLPTR
 import org.deku.foundation.dekukeyboard.lib.compose.DekuHyperlinkText
-import org.deku.foundation.dekukeyboard.lib.util.InputMethodUtils
 import dev.patrickgold.jetpref.material.ui.JetPrefAlertDialog
 import dev.patrickgold.jetpref.material.ui.JetPrefDropdown
 import dev.patrickgold.jetpref.material.ui.JetPrefTextField
 import dev.patrickgold.jetpref.material.ui.JetPrefTextFieldDefaults
-import kotlinx.coroutines.launch
 import org.deku.foundation.dekukeyboard.lib.android.stringRes
 import org.deku.foundation.dekukeyboard.lib.compose.DekuChip
 import org.deku.foundation.dekukeyboard.lib.compose.DekuIconButton
@@ -99,10 +81,6 @@ import org.deku.foundation.dekukeyboard.lib.snygg.SnyggSelector
 import org.deku.foundation.dekukeyboard.lib.snygg.ui.NonNullSaver
 import kotlin.reflect.KClass
 
-private val TransparentTextSelectionColors = TextSelectionColors(
-    handleColor = Color.Transparent,
-    backgroundColor = Color.Transparent,
-)
 internal val SnyggEmptyRuleForAdding = SnyggElementRule(elementName = "--select--")
 
 @Composable
@@ -366,10 +344,6 @@ private fun EditCodeValueDialog(
     onDelete: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val context = LocalContext.current
-    val interactionController = LocalInteractionController.current
-    val scope = rememberCoroutineScope()
-
     var inputCodeString by rememberSaveable(codeValue) {
         val str = if (codeValue == KeyCode.UNSPECIFIED.toString()) "" else codeValue
         mutableStateOf(str)
@@ -383,74 +357,6 @@ private fun EditCodeValueDialog(
     var showError by rememberSaveable(codeValue) { mutableStateOf(false) }
     var errorId by rememberSaveable(codeValue) { mutableIntStateOf(NATIVE_NULLPTR.toInt()) }
 
-    val focusRequester = remember { FocusRequester() }
-    val isDekuKeyboardEnabled by InputMethodUtils.observeIsDekuKeyboardEnabled(foregroundOnly = true)
-    val isDekuKeyboardSelected by InputMethodUtils.observeIsDekuKeyboardSelected(foregroundOnly = true)
-
-    var isRecordingKey by remember { mutableStateOf(false) }
-    var lastRecordingToast by remember { mutableStateOf<InteractionController.ToastHandle?>(null) }
-    val recordingKeyColor = if (isRecordingKey) {
-        rememberInfiniteTransition().animateColor(
-            initialValue = LocalContentColor.current,
-            targetValue = MaterialTheme.colorScheme.error,
-            animationSpec = infiniteRepeatable(
-                tween(750),
-                repeatMode = RepeatMode.Reverse,
-            ),
-        ).value
-    } else {
-        LocalContentColor.current
-    }
-
-    val startRecordingMsg = stringRes(R.string.settings__theme_editor__code_recording_requires_default_ime_deku)
-    fun requestStartRecording() {
-        if (isRecordingKey) {
-            isRecordingKey = false
-            return
-        }
-        if (!isDekuKeyboardEnabled || !isDekuKeyboardSelected) {
-            scope.launch {
-                lastRecordingToast?.hide()
-                lastRecordingToast = interactionController.showShortToast(
-                    startRecordingMsg,
-                    "app_name" to context.stringRes(R.string.deku_app_name),
-                )
-            }
-            InputMethodUtils.showImePicker(context)
-            return
-        }
-        showError = false
-        isRecordingKey = true
-    }
-
-    if (isRecordingKey) {
-        DisposableEffect(Unit) {
-            // TODO
-            /*
-            val receiver = object : InputKeyEventReceiver {
-                override fun onInputKeyDown(data: KeyData) = Unit
-                override fun onInputKeyUp(data: KeyData) {
-                    inputCodeString = data.code.toString()
-                    isRecordingKey = false
-                }
-
-                override fun onInputKeyRepeat(data: KeyData) = Unit
-                override fun onInputKeyCancel(data: KeyData) = Unit
-            }
-            val defaultReceiver = keyboardManager.inputEventDispatcher.keyEventReceiver
-            keyboardManager.inputEventDispatcher.keyEventReceiver = receiver
-            lastRecordingToast?.cancel()
-            lastRecordingToast = context.showShortToastSync(R.string.settings__theme_editor__code_recording_started)
-            focusRequester.requestFocus()
-            onDispose {
-                keyboardManager.inputEventDispatcher.keyEventReceiver = defaultReceiver
-                lastRecordingToast?.cancel()
-                lastRecordingToast = context.showShortToastSync(R.string.settings__theme_editor__code_recording_stopped)
-            }
-             */
-            onDispose {  }
-        }
-    }
 
     JetPrefAlertDialog(
         title = stringRes(
@@ -516,7 +422,6 @@ private fun EditCodeValueDialog(
         Column {
             AnimatedVisibility(visible = showKeyCodesHelp) {
                 Column(modifier = Modifier.padding(bottom = 16.dp)) {
-                    Text(text = stringRes(R.string.settings__theme_editor__code_recording_help_text))
                     Text(text = stringRes(R.string.settings__theme_editor__code_help_text))
                     DekuHyperlinkText(
                         text = "Characters (unicode-table.com)",
@@ -536,53 +441,24 @@ private fun EditCodeValueDialog(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                val textSelectionColors = if (isRecordingKey) {
-                    TransparentTextSelectionColors
-                } else {
-                    LocalTextSelectionColors.current
-                }
-                CompositionLocalProvider(LocalTextSelectionColors provides textSelectionColors) {
-                    JetPrefTextField(
-                        modifier = Modifier
-                            .focusRequester(focusRequester)
-                            .weight(1f),
-                        value = inputCodeString,
-                        onValueChange = { v ->
-                            inputCodeString = v
-                            showError = false
-                        },
-                        placeholderText = when {
-                            isRecordingKey -> {
-                                stringRes(R.string.settings__theme_editor__code_recording_placeholder)
-                            }
-                            inputCodeString.isEmpty() -> {
-                                stringRes(R.string.settings__theme_editor__code_placeholder)
-                            }
-                            else -> {
-                                null
-                            }
-                        },
-                        isError = showError,
-                        singleLine = true,
-                        appearance = JetPrefTextFieldDefaults.filled(
-                            colors = if (isRecordingKey) {
-                                TextFieldDefaults.colors(
-                                    focusedTextColor = Color.Transparent,
-                                    cursorColor = Color.Transparent,
-                                )
-                            } else {
-                                TextFieldDefaults.colors()
-                            }
-                        ),
-                        trailingIcon = {
-                            DekuIconButton(
-                                onClick = { requestStartRecording() },
-                                icon = Icons.Default.Pageview,
-                                iconColor = recordingKeyColor,
-                            )
-                        }
-                    )
-                }
+                JetPrefTextField(
+                    modifier = Modifier.weight(1f),
+                    value = inputCodeString,
+                    onValueChange = { value ->
+                        inputCodeString = value
+                        showError = false
+                    },
+                    placeholderText = if (inputCodeString.isEmpty()) {
+                        stringRes(R.string.settings__theme_editor__code_placeholder)
+                    } else {
+                        null
+                    },
+                    isError = showError,
+                    singleLine = true,
+                    appearance = JetPrefTextFieldDefaults.filled(
+                        colors = TextFieldDefaults.colors(),
+                    ),
+                )
             }
             AnimatedVisibility(visible = showError) {
                 Text(
