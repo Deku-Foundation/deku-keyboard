@@ -194,7 +194,7 @@ fun ClipboardInputLayout(
             SnyggIconButton(
                 elementName = DekuImeUi.ClipboardHeaderButton.elementName,
                 onClick = {
-                    imeController.updateStateBlocking {
+                    imeController.updateStateAsync {
                         state = state.copy(
                             flags = state.flags.withImeUiMode(ImeUiMode.TEXT),
                         )
