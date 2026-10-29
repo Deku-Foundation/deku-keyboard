@@ -243,9 +243,11 @@ class ExtensionController(
                 try {
                     storage.mkdirs(DekuRef.internal(EXTENSIONS_PATH))
                     copyLocalDirectoryIntoStorage(storage, stagingDirectory, destinationRoot)
-                } catch (error: Throwable) {
-                    runCatching {
+                } catch (error: Exception) {
+                    try {
                         if (storage.exists(destinationRoot)) storage.deleteRecursively(destinationRoot)
+                    } catch (cleanupError: Exception) {
+                        error.addSuppressed(cleanupError)
                     }
                     throw error
                 }
@@ -460,7 +462,7 @@ class ExtensionController(
             val extRefList =
                 try {
                     storage.list(ref)
-                } catch (e: Throwable) {
+                } catch (e: Exception) {
                     reports.add(
                         ExtensionIndexViolation.UnexpectedError(
                             cause = e,
@@ -475,10 +477,9 @@ class ExtensionController(
                 val manifest =
                     try {
                         storage.readJson<ExtensionManifest>(manifestRef, ExtensionJson)
-                    } catch (e: Throwable) {
-                        // TODO fine-grained violations
+                    } catch (e: Exception) {
                         reports.add(
-                            ExtensionIndexViolation.UnexpectedError(
+                            ExtensionIndexViolation.ManifestReadFailure(
                                 cause = e,
                                 sourceRange = manifestRef.asSourceRange(),
                             )
