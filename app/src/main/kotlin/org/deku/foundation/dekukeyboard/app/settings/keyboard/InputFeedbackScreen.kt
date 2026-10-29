@@ -82,7 +82,7 @@ fun InputFeedbackScreen() = DekuScreen {
             SwitchPreference(
                 prefs.inputFeedback.audioFeatGestureMovingSwipe,
                 title = stringRes(R.string.pref__input_feedback__audio_feat_gesture_moving_swipe__label),
-                summary = stringRes(R.string.pref__input_feedback__audio_feat_gesture_moving_swipe__label),
+                summary = stringRes(R.string.pref__input_feedback__any_feat_gesture_moving_swipe__summary),
                 enabledIf = { prefs.inputFeedback.audioEnabled isEqualTo true },
             )
         }
@@ -127,7 +127,7 @@ fun InputFeedbackScreen() = DekuScreen {
             SwitchPreference(
                 prefs.inputFeedback.hapticFeatGestureMovingSwipe,
                 title = stringRes(R.string.pref__input_feedback__haptic_feat_gesture_moving_swipe__label),
-                summary = stringRes(R.string.pref__input_feedback__audio_feat_gesture_moving_swipe__label),
+                summary = stringRes(R.string.pref__input_feedback__any_feat_gesture_moving_swipe__summary),
                 enabledIf = { prefs.inputFeedback.hapticEnabled isEqualTo true },
             )
         }
