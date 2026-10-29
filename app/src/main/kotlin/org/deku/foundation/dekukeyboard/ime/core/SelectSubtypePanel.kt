@@ -84,7 +84,7 @@ fun SelectSubtypePanel(modifier: Modifier = Modifier) {
                         elementName = DekuImeUi.SubtypePanelListItem.elementName,
                         onClick = {
                             subtypeManager.switchToSubtypeById(it.id)
-                            imeController.updateStateBlocking {
+                            imeController.updateStateAsync {
                                 state = state.copy(
                                     flags = state.flags.withSubtypeSelectionVisible(false),
                                 )
