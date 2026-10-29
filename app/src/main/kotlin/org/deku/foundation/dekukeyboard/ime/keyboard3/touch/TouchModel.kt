@@ -76,7 +76,8 @@ class TouchKeyboard(
         if (layer == null || !NormalizedBounds.contains(position)) {
             return null
         }
-        // TODO improve runtime of this
+        // Keep linear traversal until profiling demonstrates this is a hot spot. Key layers
+        // contain a small ordered set, and traversal order resolves overlapping hitboxes.
         for (key in layer.keys) {
             if (key.hitbox.contains(position)) {
                 return key
@@ -335,7 +336,8 @@ private fun computeTouchKeyboard(
                         } ?: emptyList()
                     }
                     val flicks = when {
-                        isFnKey -> null // TODO
+                        // Function keys dispatch actions rather than character flick outputs.
+                        isFnKey -> null
                         else -> key.flickId?.let { model.flicks.byFlickId[it] }
                     }
                     val attrs = if (isFnKey) options.fnKeyArrangement.simpleAction.asK3Key() else key

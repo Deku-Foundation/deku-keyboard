@@ -15,7 +15,7 @@
  */
 
 // Deku Foundation modification (2026-10-25): use the independent repository project name.
-rootProject.name = "DekuKeyboard"
+rootProject.name = "deku-keyboard"
 
 pluginManagement {
     repositories {
@@ -49,5 +49,4 @@ include(":app")
 include(":lib:android")
 include(":lib:compose")
 include(":lib:kotlin")
-include(":lib:native")
 include(":lib:snygg")

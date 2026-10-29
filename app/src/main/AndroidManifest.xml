@@ -24,7 +24,7 @@
     <application
         android:name="org.deku.foundation.dekukeyboard.DekuApplication"
         android:allowBackup="true"
-        android:dataExtractionRules="@xml/backup_rules"
+        android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/deku_app_icon"
         android:label="@string/deku_app_name"

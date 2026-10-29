@@ -155,7 +155,7 @@ fun EmojiSearchLayout(
         ) {
             SnyggButton(
                 onClick = {
-                    imeController.updateStateBlocking {
+                    imeController.updateStateAsync {
                         emitDescriptor(ImeActions.ShowTextPanel)
                     }
                 }
@@ -165,7 +165,7 @@ fun EmojiSearchLayout(
             searchResults.forEach { emoji ->
                 EmojiText(
                     modifier = Modifier.clickable {
-                        imeController.updateStateBlocking {
+                        imeController.updateStateAsync {
                             emitText(emoji.value.asK3String())
                         }
                     },

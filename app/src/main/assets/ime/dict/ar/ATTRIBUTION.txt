@@ -1,0 +1,35 @@
+Arabic MSA frequency list — attribution and licence
+==================================================
+
+Included file:
+  app/src/main/assets/ime/dict/ar/frequency.txt
+
+Upstream file:
+  https://github.com/Luraty/language-packs/blob/7459e864b2bad4448b149f2a8b92b101156ca858/packs/ar/frequency.txt
+
+Upstream data project:
+  Luraty, language-packs, Arabic pack (Modern Standard Arabic frequency list).
+  https://github.com/Luraty/language-packs/tree/main/packs/ar
+
+Licence declared by the data project: Creative Commons Attribution 4.0 International (CC BY 4.0).
+Licence: https://creativecommons.org/licenses/by/4.0/
+
+Underlying corpus:
+  Leipzig Corpora Collection, Universität Leipzig, https://wortschatz-leipzig.de/
+  D. Goldhahn, T. Eckart & U. Quasthoff, “Building Large Monolingual Dictionaries at the Leipzig
+  Corpora Collection: From 100 to 200 Languages”, LREC 2012.
+  Corpora: ara_news_2020_1M and ara_news_2022_1M.
+
+Lemma resource used upstream:
+  Wikidata Lexemes, Arabic (Q13955), CC0 1.0, https://www.wikidata.org/
+
+Changes in Deku:
+  The frequency list is bundled as an offline, read-only Android asset and used to create a
+  two-character prefix index for on-device candidate lookup. No source sentences are distributed.
+  This dictionary is an MSA/newswire baseline, not an Algerian dialect lexicon, not a complete
+  morphological dictionary, and not a claim of comprehensive Arabic spell-checking.
+
+The upstream project's ATTRIBUTION.md and sources.json identify the frequency list as CC BY 4.0
+and state that the specific Leipzig download corpora were confirmed with the corpus provider on
+2026-08-04 as usable under that licence, including commercial use. The source project and its
+licence metadata are pinned above so the data chain is auditable.

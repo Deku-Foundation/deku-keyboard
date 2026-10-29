@@ -6,7 +6,7 @@ This repository began as an import of the FlorisBoard open-source codebase. Its 
 
 ## Current status
 
-This is a development baseline, not a stable release. The app/package rebrand has been applied. The package rebrand is complete and post-migration CI is being checked. The upstream add-ons endpoint is disabled until Deku has its own reviewed service; inherited store listings/screenshots still need replacement or explicit licensing review. Do not upload Fastlane metadata or publish builds as stable releases yet; see [fastlane/README.md](fastlane/README.md), [PRIVACY.md](PRIVACY.md), and [SECURITY_REVIEW.md](SECURITY_REVIEW.md).
+This is a development baseline, not a stable release. The app namespace and package rebrand are complete; post-migration CI is still being checked. The upstream add-ons endpoint remains disabled until Deku has its own reviewed service, and inherited store listings and screenshots need replacement or licensing review. Do not upload Fastlane metadata or publish builds as stable releases yet; see [fastlane/README.md](fastlane/README.md), [PRIVACY.md](PRIVACY.md), and [SECURITY_REVIEW.md](SECURITY_REVIEW.md).
 
 ## Issues and proposals
 
@@ -54,3 +54,7 @@ Do not post credentials, personal data, or unpatched vulnerability details in a 
 ---
 
 This contribution guide is maintained by Deku Foundation and replaces the upstream project-specific contribution instructions for this repository.
+
+## Documentation style
+
+Write for the reader's task. State what is implemented, what has been tested and what remains planned; keep important limitations and translations aligned. Follow the [Deku Foundation technical writing standard](https://github.com/Deku-Foundation/.github/blob/main/EDITORIAL_STYLE.md).

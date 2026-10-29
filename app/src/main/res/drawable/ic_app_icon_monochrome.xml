@@ -4,17 +4,20 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Deku Foundation modification (2026-10-25): monochrome version of the Deku keyboard mark. -->
-    <path android:fillColor="#000000" android:pathData="M34,35h9v8h-9z" />
-    <path android:fillColor="#000000" android:pathData="M49,35h9v8h-9z" />
-    <path android:fillColor="#000000" android:pathData="M64,35h9v8h-9z" />
-    <path android:fillColor="#000000" android:pathData="M30,46h9v8h-9z" />
-    <path android:fillColor="#000000" android:pathData="M42,46h9v8h-9z" />
-    <path android:fillColor="#000000" android:pathData="M54,46h9v8h-9z" />
-    <path android:fillColor="#000000" android:pathData="M66,46h9v8h-9z" />
-    <path android:fillColor="#000000" android:pathData="M30,57h9v6h-9z" />
-    <path android:fillColor="#000000" android:pathData="M42,57h9v6h-9z" />
-    <path android:fillColor="#000000" android:pathData="M54,57h9v6h-9z" />
-    <path android:fillColor="#000000" android:pathData="M66,57h9v6h-9z" />
-    <path android:fillColor="#000000" android:pathData="M39,66h30v4h-30z" />
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#000000"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M29,32 H79 C83.4,32 87,35.6 87,40 V67 C87,71.4 83.4,75 79,75 H29 C24.6,75 21,71.4 21,67 V40 C21,35.6 24.6,32 29,32 Z" />
+    <path
+        android:fillColor="#000000"
+        android:pathData="M30,41h9v7h-9z M43,41h9v7h-9z M56,41h9v7h-9z M69,41h9v7h-9z" />
+    <path
+        android:fillColor="#000000"
+        android:pathData="M30,52h9v7h-9z M43,52h9v7h-9z M56,52h9v7h-9z M69,52h9v7h-9z" />
+    <path
+        android:fillColor="#000000"
+        android:pathData="M30,63h9v6h-9z M43,63h22v6H43z M69,63h9v6h-9z" />
 </vector>

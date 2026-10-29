@@ -134,7 +134,6 @@ interface UserDictionaryDao {
 interface UserDictionaryDatabase {
     fun userDictionaryDao(): UserDictionaryDao
 
-    fun reset()
 
     fun importCombinedList(context: Context, uri: Uri) {
         context.contentResolver.readText(uri) { src ->
@@ -227,9 +226,6 @@ abstract class DekuUserDictionaryDatabase : RoomDatabase(), UserDictionaryDataba
 
     abstract override fun userDictionaryDao(): UserDictionaryDao
 
-    override fun reset() {
-        TODO("Not yet implemented")
-    }
 
     class Converters {
         @TypeConverter
@@ -465,9 +461,6 @@ class SystemUserDictionaryDatabase(context: Context) : UserDictionaryDatabase {
         return dao
     }
 
-    override fun reset() {
-        TODO("Not yet implemented")
-    }
 }
 
 object UserDictionaryValidation {

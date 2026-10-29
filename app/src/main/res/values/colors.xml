@@ -11,7 +11,7 @@
     <color name="textColorWarning">#000000</color>
     <color name="colorError">#B00020</color>
     <color name="textColorError">#FFFFFF</color>
-    <color name="ic_app_icon_background">#10172A</color>
+    <color name="ic_app_icon_background">#12372A</color>
     <color name="cardViewBackgroundColor">#FFFFFF</color>
     <color name="navigationBarColor">#000000</color>
     <color name="toolbarForegroundColor">#000000</color>

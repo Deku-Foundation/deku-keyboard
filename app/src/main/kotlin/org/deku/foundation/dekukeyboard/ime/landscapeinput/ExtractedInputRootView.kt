@@ -145,7 +145,7 @@ class ExtractedInputRootView(val ims: DekuImeService, eet: ExtractEditText?) : F
                             SnyggButton(
                                 DekuImeUi.ExtractedLandscapeInputAction.elementName,
                                 onClick = {
-                                    ims.imeController.updateStateBlocking {
+                                    ims.imeController.updateStateAsync {
                                         if (editorInfo.extractedActionId != 0) {
                                             state.editor.ic.get()?.performEditorAction(editorInfo.extractedActionId)
                                         } else {

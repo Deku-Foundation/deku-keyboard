@@ -27,16 +27,21 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import org.deku.foundation.dekukeyboard.app.DekuPreferenceModel
 import org.deku.foundation.dekukeyboard.app.DekuPreferenceStore
 import org.deku.foundation.dekukeyboard.app.LocalNavController
@@ -128,11 +133,37 @@ private class DekuScreenScopeImpl : DekuScreenScope {
     fun Render() {
         val context = LocalContext.current
         val previewFieldController = LocalPreviewFieldController.current
+        val lifecycleOwner = LocalLifecycleOwner.current
+        val latestPreviewFieldVisible = rememberUpdatedState(previewFieldVisible)
         val colorScheme = MaterialTheme.colorScheme
+
+        DisposableEffect(lifecycleOwner, previewFieldController) {
+            val observer = LifecycleEventObserver { _, event ->
+                when (event) {
+                    Lifecycle.Event.ON_RESUME ->
+                        previewFieldController?.isVisible = latestPreviewFieldVisible.value
+                    Lifecycle.Event.ON_PAUSE,
+                    Lifecycle.Event.ON_STOP ->
+                        previewFieldController?.isVisible = false
+                    else -> Unit
+                }
+            }
+            lifecycleOwner.lifecycle.addObserver(observer)
+            if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+                previewFieldController?.isVisible = latestPreviewFieldVisible.value
+            }
+            onDispose {
+                lifecycleOwner.lifecycle.removeObserver(observer)
+                // A leaving NavHost entry can be disposed after the entering entry resumed.
+                // Only this still-resumed entry may hide the shared preview field.
+                if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+                    previewFieldController?.isVisible = false
+                }
+            }
+        }
 
         SideEffect {
             val window = (context as Activity).window
-            previewFieldController?.isVisible = previewFieldVisible
             window.statusBarColor = Color.Transparent.toArgb()
             if (AndroidVersion.ATLEAST_API29_Q) {
                 window.navigationBarColor = Color.Transparent.toArgb()

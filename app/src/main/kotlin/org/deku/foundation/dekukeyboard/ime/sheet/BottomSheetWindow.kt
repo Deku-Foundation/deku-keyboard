@@ -32,7 +32,7 @@ fun BottomSheetWindow() {
     BottomSheetHostUi(
         isShowing = imeState.isAnyBottomSheetVisible(),
         onHide = {
-            imeController.updateStateBlocking {
+            imeController.updateStateAsync {
                 state = state.copy(
                     flags = state.flags
                         .withActionsEditorVisible(false)

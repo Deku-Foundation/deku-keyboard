@@ -39,8 +39,12 @@ data class FnKeyArrangement(
 
     companion object {
         val Default = FnKeyArrangement(
+            // A tap cycles to the next enabled language. A long press opens Deku's language
+            // list first, with Android's input-method picker remaining available as the next
+            // popup action instead of being the only long-press destination.
             simpleAction = FnKeyAction(ImeActions.SwitchToNextSubtype),
             longPressActions = listOf(
+                FnKeyAction(ImeActions.ShowSubtypePicker),
                 FnKeyAction(ImeActions.ShowInputMethodPicker),
             ),
         )

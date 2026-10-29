@@ -23,12 +23,13 @@ import org.deku.foundation.dekukeyboard.ime.nlp.SpellingProvider
 import org.deku.foundation.dekukeyboard.ime.nlp.SpellingResult
 import org.deku.foundation.dekukeyboard.ime.nlp.SuggestionCandidate
 import org.deku.foundation.dekukeyboard.ime.nlp.SuggestionProvider
-import org.deku.foundation.dekukeyboard.lib.devtools.flogDebug
+import org.deku.foundation.dekukeyboard.ime.nlp.WordSuggestionCandidate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
+import java.util.Locale
 import org.deku.foundation.dekukeyboard.lib.android.readText
 import org.deku.foundation.dekukeyboard.lib.kotlin.guardedByLock
 import org.k3lp.runtime.K3Content
@@ -45,6 +46,11 @@ class LatinLanguageProvider(context: Context) : SpellingProvider, SuggestionProv
     private val wordData = guardedByLock { mutableMapOf<String, Int>() }
     private val wordDataSerializer = MapSerializer(String.serializer(), Int.serializer())
 
+    // The bundled word-frequency asset is English-only. An immutable two-letter-prefix index
+    // keeps per-keystroke lookup bounded to one small bucket instead of scanning the full wordlist.
+    @Volatile
+    private var englishWordPrefixIndex: Map<String, List<Pair<String, Int>>> = emptyMap()
+
     override val providerId = ProviderId
 
     override suspend fun create() {
@@ -52,6 +58,10 @@ class LatinLanguageProvider(context: Context) : SpellingProvider, SuggestionProv
     }
 
     override suspend fun preload(subtype: Subtype) = withContext(Dispatchers.IO) {
+        // Never expose this English-only wordlist for Arabic or another language without a
+        // matching dictionary. Layout availability and suggestion-dictionary availability differ.
+        if (!supportsEnglishDictionary(subtype)) return@withContext
+
         // Here we have the chance to preload dictionaries and prepare a neural network for a specific language.
         // Is kept in sync with the active keyboard subtype of the user, however a new preload does not necessary mean
         // the previous language is not needed anymore (e.g. if the user constantly switches between two subtypes)
@@ -74,6 +84,7 @@ class LatinLanguageProvider(context: Context) : SpellingProvider, SuggestionProv
                 val rawData = appContext.assets.readText("ime/dict/data.json")
                 val jsonData = Json.decodeFromString(wordDataSerializer, rawData)
                 wordData.putAll(jsonData)
+                englishWordPrefixIndex = buildEnglishWordPrefixIndex(jsonData)
             }
         }
     }
@@ -87,14 +98,17 @@ class LatinLanguageProvider(context: Context) : SpellingProvider, SuggestionProv
         allowPossiblyOffensive: Boolean,
         isPrivateSession: Boolean,
     ): SpellingResult {
-        return when (word.lowercase()) {
-            // Use typo for typing errors
-            "typo" -> SpellingResult.typo(arrayOf("typo1", "typo2", "typo3"))
-            // Use grammar error if the algorithm can detect this. On Android 11 and lower grammar errors are visually
-            // marked as typos due to a lack of support
-            "gerror" -> SpellingResult.grammarError(arrayOf("grammar1", "grammar2", "grammar3"))
-            // Use valid word for valid input
-            else -> SpellingResult.validWord()
+        if (!supportsEnglishDictionary(subtype)) return SpellingResult.unspecified()
+        val normalizedWord = word.trim().lowercase(Locale.ROOT)
+        if (normalizedWord.isEmpty()) return SpellingResult.unspecified()
+
+        // Do not flag unknown names or words in unsupported dictionaries as correct. This
+        // bundled wordlist supports membership checks only; correction candidates are not
+        // fabricated when we have no reliable matching dictionary evidence.
+        return if (wordData.withLock { normalizedWord in it }) {
+            SpellingResult.validWord()
+        } else {
+            SpellingResult.unspecified()
         }
     }
 
@@ -105,47 +119,94 @@ class LatinLanguageProvider(context: Context) : SpellingProvider, SuggestionProv
         allowPossiblyOffensive: Boolean,
         isPrivateSession: Boolean,
     ): List<SuggestionCandidate> {
-        return emptyList()
-        /*val word = content.composingText.ifBlank { "next" }
-        val suggestions = buildList {
-            for (n in 0 until maxCandidateCount) {
-                add(WordSuggestionCandidate(
-                    text = "$word$n",
-                    secondaryText = if (n % 2 == 1) "secondary" else null,
-                    confidence = 0.5,
-                    isEligibleForAutoCommit = false,//n == 0 && word.startsWith("auto"),
-                    // We set ourselves as the source provider so we can get notify events for our candidate
-                    sourceProvider = this@LatinLanguageProvider,
-                ))
-            }
+        if (!supportsEnglishDictionary(subtype)) return emptyList()
+
+        // The active composition is a word, not the whole editor buffer. Only autocomplete
+        // an actual trailing word prefix; never rewrite text or infer a word after punctuation.
+        val compositionText = content.compositionText?.toString().orEmpty()
+        val prefix = TRAILING_ENGLISH_WORD.find(compositionText)?.value ?: return emptyList()
+        val candidates = findEnglishWordPrefixSuggestions(
+            index = englishWordPrefixIndex,
+            prefix = prefix,
+            maxCandidateCount = maxCandidateCount,
+            allowPossiblyOffensive = allowPossiblyOffensive,
+        )
+        return candidates.map { (word, frequency) ->
+            WordSuggestionCandidate(
+                text = preservePrefixCase(word, prefix),
+                confidence = (frequency / 255.0).coerceIn(0.0, 1.0),
+                isEligibleForAutoCommit = false,
+                isEligibleForUserRemoval = false,
+                sourceProvider = this,
+            )
         }
-        return suggestions*/
     }
 
-    override suspend fun notifySuggestionAccepted(subtype: Subtype, candidate: SuggestionCandidate) {
-        // We can use flogDebug, flogInfo, flogWarning and flogError for debug logging, which is a wrapper for Logcat
-        flogDebug { candidate.toString() }
-    }
+    override suspend fun notifySuggestionAccepted(subtype: Subtype, candidate: SuggestionCandidate) = Unit
 
-    override suspend fun notifySuggestionReverted(subtype: Subtype, candidate: SuggestionCandidate) {
-        flogDebug { candidate.toString() }
-    }
+    override suspend fun notifySuggestionReverted(subtype: Subtype, candidate: SuggestionCandidate) = Unit
 
-    override suspend fun removeSuggestion(subtype: Subtype, candidate: SuggestionCandidate): Boolean {
-        flogDebug { candidate.toString() }
-        return false
-    }
+    override suspend fun removeSuggestion(subtype: Subtype, candidate: SuggestionCandidate): Boolean = false
 
     override suspend fun getListOfWords(subtype: Subtype): List<String> {
+        if (!supportsEnglishDictionary(subtype)) return emptyList()
         return wordData.withLock { it.keys.toList() }
     }
 
     override suspend fun getFrequencyForWord(subtype: Subtype, word: String): Double {
-        return wordData.withLock { it.getOrDefault(word, 0) / 255.0 }
+        if (!supportsEnglishDictionary(subtype)) return 0.0
+        return wordData.withLock { it.getOrDefault(word.lowercase(Locale.ROOT), 0) / 255.0 }
     }
 
     override suspend fun destroy() {
-        // Here we have the chance to de-allocate memory and finish our work. However this might never be called if
-        // the app process is killed (which will most likely always be the case).
+        // Here we have the chance to de-allocate memory and finish our work. However this might never be called if the app process is killed (which will most likely always be the case).
     }
+}
+
+private val TRAILING_ENGLISH_WORD = Regex("[\\p{L}][\\p{L}\\p{M}'-]*$")
+private val KNOWN_OFFENSIVE_WORDS = setOf(
+    "ass", "asshole", "bastard", "bitch", "bullshit", "crap", "cunt",
+    "damn", "dick", "fuck", "fucking", "motherfucker", "piss", "shit", "shitty", "wtf",
+)
+
+internal fun supportsEnglishDictionary(subtype: Subtype): Boolean =
+    subtype.primaryLocale.language.equals("en", ignoreCase = true)
+
+internal fun buildEnglishWordPrefixIndex(
+    words: Map<String, Int>,
+): Map<String, List<Pair<String, Int>>> {
+    return words.asSequence()
+        .map { (word, frequency) -> word.lowercase(Locale.ROOT) to frequency }
+        .filter { (word, _) -> word.length >= 2 }
+        .distinctBy { it.first }
+        .groupBy { (word, _) -> word.take(2) }
+        .mapValues { (_, entries) ->
+            entries.sortedWith(
+                compareByDescending<Pair<String, Int>> { it.second }
+                    .thenBy { it.first },
+            )
+        }
+}
+
+internal fun findEnglishWordPrefixSuggestions(
+    index: Map<String, List<Pair<String, Int>>>,
+    prefix: String,
+    maxCandidateCount: Int,
+    allowPossiblyOffensive: Boolean,
+): List<Pair<String, Int>> {
+    val normalizedPrefix = prefix.trim().lowercase(Locale.ROOT)
+    if (normalizedPrefix.length < 2 || maxCandidateCount <= 0) return emptyList()
+
+    return index[normalizedPrefix.take(2)].orEmpty()
+        .asSequence()
+        .filter { (word, _) -> word.startsWith(normalizedPrefix) && word != normalizedPrefix }
+        .filter { (word, _) -> allowPossiblyOffensive || word !in KNOWN_OFFENSIVE_WORDS }
+        .take(maxCandidateCount.coerceAtMost(9))
+        .toList()
+}
+
+internal fun preservePrefixCase(candidate: String, prefix: String): String = when {
+    prefix.isNotEmpty() && prefix == prefix.uppercase(Locale.ROOT) -> candidate.uppercase(Locale.ROOT)
+    prefix.firstOrNull()?.isUpperCase() == true -> candidate.replaceFirstChar { it.titlecase(Locale.ROOT) }
+    else -> candidate
 }

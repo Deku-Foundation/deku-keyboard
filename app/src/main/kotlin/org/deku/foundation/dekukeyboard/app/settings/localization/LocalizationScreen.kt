@@ -16,14 +16,19 @@
 
 package org.deku.foundation.dekukeyboard.app.settings.localization
 
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
@@ -37,6 +42,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import org.deku.foundation.dekukeyboard.R
+import org.deku.foundation.dekukeyboard.app.DekuPreferenceStore
 import org.deku.foundation.dekukeyboard.app.LocalNavController
 import org.deku.foundation.dekukeyboard.app.Routes
 import org.deku.foundation.dekukeyboard.app.enumDisplayEntriesOf
@@ -71,7 +77,10 @@ fun LocalizationScreen() = DekuScreen {
 
     val navController = LocalNavController.current
     val context = LocalContext.current
+    val prefs by DekuPreferenceStore
     val subtypeManager by context.subtypeManager()
+    val displayLanguageNamesIn by prefs.localization.displayLanguageNamesIn.collectAsState()
+    val subtypesReady by subtypeManager.isInitializedFlow.collectAsState()
     var chosenSubtypeToDelete: Subtype? by rememberSaveable(saver = SubtypeSaver) { mutableStateOf(null) }
 
     floatingActionButton {
@@ -88,7 +97,7 @@ fun LocalizationScreen() = DekuScreen {
                 )
             },
             shape = FloatingActionButtonDefaults.extendedFabShape,
-            onClick = { navController.navigate(Routes.Settings.SubtypeAdd) },
+            onClick = { if (subtypesReady) navController.navigate(Routes.Settings.SubtypeAdd) },
         )
     }
 
@@ -111,45 +120,70 @@ fun LocalizationScreen() = DekuScreen {
         )
         PreferenceGroup(title = stringRes(R.string.settings__localization__group_subtypes__label)) {
             val subtypes by subtypeManager.subtypesFlow.collectAsState()
-            if (subtypes.isEmpty()) {
+            if (!subtypesReady) {
+                Text(
+                    modifier = Modifier.padding(all = 8.dp),
+                    text = stringRes(R.string.settings__localization__loading),
+                )
+            } else if (subtypes.isEmpty()) {
                 DekuWarningCard(
                     modifier = Modifier.padding(all = 8.dp),
                     text = stringRes(R.string.settings__localization__subtype_no_subtypes_configured_warning),
                 )
             } else {
-                /*
-                val currencySets by keyboardManager.resources.currencySets.collectAsState()
-                val layouts by keyboardManager.resources.layouts.collectAsState()
-                val displayLanguageNamesIn by prefs.localization.displayLanguageNamesIn.collectAsState()
+                val activeSubtype by subtypeManager.activeSubtypeFlow.collectAsState()
                 for (subtype in subtypes) {
-                    val cMeta = layouts[LayoutType.CHARACTERS]?.get(subtype.layoutMap.characters)
-                    val sMeta = layouts[LayoutType.SYMBOLS]?.get(subtype.layoutMap.symbols)
-                    val currMeta = currencySets[subtype.currencySet]
-                    val summary = stringRes(
-                        id = R.string.settings__localization__subtype_summary,
-                        "characters_name" to (cMeta?.label ?: "null"),
-                        "symbols_name" to (sMeta?.label ?: "null"),
-                        "currency_set_name" to (currMeta?.label ?: "null"),
-                    )
-                    Preference(
-                        title = when (displayLanguageNamesIn) {
-                            DisplayLanguageNamesIn.SYSTEM_LOCALE -> subtype.primaryLocale.displayName()
-                            DisplayLanguageNamesIn.NATIVE_LOCALE -> subtype.primaryLocale.displayName(subtype.primaryLocale)
-                        },
-                        summary = summary,
-                        modifier = Modifier.combinedClickable(
-                            onClick = {
-                                navController.navigate(
-                                    Routes.Settings.SubtypeEdit(subtype.id)
+                    val name = when (displayLanguageNamesIn) {
+                        DisplayLanguageNamesIn.SYSTEM_LOCALE -> subtype.primaryLocale.displayName()
+                        DisplayLanguageNamesIn.NATIVE_LOCALE -> subtype.primaryLocale.displayName(subtype.primaryLocale)
+                    }
+                    androidx.compose.material3.ListItem(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { subtypeManager.switchToSubtypeById(subtype.id) },
+                        leadingContent = {
+                            if (activeSubtype.id == subtype.id) {
+                                Icon(
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = stringRes(R.string.settings__localization__active_language),
                                 )
-                            },
-                            onLongClick = {
-                                chosenSubtypeToDelete = subtype
-                            },
-                        )
+                            }
+                        },
+                        headlineContent = { Text(name) },
+                        supportingContent = {
+                            Text(
+                                buildString {
+                                    append(subtype.primaryLocale.languageTag())
+                                    subtype.characterLayoutId?.let { layoutId ->
+                                        append(" · ")
+                                        append(layoutId.replace('_', ' '))
+                                    }
+                                }
+                            )
+                        },
+                        trailingContent = {
+                            Row {
+                                IconButton(
+                                    onClick = {
+                                        navController.navigate(Routes.Settings.SubtypeEdit(subtype.id))
+                                    },
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Edit,
+                                        contentDescription = stringRes(R.string.settings__localization__subtype_edit_title),
+                                    )
+                                }
+                                IconButton(onClick = { chosenSubtypeToDelete = subtype }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Delete,
+                                        contentDescription = stringRes(R.string.action__delete),
+                                        tint = androidx.compose.material3.MaterialTheme.colorScheme.error,
+                                    )
+                                }
+                            }
+                        },
                     )
                 }
-                 */
             }
         }
     }

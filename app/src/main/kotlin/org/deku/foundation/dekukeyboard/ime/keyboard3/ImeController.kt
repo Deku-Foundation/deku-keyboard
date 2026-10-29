@@ -5,7 +5,6 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
-import org.deku.foundation.dekukeyboard.ime.text.key.KeyCode
  * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
@@ -22,6 +21,7 @@ import android.text.TextUtils
 import android.view.KeyEvent
 import android.view.inputmethod.InputConnection
 import androidx.compose.runtime.staticCompositionLocalOf
+import org.deku.foundation.dekukeyboard.DekuApplication
 import org.deku.foundation.dekukeyboard.DekuImeService
 import org.deku.foundation.dekukeyboard.app.DekuPreferenceStore
 import org.deku.foundation.dekukeyboard.ime.ImeUiMode
@@ -31,6 +31,7 @@ import org.deku.foundation.dekukeyboard.ime.clipboard.provider.ItemType
 import org.deku.foundation.dekukeyboard.ime.editor.DekuEditorInfo
 import org.deku.foundation.dekukeyboard.ime.editor.ImeOptions
 import org.deku.foundation.dekukeyboard.ime.editor.InputAttributes
+import org.deku.foundation.dekukeyboard.ime.editor.requiresVisiblePasswordEnterFallback
 import org.deku.foundation.dekukeyboard.ime.io.StorageController
 import org.deku.foundation.dekukeyboard.ime.keyboard.IncognitoMode
 import org.deku.foundation.dekukeyboard.ime.keyboard3.extension.loadFoundationKeyboard
@@ -45,6 +46,7 @@ import org.deku.foundation.dekukeyboard.ime.media.emoji.EmojiSuggestionType
 import org.deku.foundation.dekukeyboard.ime.nlp.BreakIterators
 import org.deku.foundation.dekukeyboard.ime.nlp.ClipboardSuggestionCandidate
 import org.deku.foundation.dekukeyboard.ime.nlp.SuggestionCandidate
+import org.deku.foundation.dekukeyboard.ime.nlp.shouldBlockNlpSuggestions
 import org.deku.foundation.dekukeyboard.ime.text.key.KeyVariation
 import org.deku.foundation.dekukeyboard.lib.DekuLocale
 import org.deku.foundation.dekukeyboard.lib.devtools.flogDebug
@@ -56,7 +58,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import org.deku.foundation.dekukeyboard.lib.kotlin.collectIn
 import org.k3lp.lib.text.K3Descriptor
 import org.k3lp.lib.text.K3String
@@ -78,9 +79,10 @@ val LocalImeController = staticCompositionLocalOf<ImeController> {
 
 class ImeController(
     storageController: StorageController,
-    val clipboardManager: ClipboardManager, // TODO ClipboardController
+    val clipboardManager: ClipboardManager,
     initialState: ImeState = ImeState(),
     val touchModelCache: TouchModelCache = TouchModelCache(),
+    private val application: DekuApplication? = null,
 ) : K3InputMethod<ImeState, ImeEditor, ImeController.UpdateImeStateScope>(
     initialState = initialState,
 ) {
@@ -88,6 +90,8 @@ class ImeController(
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private val breakIterators = BreakIterators()
     private val expectedContentQueue = ExpectedContentQueue()
+    private val touchShiftKeyPressed = MutableStateFlow(false)
+    private val hardwareShiftKeysPressed = MutableStateFlow<Set<Int>>(emptySet())
 
     val activeTouchModelOptions = combine<Any, TouchModelOptions>(
         prefs.keyboard.numberRow.asFlow(),
@@ -111,7 +115,6 @@ class ImeController(
         )
     }.stateIn(scope, SharingStarted.Eagerly, TouchModelOptions.Default)
 
-    // TODO check if we can implement this differently
     val activeSmartbarVisibleDynamicActionsCount = MutableStateFlow(0)
 
     init {
@@ -129,53 +132,56 @@ class ImeController(
             }
         }
 
-        // TODO proper stateful compilation
-        scope.launch {
-            loadFoundationKeyboard(this@ImeController, storageController.activeStorage.value)
+        application?.let { app ->
+            scope.launch {
+                loadFoundationKeyboard(
+                    imeController = this@ImeController,
+                    storage = storageController.activeStorage.value,
+                    app = app,
+                )
+            }
         }
     }
 
     fun onHardwareKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        if (event == null) {
+        if (event == null) return false
+        if (keyCode == KeyEvent.KEYCODE_SHIFT_LEFT || keyCode == KeyEvent.KEYCODE_SHIFT_RIGHT) {
+            hardwareShiftKeysPressed.value = hardwareShiftKeysPressed.value + keyCode
             return false
         }
-        return when (keyCode) {
-            // TODO KeyEvent.KEYCODE_SPACE (auto-commit candidate)
-            KeyEvent.KEYCODE_DEL -> true
-            KeyEvent.KEYCODE_FORWARD_DEL -> true
-            // TODO KeyEvent.KEYCODE_SHIFT_LEFT, KeyEvent.KEYCODE_SHIFT_RIGHT
-            else -> false
-        }
+        return keyCode == KeyEvent.KEYCODE_DEL || keyCode == KeyEvent.KEYCODE_FORWARD_DEL
     }
 
     fun onHardwareKeyUp(keyCode: Int, event: KeyEvent?): Boolean {
-        if (event == null) {
+        if (event == null) return false
+        if (keyCode == KeyEvent.KEYCODE_SHIFT_LEFT || keyCode == KeyEvent.KEYCODE_SHIFT_RIGHT) {
+            hardwareShiftKeysPressed.value = hardwareShiftKeysPressed.value - keyCode
             return false
         }
         return when (keyCode) {
             KeyEvent.KEYCODE_DEL -> {
-                updateStateBlocking {
-                    emitBackspace()
-                }
+                updateStateAsync { emitBackspace() }
                 true
             }
             KeyEvent.KEYCODE_FORWARD_DEL -> {
-                updateStateBlocking {
-                    emitForwardDelete()
-                }
+                updateStateAsync { emitForwardDelete() }
                 true
             }
-            // TODO KeyEvent.KEYCODE_SHIFT_LEFT, KeyEvent.KEYCODE_SHIFT_RIGHT
             else -> false
         }
     }
 
+    fun setTouchShiftKeyPressed(pressed: Boolean) {
+        touchShiftKeyPressed.value = pressed
+    }
+
+    private fun isShiftKeyPressed(): Boolean =
+        touchShiftKeyPressed.value || hardwareShiftKeysPressed.value.isNotEmpty()
+
     fun snapshotState(): ImeState = activeState.value
 
-    // TODO evaluate if we can move to a clean coroutine-based approach in DekuKeyboard
-    //  for now this helper can be used to update the state from non-suspending contexts
-    inline fun updateStateBlocking(crossinline function: UpdateImeStateScope.() -> Unit) {
-        runBlocking {
+    fun updateStateAsync(function: UpdateImeStateScope.() -> Unit) {
+        scope.launch(Dispatchers.Main.immediate) {
             updateState(function)
         }
     }
@@ -195,7 +201,11 @@ class ImeController(
             val keyVariation: KeyVariation
             when (info.inputAttributes.type) {
                 InputAttributes.Type.NUMBER -> {
-                    keyVariation = KeyVariation.NORMAL
+                    keyVariation = if (info.inputAttributes.isPasswordField) {
+                        KeyVariation.PASSWORD
+                    } else {
+                        KeyVariation.NORMAL
+                    }
                     newTouchLayerId = ImeLayerIds.Numpad
                 }
                 InputAttributes.Type.PHONE -> {
@@ -230,17 +240,23 @@ class ImeController(
                 }
             }
             val initialSelection = info.initialSelection
-            val initialSurrounding = K3SurroundingText(
-                textBefore = info.getInitialTextBeforeCursor(20)?.toString() ?: "",
-                textSelected = info.getInitialSelectedText()?.toString() ?: "",
-                textAfter = info.getInitialTextAfterCursor(20)?.toString() ?: "",
-            )
+            // Never request the surrounding text of a password field. The empty state also
+            // prevents an earlier field's transient text from being reused across an editor switch.
+            val initialSurrounding = if (info.inputAttributes.isPasswordField) {
+                K3SurroundingText.Empty
+            } else {
+                K3SurroundingText(
+                    textBefore = info.getInitialTextBeforeCursor(20)?.toString() ?: "",
+                    textSelected = info.getInitialSelectedText()?.toString() ?: "",
+                    textAfter = info.getInitialTextAfterCursor(20)?.toString() ?: "",
+                )
+            }
 
             val rememberCapsLockState = prefs.typing.rememberCapsLockState.get() &&
                 state.flags.inputShiftState == InputShiftState.CAPS_LOCK
 
             state = state.copy(
-                editor = ImeEditor(ic, info),
+                editor = ImeEditor(ic, info, application),
                 touchLayerId = when {
                     rememberCapsLockState && newTouchLayerId.isTextLayer() -> ImeLayerIds.Caps
                     else -> newTouchLayerId
@@ -307,18 +323,21 @@ class ImeController(
         override fun emitDescriptor(descriptor: K3Descriptor) {
             val windowController = DekuImeService.windowControllerOrNull()
             when (descriptor) {
-                // TODO once k3lp supports this remove
+                // K3 currently routes forward-delete through the Delete descriptor.
                 ImeActions.Delete -> emitForwardDelete()
-                // TODO evaluate use of modern cursor anchor API instead of sending raw key events
+                // Use editor key events for cursor movement because the K3 descriptor API does not expose range movement.
                 ImeActions.ArrowDown -> state.editor.sendDownUpKeyEvent(KeyEvent.KEYCODE_DPAD_DOWN)
                 ImeActions.ArrowLeft -> state.editor.sendDownUpKeyEvent(KeyEvent.KEYCODE_DPAD_LEFT)
                 ImeActions.ArrowRight -> state.editor.sendDownUpKeyEvent(KeyEvent.KEYCODE_DPAD_RIGHT)
                 ImeActions.ArrowUp -> state.editor.sendDownUpKeyEvent(KeyEvent.KEYCODE_DPAD_UP)
-                // TODO clipboard manager needs a rewrite to match the new state paradigm
                 ImeActions.ClipboardCopy -> {
                     if (state.editor.info.isRichInputEditor) {
-                        val text = state.content.surroundingText.textSelected
-                        if (text.isNotEmpty()) {
+                        // Do not copy the cached surrounding-text snapshot: it can be stale or
+                        // truncated for large selections in some InputConnection implementations.
+                        // Query the editor at action time so internal-only clipboard mode remains
+                        // supported without forcing a copy through the system clipboard.
+                        val text = state.editor.getSelectedText()
+                        if (!text.isNullOrEmpty()) {
                             clipboardManager.addNewPlaintext(text)
                         }
                     } else {
@@ -327,8 +346,10 @@ class ImeController(
                 }
                 ImeActions.ClipboardCut -> {
                     if (state.editor.info.isRichInputEditor) {
-                        val text = state.content.surroundingText.textSelected
-                        if (text.isNotEmpty()) {
+                        // Match Copy's live selection read so large selections are not truncated
+                        // by a stale surrounding-text snapshot before the selection is deleted.
+                        val text = state.editor.getSelectedText()
+                        if (!text.isNullOrEmpty()) {
                             clipboardManager.addNewPlaintext(text)
                             emitBackspace()
                         }
@@ -377,9 +398,23 @@ class ImeController(
                 ImeActions.ShowInputMethodPicker -> DekuImeService.showImePicker()
                 ImeActions.SwitchToPrevInputMethod -> DekuImeService.switchToPrevInputMethod()
                 ImeActions.SwitchToNextInputMethod -> DekuImeService.switchToNextInputMethod()
-                ImeActions.ShowSubtypePicker -> {} // TODO
-                ImeActions.SwitchToPrevSubtype -> {} // TODO
-                ImeActions.SwitchToNextSubtype -> {} // TODO
+                ImeActions.ShowSubtypePicker -> {
+                    state = state.copy(
+                        flags = state.flags.withSubtypeSelectionVisible(!state.flags.isSubtypeSelectionVisible),
+                    )
+                }
+                ImeActions.SwitchToPrevSubtype -> {
+                    application?.subtypeManager?.value?.switchToPrevSubtype()
+                    state = state.copy(
+                        flags = state.flags.withSubtypeSelectionVisible(false),
+                    )
+                }
+                ImeActions.SwitchToNextSubtype -> {
+                    application?.subtypeManager?.value?.switchToNextSubtype()
+                    state = state.copy(
+                        flags = state.flags.withSubtypeSelectionVisible(false),
+                    )
+                }
                 ImeActions.ToggleActionsEditor -> {
                     state = state.copy(
                         flags = state.flags
@@ -404,15 +439,33 @@ class ImeController(
         }
 
         override fun emitBackspace() {
-            super.emitBackspace()
+            val editorInfo = state.editor.info
+            val surrounding = state.content.surroundingText
+            val hasNoReportedSurroundingText = surrounding.textBefore.isEmpty() &&
+                surrounding.textSelected.isEmpty() &&
+                surrounding.textAfter.isEmpty()
+            if (
+                hasNoReportedSurroundingText &&
+                requiresVisiblePasswordEnterFallback(editorInfo.inputAttributes, editorInfo.imeOptions)
+            ) {
+                // Work around host engines that report VISIBLE_PASSWORD but fail to expose text to
+                // InputConnection; a physical delete event lets the host update its own text model.
+                state.editor.sendDownUpKeyEvent(KeyEvent.KEYCODE_DEL)
+            } else {
+                super.emitBackspace()
+            }
             expectedContentQueue.push(state.content)
         }
 
         override fun emitEnter() {
             val info = state.editor.info
-            val isShiftPressed = false // TODO inputEventDispatcher.isPressed(KeyCode.SHIFT)
+            val isShiftPressed = isShiftKeyPressed()
             if (info.imeOptions.flagNoEnterAction || info.inputAttributes.flagTextMultiLine && isShiftPressed) {
                 emitEnterKey()
+            } else if (requiresVisiblePasswordEnterFallback(info.inputAttributes, info.imeOptions)) {
+                // A few game engines expose a visible-password EditorInfo for ordinary single-line
+                // name fields. An explicit Enter key event is more compatible than IME action 0.
+                state.editor.sendDownUpKeyEvent(KeyEvent.KEYCODE_ENTER)
             } else {
                 when (val action = info.imeOptions.action) {
                     ImeOptions.Action.UNSPECIFIED,
@@ -441,35 +494,53 @@ class ImeController(
         }
 
         fun emitForwardDelete() {
-            // TODO request additional text if too low on context length
             if (state.content.selection.isNotCollapsed()) {
                 emitBackspace()
             } else {
+                // Cached surrounding text may be truncated or stale. Read enough live text to
+                // identify the first code point (including a UTF-16 surrogate pair), then let
+                // InputConnection perform code-point-aware deletion in the host editor.
+                val liveTextAfterCursor = state.editor
+                    .getSurroundingText(charsBefore = 0, charsAfter = 2)
+                    .textAfter
                 val newSurroundingText = state.content.surroundingText.copy(
-                    textAfter = state.content.surroundingText.textAfter.let { text ->
-                        // TODO unicode
-                        if (text.isEmpty()) text else text.substring(1)
-                    },
+                    // Preserve the entire cached context; the live two-unit probe is only used to
+                    // choose the correct deletion API and must not truncate prediction context.
+                    textAfter = removeLeadingCodePoint(state.content.surroundingText.textAfter),
                 )
                 state = state.copy(
                     content = state.content.copy(
                         surroundingText = newSurroundingText,
                     ),
                 )
-                state.editor.deleteSurroundingText(
+                val deletedByCodePoint = state.editor.deleteSurroundingTextInCodePoints(
                     charsBefore = 0,
-                    charsAfter = 1, // TODO
+                    charsAfter = 1,
                 )
+                if (!deletedByCodePoint) {
+                    // Some pre-Android-13 editor implementations do not support code-point
+                    // deletion. Preserve surrogate pairs when falling back to UTF-16 units.
+                    val utf16Length = firstCodePointUtf16Length(liveTextAfterCursor)
+                    if (utf16Length > 0) {
+                        state.editor.deleteSurroundingText(charsBefore = 0, charsAfter = utf16Length)
+                    } else {
+                        state.editor.sendDownUpKeyEvent(KeyEvent.KEYCODE_FORWARD_DEL)
+                    }
+                }
             }
         }
 
         fun emitCandidate(candidate: SuggestionCandidate) {
-//            scope.launch {
-//                candidate.sourceProvider?.notifySuggestionAccepted(subtypeManager.activeSubtype, candidate)
-//            }
             when (candidate) {
                 is ClipboardSuggestionCandidate -> emitClipboardItem(candidate.clipboardItem)
-                else -> emitCompletion(candidate)
+                else -> {
+                    if (!emitCompletion(candidate)) return
+                    val app = application ?: return
+                    val provider = candidate.sourceProvider ?: return
+                    scope.launch {
+                        provider.notifySuggestionAccepted(app.subtypeManager.value.activeSubtype, candidate)
+                    }
+                }
             }
         }
 
@@ -498,24 +569,24 @@ class ImeController(
 
         fun emitCompletion(candidate: SuggestionCandidate): Boolean {
             val text = candidate.text.toString()
-            if (text.isEmpty() || state.editor.info.isRawInputEditor) return false
-//            val content = activeContent
-//            return if (content.composing.isValid) {
-//                phantomSpace.setActive(showComposingRegion = false, candidate = candidate)
-//                super.finalizeComposingText(text)
-//            } else {
-//                val isPhantomSpaceActive = phantomSpace.determine(text)
-//                phantomSpace.setActive(showComposingRegion = false, candidate = candidate)
-//                return if (isPhantomSpaceActive) {
-//                    super.commitText("$SPACE$text")
-//                } else {
-//                    super.commitText(text)
-//                }.also {
-//                    // handled in finalizeComposingText if content.composing.isValid
-//                    updateLastCommitPosition()
-//                }
-//            }
-            return false
+            if (
+                text.isBlank() ||
+                state.editor.info.isRawInputEditor ||
+                shouldBlockNlpSuggestions(
+                    isIncognitoMode = state.flags.isIncognitoMode,
+                    inputAttributes = state.editor.info.inputAttributes,
+                    imeOptions = state.editor.info.imeOptions,
+                )
+            ) {
+                return false
+            }
+
+            val didCommit = state.editor.commitText(text)
+            if (didCommit) {
+                expectedContentQueue.push(state.content)
+                reevaluateInputShiftState()
+            }
+            return didCommit
         }
 
         override fun switchTouchLayer(newTouchLayerId: K3LayerId) {
@@ -559,7 +630,7 @@ class ImeController(
         }
 
         fun reevaluateInputShiftState() {
-            val isPeekOngoing = false // TODO
+            val isPeekOngoing = isShiftKeyPressed()
             if (state.flags.inputShiftState == InputShiftState.CAPS_LOCK || isPeekOngoing) return
             val capsMode = state.content.cursorCapsMode(state.editor.info.inputAttributes)
             val shift = prefs.typing.autoCapitalization.get()
@@ -603,7 +674,6 @@ class ImeController(
             if (selection.isNotCollapsed() || !state.flags.isComposingEnabled) {
                 return null
             }
-            // TODO rework how we get the primary locale
             val locale = DekuLocale.fromTag(model.locales.getOrElse(0) { "" })
             return breakIterators.word(locale) {
                 it.setText(surroundingText.textBefore)

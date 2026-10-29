@@ -16,7 +16,13 @@
 
 package org.deku.foundation.dekukeyboard.ime.keyboard3.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.runtime.Composable
@@ -46,7 +52,10 @@ fun LongPressBox(
     modifier: Modifier = Modifier,
     attributes: SnyggQueryAttributes = emptyMap(),
 ) {
-    val isPopupShowing = longPress.shouldShowSimplePopup() || longPress.shouldShowExtendedPopup()
+    val showSimplePopup = longPress.shouldShowSimplePopup()
+    val showExtendedPopup = longPress.shouldShowExtendedPopup()
+    val isPopupShowing = showSimplePopup || showExtendedPopup
+
     DisposableEffect(isPopupShowing) {
         val delta = if (isPopupShowing) 1 else 0
         GlobalStateNumPopupsShowing.update { it + delta }
@@ -55,7 +64,9 @@ fun LongPressBox(
         }
     }
 
-    if (longPress.shouldShowSimplePopup()) {
+    // Keep the ordinary key preview immediate; animate only the larger long-press panel
+    // so animation never delays visual feedback while the user types rapidly.
+    if (showSimplePopup) {
         SnyggBox(
             elementName = DekuImeUi.KeyPopupBox.elementName,
             attributes = attributes,
@@ -80,11 +91,17 @@ fun LongPressBox(
         }
     }
 
-    if (longPress.shouldShowExtendedPopup()) {
+    AnimatedVisibility(
+        visible = showExtendedPopup,
+        modifier = modifier.layoutNormalized(longPress.extendedBounds),
+        enter = fadeIn(animationSpec = tween(100)) +
+            scaleIn(initialScale = 0.96f, animationSpec = tween(100)),
+        exit = ExitTransition.None,
+    ) {
         SnyggBox(
             elementName = DekuImeUi.KeyPopupBox.elementName,
             attributes = attributes,
-            modifier = modifier.layoutNormalized(longPress.extendedBounds),
+            modifier = Modifier.fillMaxSize(),
         ) {
             val extendedKeys = longPress.extendedKeys
             val focusedIndex = longPress.extendedFocusedIndex

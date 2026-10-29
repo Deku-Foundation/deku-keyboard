@@ -30,6 +30,23 @@ value class InputAttributes private constructor(val raw: Int) {
     val type: Type
         get() = Type.fromInt(raw and InputType.TYPE_MASK_CLASS)
 
+    /**
+     * True for text and numeric password editor variations. Keyboard NLP, learning, and candidate
+     * generation must not process content from these fields, even if the host omitted
+     * IME_FLAG_NO_PERSONALIZED_LEARNING.
+     */
+    val isPasswordField: Boolean
+        get() = when (type) {
+            Type.TEXT -> when (variation) {
+                Variation.PASSWORD,
+                Variation.VISIBLE_PASSWORD,
+                Variation.WEB_PASSWORD -> true
+                else -> false
+            }
+            Type.NUMBER -> variation == Variation.PASSWORD
+            else -> false
+        }
+
     val variation: Variation
         get() = when (type) {
             Type.DATETIME -> when (raw and InputType.TYPE_MASK_VARIATION) {
@@ -87,6 +104,26 @@ value class InputAttributes private constructor(val raw: Int) {
 
     val flagTextNoSuggestions: Boolean
         get() = type == Type.TEXT && (raw and InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS != 0)
+
+    /** Fields whose contents should not enter suggestion, autocorrection, or learning pipelines. */
+    val blocksSuggestionsAndLearning: Boolean
+        get() = when (type) {
+            Type.NULL,
+            Type.DATETIME,
+            Type.NUMBER,
+            Type.PHONE -> true
+            Type.TEXT -> flagTextNoSuggestions || when (variation) {
+                Variation.EMAIL_ADDRESS,
+                Variation.EMAIL_SUBJECT,
+                Variation.PASSWORD,
+                Variation.URI,
+                Variation.VISIBLE_PASSWORD,
+                Variation.WEB_EDIT_TEXT,
+                Variation.WEB_EMAIL_ADDRESS,
+                Variation.WEB_PASSWORD -> true
+                else -> false
+            }
+        }
 
 
 

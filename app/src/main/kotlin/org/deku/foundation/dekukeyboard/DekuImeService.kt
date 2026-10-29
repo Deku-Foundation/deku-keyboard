@@ -17,6 +17,7 @@
 package org.deku.foundation.dekukeyboard
 
 import android.content.Context
+import android.content.res.Resources
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.res.Configuration
@@ -36,6 +37,7 @@ import android.view.inputmethod.InputConnection
 import android.view.inputmethod.InputMethodInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.inline.InlinePresentationSpec
+import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -248,8 +250,11 @@ class DekuImeService : LifecycleInputMethodService() {
                 }
             }
         }
-        // TODO we have no access to interactionController here
-        // showShortToastSync("Failed to find voice IME, do you have one installed?")
+        Toast.makeText(
+            this,
+            R.string.ime__voice_input_unavailable,
+            Toast.LENGTH_SHORT,
+        ).show()
         return false
     }
 
@@ -269,6 +274,7 @@ class DekuImeService : LifecycleInputMethodService() {
         private set
 
     private val wallpaperChangeReceiver = WallpaperChangeReceiver()
+    private var imeRootView: ImeRootView? = null
 
     init {
         setTheme(R.style.DekuImeTheme)
@@ -281,10 +287,6 @@ class DekuImeService : LifecycleInputMethodService() {
 
         WindowCompat.setDecorFitsSystemWindows(window.window!!, false)
         windowController.onConfigurationChanged(resources.configuration)
-        windowController.activeWindowConfig.collectLatestIn(lifecycleScope) {
-            // TODO update inputMethod state
-        }
-
         combine(
             systemLocalesFlow,
             subtypeManager.activeSubtypeFlow,
@@ -307,6 +309,12 @@ class DekuImeService : LifecycleInputMethodService() {
             updateInputViewShown()
         }
 
+        // InputMethodService does not automatically reevaluate fullscreen mode when this
+        // preference changes while the IME service remains alive.
+        prefs.keyboard.landscapeInputUiMode.asFlow().collectIn(lifecycleScope) {
+            updateFullscreenMode()
+        }
+
         @Suppress("DEPRECATION") // We do not retrieve the wallpaper but only listen to changes
         registerReceiver(wallpaperChangeReceiver, IntentFilter(Intent.ACTION_WALLPAPER_CHANGED))
     }
@@ -314,7 +322,20 @@ class DekuImeService : LifecycleInputMethodService() {
     override fun onCreateInputView(): View? {
         super.installViewTreeOwners()
         val content = window.window!!.findViewById<ViewGroup>(android.R.id.content)
-        content.addView(ImeRootView(this))
+
+        // Android may recreate the input view while this service is still alive. Because the
+        // custom root is attached directly to the window content (and the default input view is
+        // disabled below), remove any prior root before attaching a new Compose tree.
+        for (index in content.childCount - 1 downTo 0) {
+            if (content.getChildAt(index) is ImeRootView) {
+                content.removeViewAt(index)
+            }
+        }
+
+        ImeRootView(this).also { root ->
+            imeRootView = root
+            content.addView(root)
+        }
         // Disable the default input view placement
         return null
     }
@@ -349,6 +370,10 @@ class DekuImeService : LifecycleInputMethodService() {
     }
 
     override fun onDestroy() {
+        imeRootView?.let { root ->
+            (root.parent as? ViewGroup)?.removeView(root)
+        }
+        imeRootView = null
         super.onDestroy()
         unregisterReceiver(wallpaperChangeReceiver)
         DekuImeServiceReference = WeakReference(null)
@@ -367,7 +392,7 @@ class DekuImeService : LifecycleInputMethodService() {
         currentInputConnection?.requestCursorUpdates(ImeEditor.CURSOR_UPDATES)
         val ic = WeakReference(currentInputConnection)
         val editorInfo = DekuEditorInfo.wrap(info)
-        imeController.updateStateBlocking {
+        imeController.updateStateAsync {
             handleStartInputView(ic, editorInfo)
         }
     }
@@ -388,7 +413,7 @@ class DekuImeService : LifecycleInputMethodService() {
             end = cursorAnchorInfo.selectionEnd,
         )
         flogInfo { "new=$newSelection" }
-        imeController.updateStateBlocking {
+        imeController.updateStateAsync {
             handleUpdateSelection(newSelection)
         }
     }
@@ -397,7 +422,7 @@ class DekuImeService : LifecycleInputMethodService() {
         flogInfo { "finishing=$finishingInput" }
         super.onFinishInputView(finishingInput)
         currentInputConnection?.requestCursorUpdates(0)
-        imeController.updateStateBlocking {
+        imeController.updateStateAsync {
             handleFinishInputView()
         }
     }
@@ -421,7 +446,7 @@ class DekuImeService : LifecycleInputMethodService() {
         super.onWindowHidden()
         if (windowController.onWindowHidden()) {
             flogInfo(LogTopic.IMS_EVENTS)
-            imeController.updateStateBlocking {
+            imeController.updateStateAsync {
                 state = state.copy(
                     flags = state.flags
                         .withImeUiMode(ImeUiMode.TEXT)
@@ -450,7 +475,7 @@ class DekuImeService : LifecycleInputMethodService() {
         if (info != null) {
             val ic = WeakReference(currentInputConnection)
             val editorInfo = DekuEditorInfo.wrap(info)
-            imeController.updateStateBlocking {
+            imeController.updateStateAsync {
                 handleStartInputView(ic, editorInfo)
             }
         }
@@ -517,7 +542,8 @@ class DekuImeService : LifecycleInputMethodService() {
                 EditorInfo.IME_ACTION_PREVIOUS -> resourcesContext.getString(AndroidInternalR.string.ime_action_previous)
                 else -> resourcesContext.getString(AndroidInternalR.string.ime_action_default)
             }
-        } catch (_: Throwable) {
+        } catch (exception: Resources.NotFoundException) {
+            flogWarning { "Android system IME action label is unavailable: $exception" }
             super.getTextForImeAction(imeOptions)?.toString()
         }
     }

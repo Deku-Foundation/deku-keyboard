@@ -1,32 +1,30 @@
 {
   "$schema": "https://schemas.dekukeyboard.org/snygg/v2/stylesheet",
   "@defines": {
-    "--primary": "#388e3c",
-    "--primary-variant": "#306d32",
-    "--secondary": "#ff9800",
-    "--secondary-variant": "#804c00",
+    "--primary": "#18C7B4",
+    "--primary-variant": "#129F93",
+    "--secondary": "#B8A7FF",
+    "--secondary-variant": "#9A86F8",
     "--background": "#000000",
-    "--background-variant": "#111111",
-    "--surface": "#212121",
-    "--surface-variant": "#3d3d3d",
-    "--popup-surface": "#424242",
-    "--focused-popup-surface": "#707070",
-    "--drag-marker": "rgb(255,0,0)",
-    "--spacer-color": "rgba(255, 255, 255, 0.25)",
-    "--one-hand-background": "#1b5e20",
-    "--one-hand-foreground": "#eeeeee",
-    "--incognito-icon-color": "#ffffff11",
-    "--on-primary": "#f0f0f0",
-    "--on-background-disabled": "#dcdcdc48",
-    "--on-background": "#eeeeee",
-    "--on-surface": "#eeeeee",
-    "--on-surface-variant": "#ffffff73",
-
+    "--background-variant": "#080D16",
+    "--surface": "#111925",
+    "--surface-variant": "#202C3A",
+    "--popup-surface": "#1D293B",
+    "--focused-popup-surface": "#33435D",
+    "--drag-marker": "#18C7B4",
+    "--spacer-color": "rgba(234, 240, 246, 0.22)",
+    "--one-hand-background": "#0B3330",
+    "--one-hand-foreground": "#EAF3F6",
+    "--incognito-icon-color": "#FFFFFF11",
+    "--on-primary": "#041C1A",
+    "--on-background-disabled": "#8391A2",
+    "--on-background": "#EAF0F6",
+    "--on-surface": "#F8FAFC",
+    "--on-surface-variant": "#B6C4D3",
     "--shape": "rounded-corner(8dp, 8dp, 8dp, 8dp)",
     "--shape-variant": "rounded-corner(12dp, 12dp, 12dp, 12dp)",
     "--shape-chip": "rounded-corner(50%, 50%, 50%, 50%)"
   },
-
   "window": {
     "background": "var(--background)",
     "foreground": "var(--on-background)"
@@ -61,7 +59,6 @@
   "floating-dock-to-fixed-indicator": {
     "background": "var(--primary)"
   },
-
   "key": {
     "background": "transparent",
     "foreground": "var(--on-surface)",
@@ -75,12 +72,12 @@
   },
   "key[code=10]": {
     "background": "var(--primary)",
-    "foreground": "var(--on-surface)",
+    "foreground": "var(--on-primary)",
     "margin": "0dp 6dp"
   },
   "key[code=10]:pressed": {
     "background": "var(--primary-variant)",
-    "foreground": "var(--on-surface)"
+    "foreground": "var(--on-primary)"
   },
   "key[code=32]": {
     "background": "var(--surface)",
@@ -128,7 +125,6 @@
   "key-popup-extended-indicator": {
     "font-size": "16sp"
   },
-
   "smartbar": {
     "font-size": "18sp"
   },
@@ -157,7 +153,6 @@
   "smartbar-action-key:disabled": {
     "foreground": "var(--on-background-disabled)"
   },
-
   "smartbar-actions-overflow": {
     "margin": "4dp"
   },
@@ -186,7 +181,6 @@
     "font-size": "24sp",
     "margin": "0dp 0dp 0dp 8dp"
   },
-
   "smartbar-actions-editor": {
     "background": "var(--background)",
     "foreground": "var(--on-background)",
@@ -233,7 +227,6 @@
   "smartbar-actions-editor-tile[output=`@deku:action/noop_drag_marker`]": {
     "foreground": "var(--drag-marker)"
   },
-
   "smartbar-candidate-word": {
     "background": "transparent",
     "foreground": "var(--on-background)",
@@ -272,7 +265,6 @@
   "smartbar-candidate-spacer": {
     "foreground": "var(--surface)"
   },
-
   "clipboard-header": {
     "foreground": "var(--on-background)",
     "font-size": "16sp"
@@ -400,7 +392,6 @@
     "padding": "0dp 4dp 0dp 0dp",
     "text-align": "center"
   },
-
   "extracted-landscape-input-layout": {
     "background": "var(--background)"
   },
@@ -417,20 +408,16 @@
     "foreground": "var(--on-surface)",
     "shape": "rounded-corner(4dp, 4dp, 4dp, 4dp)"
   },
-
   "glide-trail": {
     "foreground": "var(--primary)"
   },
-
   "incognito-mode-indicator": {
     "foreground": "var(--incognito-icon-color)"
   },
-
   "inline-autofill-chip": {
     "background": "var(--surface)",
     "foreground": "var(--on-surface)"
   },
-
   "media-emoji-subheader": {
     "font-weight": "bold",
     "margin": "4dp"
@@ -470,7 +457,6 @@
   "media-emoji-key-popup-extended-indicator": {
     "foreground": "inherit"
   },
-
   "one-handed-panel": {
     "background": "var(--one-hand-background)",
     "foreground": "var(--one-hand-foreground)"
@@ -480,7 +466,6 @@
     "font-size": "24sp",
     "shape": "circle()"
   },
-
   "subtype-panel": {
     "background": "var(--background)",
     "foreground": "var(--on-background)",
