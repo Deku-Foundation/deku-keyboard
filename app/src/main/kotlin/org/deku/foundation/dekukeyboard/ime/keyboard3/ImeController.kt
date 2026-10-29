@@ -174,6 +174,12 @@ class ImeController(
 
     fun snapshotState(): ImeState = activeState.value
 
+    fun updateStateAsync(function: UpdateImeStateScope.() -> Unit) {
+        scope.launch(Dispatchers.Main.immediate) {
+            updateState(function)
+        }
+    }
+
     override fun updateStateScopeOf(state: ImeState): UpdateImeStateScope {
         return UpdateImeStateScope(state)
     }
