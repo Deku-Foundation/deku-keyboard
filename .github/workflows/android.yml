@@ -95,7 +95,8 @@ jobs:
           network_permission = "android.permission.INTERNET"
           declared_permissions = {
               node.attrib.get(android_ns + "name", "")
-              for node in manifest_root.findall("uses-permission")
+              for node in manifest_root.iter()
+              if node.tag.rsplit("}", 1)[-1].startswith("uses-permission")
           }
           if network_permission in declared_permissions:
               raise SystemExit("Privacy policy violation: the keyboard must not declare INTERNET permission.")
@@ -114,7 +115,7 @@ jobs:
               root / "gradle/tools.versions.toml",
           ]
           forbidden_dependency = re.compile(
-              r"firebase|com\.google\.android\.gms|play-services|mlkit",
+              r"firebase|com\\.google\\.android\\.gms|play-services|mlkit|analytics|telemetry|amplitude|segment|sentry",
               re.IGNORECASE,
           )
           for gradle_path in gradle_inputs:
@@ -123,7 +124,7 @@ jobs:
               gradle_text = gradle_path.read_text(encoding="utf-8")
               if forbidden_dependency.search(gradle_text):
                   raise SystemExit(
-                      "Privacy policy violation: prohibited cloud/Google ML dependency token in "
+                      "Privacy policy violation: prohibited cloud, ML, analytics, or telemetry dependency token in "
                       + gradle_path.relative_to(root).as_posix()
                   )
 
@@ -339,7 +340,8 @@ jobs:
               checked += 1
               permissions = {
                   item.attrib.get(android_ns + "name", "")
-                  for item in manifest.findall("uses-permission")
+                  for item in manifest.iter()
+                  if item.tag.rsplit("}", 1)[-1].startswith("uses-permission")
               }
               if "android.permission.INTERNET" in permissions:
                   raise SystemExit(f"Network permission found in merged manifest: {path}")
