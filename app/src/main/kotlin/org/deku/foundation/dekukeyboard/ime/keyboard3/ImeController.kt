@@ -48,8 +48,6 @@ import org.deku.foundation.dekukeyboard.ime.nlp.ClipboardSuggestionCandidate
 import org.deku.foundation.dekukeyboard.ime.nlp.SuggestionCandidate
 import org.deku.foundation.dekukeyboard.ime.nlp.shouldBlockNlpSuggestions
 import org.deku.foundation.dekukeyboard.ime.text.key.KeyVariation
-import org.deku.foundation.dekukeyboard.ime.text.key.KeyCode
-import org.deku.foundation.dekukeyboard.ime.text.keyboard.TextKeyData
 import org.deku.foundation.dekukeyboard.lib.DekuLocale
 import org.deku.foundation.dekukeyboard.lib.devtools.flogDebug
 import kotlinx.coroutines.CoroutineScope
@@ -92,6 +90,8 @@ class ImeController(
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private val breakIterators = BreakIterators()
     private val expectedContentQueue = ExpectedContentQueue()
+    private val touchShiftKeyPressed = MutableStateFlow(false)
+    private val hardwareShiftKeysPressed = MutableStateFlow<Set<Int>>(emptySet())
 
     val activeTouchModelOptions = combine<Any, TouchModelOptions>(
         prefs.keyboard.numberRow.asFlow(),
@@ -144,32 +144,39 @@ class ImeController(
     }
 
     fun onHardwareKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        if (event == null) {
+        if (event == null) return false
+        if (keyCode == KeyEvent.KEYCODE_SHIFT_LEFT || keyCode == KeyEvent.KEYCODE_SHIFT_RIGHT) {
+            hardwareShiftKeysPressed.value = hardwareShiftKeysPressed.value + keyCode
             return false
         }
-        return when (keyCode) {
-            KeyEvent.KEYCODE_DEL -> true
-            KeyEvent.KEYCODE_FORWARD_DEL -> true
-            else -> false
-        }
+        return keyCode == KeyEvent.KEYCODE_DEL || keyCode == KeyEvent.KEYCODE_FORWARD_DEL
     }
 
     fun onHardwareKeyUp(keyCode: Int, event: KeyEvent?): Boolean {
-        if (event == null) {
+        if (event == null) return false
+        if (keyCode == KeyEvent.KEYCODE_SHIFT_LEFT || keyCode == KeyEvent.KEYCODE_SHIFT_RIGHT) {
+            hardwareShiftKeysPressed.value = hardwareShiftKeysPressed.value - keyCode
             return false
         }
         return when (keyCode) {
             KeyEvent.KEYCODE_DEL -> {
-                inputEventDispatcher.sendDownUp(TextKeyData.DELETE)
+                updateStateAsync { emitBackspace() }
                 true
             }
             KeyEvent.KEYCODE_FORWARD_DEL -> {
-                inputEventDispatcher.sendDownUp(TextKeyData.FORWARD_DELETE)
+                updateStateAsync { emitForwardDelete() }
                 true
             }
             else -> false
         }
     }
+
+    fun setTouchShiftKeyPressed(pressed: Boolean) {
+        touchShiftKeyPressed.value = pressed
+    }
+
+    private fun isShiftKeyPressed(): Boolean =
+        touchShiftKeyPressed.value || hardwareShiftKeysPressed.value.isNotEmpty()
 
     fun snapshotState(): ImeState = activeState.value
 
@@ -452,7 +459,7 @@ class ImeController(
 
         override fun emitEnter() {
             val info = state.editor.info
-            val isShiftPressed = inputEventDispatcher.isPressed(KeyCode.SHIFT)
+            val isShiftPressed = isShiftKeyPressed()
             if (info.imeOptions.flagNoEnterAction || info.inputAttributes.flagTextMultiLine && isShiftPressed) {
                 emitEnterKey()
             } else if (requiresVisiblePasswordEnterFallback(info.inputAttributes, info.imeOptions)) {
@@ -623,7 +630,7 @@ class ImeController(
         }
 
         fun reevaluateInputShiftState() {
-            val isPeekOngoing = inputEventDispatcher.isPressed(KeyCode.SHIFT)
+            val isPeekOngoing = isShiftKeyPressed()
             if (state.flags.inputShiftState == InputShiftState.CAPS_LOCK || isPeekOngoing) return
             val capsMode = state.content.cursorCapsMode(state.editor.info.inputAttributes)
             val shift = prefs.typing.autoCapitalization.get()
