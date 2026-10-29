@@ -100,7 +100,6 @@ object DekuImeSizing {
     }
 }
 
-@Deprecated("TODO: move logic fully into ImeWindow impl")
 @Composable
 fun ProvideKeyboardRowBaseHeight(content: @Composable () -> Unit) {
     val windowController = LocalWindowController.current
