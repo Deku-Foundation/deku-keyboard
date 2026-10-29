@@ -392,7 +392,7 @@ class DekuImeService : LifecycleInputMethodService() {
         currentInputConnection?.requestCursorUpdates(ImeEditor.CURSOR_UPDATES)
         val ic = WeakReference(currentInputConnection)
         val editorInfo = DekuEditorInfo.wrap(info)
-        imeController.updateStateBlocking {
+        imeController.updateStateAsync {
             handleStartInputView(ic, editorInfo)
         }
     }
@@ -413,7 +413,7 @@ class DekuImeService : LifecycleInputMethodService() {
             end = cursorAnchorInfo.selectionEnd,
         )
         flogInfo { "new=$newSelection" }
-        imeController.updateStateBlocking {
+        imeController.updateStateAsync {
             handleUpdateSelection(newSelection)
         }
     }
@@ -422,7 +422,7 @@ class DekuImeService : LifecycleInputMethodService() {
         flogInfo { "finishing=$finishingInput" }
         super.onFinishInputView(finishingInput)
         currentInputConnection?.requestCursorUpdates(0)
-        imeController.updateStateBlocking {
+        imeController.updateStateAsync {
             handleFinishInputView()
         }
     }
@@ -446,7 +446,7 @@ class DekuImeService : LifecycleInputMethodService() {
         super.onWindowHidden()
         if (windowController.onWindowHidden()) {
             flogInfo(LogTopic.IMS_EVENTS)
-            imeController.updateStateBlocking {
+            imeController.updateStateAsync {
                 state = state.copy(
                     flags = state.flags
                         .withImeUiMode(ImeUiMode.TEXT)
@@ -475,7 +475,7 @@ class DekuImeService : LifecycleInputMethodService() {
         if (info != null) {
             val ic = WeakReference(currentInputConnection)
             val editorInfo = DekuEditorInfo.wrap(info)
-            imeController.updateStateBlocking {
+            imeController.updateStateAsync {
                 handleStartInputView(ic, editorInfo)
             }
         }
