@@ -108,9 +108,11 @@ fun rememberDerivedEnabledState(
                     ImeActions.ClipboardCut.name -> {
                         !isDeviceLocked && !isSelectionCollapsed
                     }
-                    ImeActions.ClipboardPaste.name,
-                    ImeActions.ShowClipboardPanel.name -> {
+                    ImeActions.ClipboardPaste.name -> {
                         !isDeviceLocked && isPrimaryClipPastable
+                    }
+                    ImeActions.ShowClipboardPanel.name -> {
+                        !isDeviceLocked
                     }
                     ImeActions.ClipboardClearPrimaryClip.name -> {
                         isPrimaryClipPastable
