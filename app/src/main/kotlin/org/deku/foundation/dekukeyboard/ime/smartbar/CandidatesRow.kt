@@ -120,7 +120,7 @@ fun CandidatesRow(modifier: Modifier = Modifier) {
                     candidate = candidate,
                     displayMode = displayMode,
                     onClick = {
-                        imeController.updateStateBlocking {
+                        imeController.updateStateAsync {
                             // Can't use candidate directly
                             emitCandidate(candidates[n])
                         }

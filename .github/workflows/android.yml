@@ -3,7 +3,7 @@ name: Deku Keyboard CI
 on:
   workflow_dispatch:
   push:
-    branches: [ main ]
+    branches: [ main, dev, pre-release ]
     paths-ignore:
       - ".github/ISSUE_TEMPLATE/**"
       - ".github/PULL_REQUEST_TEMPLATE.md"
@@ -18,7 +18,11 @@ on:
       - "README.md"
       - "ROADMAP.md"
   pull_request:
-    branches: [ main ]
+    branches: [ main, dev, pre-release ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -38,6 +42,7 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import json
           import re
           import xml.etree.ElementTree as ET
 
@@ -55,7 +60,7 @@ jobs:
           )
           text_suffixes = {".kt", ".kts", ".java", ".xml", ".json", ".toml", ".rs", ".c", ".h", ".cpp", ".properties", ".gradle"}
           violations = []
-          for base in ("app/src/main", "app/src/beta", "lib", "libnative", "settings.gradle.kts", "build.gradle.kts"):
+          for base in ("app/src/main", "app/src/beta", "lib", "settings.gradle.kts", "build.gradle.kts"):
               source = root / base
               paths = [source] if source.is_file() else source.rglob("*")
               for path in paths:
@@ -83,26 +88,351 @@ jobs:
               except ET.ParseError as exc:
                   raise SystemExit(f"Malformed Android XML in {path.relative_to(root)}: {exc}") from exc
 
+          # The keyboard's privacy contract is enforced in CI, not only described in docs.
+          manifest_path = root / "app/src/main/AndroidManifest.xml"
+          manifest_root = ET.parse(manifest_path).getroot()
+          android_ns = "{http://schemas.android.com/apk/res/android}"
+          network_permission = "android.permission.INTERNET"
+          declared_permissions = {
+              node.attrib.get(android_ns + "name", "")
+              for node in manifest_root.iter()
+              if node.tag.rsplit("}", 1)[-1].startswith("uses-permission")
+          }
+          if network_permission in declared_permissions:
+              raise SystemExit("Privacy policy violation: the keyboard must not declare INTERNET permission.")
+
+          legacy_backup_path = resources / "xml/backup_rules.xml"
+          legacy_backup = ET.parse(legacy_backup_path).getroot()
+          if legacy_backup.tag != "full-backup-content":
+              raise SystemExit("Legacy Android backup rules must use <full-backup-content>.")
+          if any(
+              rule.attrib.get("domain") == "database"
+              and rule.attrib.get("path") == "deku_user_dictionary"
+              for rule in legacy_backup.findall("include")
+          ):
+              raise SystemExit("Privacy policy violation: the local user dictionary must not be backed up by default.")
+
+          extraction_path = resources / "xml/data_extraction_rules.xml"
+          extraction = ET.parse(extraction_path).getroot()
+          if extraction.tag != "data-extraction-rules":
+              raise SystemExit("Android 12+ backup rules must use <data-extraction-rules>.")
+          if manifest_root.find("application").attrib.get(android_ns + "dataExtractionRules") != "@xml/data_extraction_rules":
+              raise SystemExit("The manifest must point dataExtractionRules at the Android 12+ rules file.")
+          for transfer in extraction:
+              if transfer.tag not in {"cloud-backup", "device-transfer"}:
+                  continue
+              if any(rule.attrib.get("domain") == "database" for rule in transfer.findall("include")):
+                  raise SystemExit("Privacy policy violation: database contents must not be included in backup or device transfer.")
+
+          if (root / "lib/native").exists() or (root / "libnative/dummy").exists():
+              raise SystemExit("The unused Rust/JNI dummyAdd smoke-test module must not return as an application dependency.")
+          for kotlin_file in (root / "app/src/main/kotlin").rglob("*.kt"):
+              source = kotlin_file.read_text(encoding="utf-8")
+              if "dummyAdd(" in source or 'System.loadLibrary("deku_native")' in source:
+                  raise SystemExit(f"Removed JNI smoke-test entry point reintroduced in {kotlin_file.relative_to(root)}.")
+
+          # Keep inference strictly local: cloud-backed Google SDKs are not allowed in app dependencies.
+          gradle_inputs = [
+              root / "app/build.gradle.kts",
+              root / "gradle/libs.versions.toml",
+              root / "gradle/tools.versions.toml",
+          ]
+          forbidden_dependency = re.compile(
+              r"firebase|com\\.google\\.android\\.gms|play-services|mlkit|analytics|telemetry|amplitude|segment|sentry",
+              re.IGNORECASE,
+          )
+          for gradle_path in gradle_inputs:
+              if not gradle_path.is_file():
+                  continue
+              gradle_text = gradle_path.read_text(encoding="utf-8")
+              if forbidden_dependency.search(gradle_text):
+                  raise SystemExit(
+                      "Privacy policy violation: prohibited cloud, ML, analytics, or telemetry dependency token in "
+                      + gradle_path.relative_to(root).as_posix()
+                  )
+
           base_strings = (resources / "values/strings.xml").read_text(encoding="utf-8")
           if 'name="ext__home__visit_store"' in base_strings:
               raise SystemExit("Obsolete upstream add-ons-store button string is still active.")
           if "DEKU_ADDONS_STORE_URL" not in app_gradle or "beta.addons.florisboard.org" in app_gradle:
               raise SystemExit("The upstream add-ons store endpoint must stay disabled until Deku owns a service.")
+          emoji_compat_path = root / "app/src/main/kotlin/org/deku/foundation/dekukeyboard/ime/media/emoji/DekuEmojiCompat.kt"
+          emoji_compat_source = emoji_compat_path.read_text(encoding="utf-8")
+          display_mappings_path = root / "app/src/main/assets/extensions/org.deku.foundation.dekukeyboard.k3.foundation/import/displays-implied.xml"
+          display_mappings = ET.parse(display_mappings_path).getroot()
+          placeholder_displays = [
+              item.attrib.get("output", "<missing-output>")
+              for item in display_mappings.findall("display")
+              if item.attrib.get("display", "").strip().upper() in {"TODO", "PLACEHOLDER", "TBD"}
+          ]
+          if placeholder_displays:
+              raise SystemExit("User-visible placeholder icon mappings remain: " + ", ".join(placeholder_displays))
 
-          print(f"Verified Deku package identity and parsed {len(xml_files)} Android XML resources.")
+          if "DefaultEmojiCompatConfig" in emoji_compat_source:
+              raise SystemExit("EmojiCompat must not query downloadable-font providers; use bundled local metadata.")
+          if "BundledEmojiCompatConfig(context)" not in emoji_compat_source:
+              raise SystemExit("Bundled local emoji metadata is not configured.")
+          if "androidx-emoji2 = \"1.7.0\"" not in (root / "gradle/libs.versions.toml").read_text(encoding="utf-8"):
+              raise SystemExit("Emoji2 must use the verified stable 1.7.0 release.")
+
+          project_settings = (root / "settings.gradle.kts").read_text(encoding="utf-8")
+          if 'rootProject.name = "deku-keyboard"' not in project_settings:
+              raise SystemExit("Gradle root project name must stay lowercase and hyphenated as deku-keyboard.")
+
+          urls = (resources / "values/strings_dont_translate.xml").read_text(encoding="utf-8")
+          if "https://deku-foundation.github.io/" not in urls:
+              raise SystemExit("The canonical Deku Foundation website URL is missing from app resources.")
+
+          localization_path = root / "app/src/main/assets/ime/keyboard/org.deku.foundation.dekukeyboard.localization/extension.json"
+          localization = json.loads(localization_path.read_text(encoding="utf-8"))
+          presets = localization.get("subtypePresets", [])
+          if len(presets) < 50:
+              raise SystemExit(f"Expected a broad bundled locale catalog (at least 50 presets), got {len(presets)}.")
+          if not any(
+              str(preset.get("languageTag", "")).lower() == "ar"
+              or str(preset.get("languageTag", "")).lower().startswith("ar-")
+              for preset in presets
+          ):
+              raise SystemExit("The bundled locale catalog must retain Arabic support.")
+          layout_root = root / "app/src/main/assets/ime/keyboard/org.deku.foundation.dekukeyboard.layouts/layouts/characters"
+          layout_manifest_path = root / "app/src/main/assets/ime/keyboard/org.deku.foundation.dekukeyboard.layouts/extension.json"
+          layout_manifest = json.loads(layout_manifest_path.read_text(encoding="utf-8"))
+          declared_character_layouts = {
+              str(layout.get("id"))
+              for layout in layout_manifest.get("layouts", {}).get("characters", [])
+              if layout.get("id")
+          }
+          if not declared_character_layouts:
+              raise SystemExit("The character-layout extension manifest declares no layouts.")
+          missing_declared_layout_files = sorted(
+              layout_id for layout_id in declared_character_layouts
+              if not (layout_root / f"{layout_id}.json").is_file()
+          )
+          if missing_declared_layout_files:
+              raise SystemExit(
+                  "Declared character layouts are missing JSON assets:\\n"
+                  + "\\n".join(missing_declared_layout_files)
+              )
+          missing_layouts = []
+          for preset in presets:
+              locale_tag = preset.get("languageTag", "<missing-language-tag>")
+              layout_ref = preset.get("preferred", {}).get("characters", "")
+              layout_id = layout_ref.rsplit(":", 1)[-1]
+              if not layout_id or not re.fullmatch(r"[A-Za-z0-9_-]+", layout_id):
+                  missing_layouts.append(f"{locale_tag}: invalid layout reference {layout_ref!r}")
+              elif layout_id not in declared_character_layouts:
+                  missing_layouts.append(f"{locale_tag}: {layout_id} is not declared in the character-layout manifest")
+              elif not (layout_root / f"{layout_id}.json").is_file():
+                  missing_layouts.append(f"{locale_tag}: {layout_id}.json")
+          if missing_layouts:
+              raise SystemExit("Locale presets reference missing character layouts:\n" + "\n".join(missing_layouts))
+
+          arabic_dictionary_path = root / "app/src/main/assets/ime/dict/ar/frequency.txt"
+          arabic_attribution_path = root / "app/src/main/assets/ime/dict/ar/ATTRIBUTION.txt"
+          if not arabic_dictionary_path.is_file() or not arabic_attribution_path.is_file():
+              raise SystemExit("Arabic MSA dictionary data or in-app attribution file is missing.")
+          arabic_words = arabic_dictionary_path.read_text(encoding="utf-8").splitlines()
+          if len(arabic_words) != 10000:
+              raise SystemExit(f"Arabic MSA frequency list must contain exactly 10000 rows, got {len(arabic_words)}.")
+          if len(set(arabic_words)) != len(arabic_words):
+              raise SystemExit("Arabic MSA frequency list contains duplicate rows.")
+          if arabic_words[:5] != ["في", "من", "على", "أن", "إلى"]:
+              raise SystemExit("Arabic MSA frequency list order/head changed; review the pinned source and provenance.")
+          if not all(word and all(0x0600 <= ord(char) <= 0x06FF for char in word) for word in arabic_words):
+              raise SystemExit("Arabic MSA frequency list contains a non-Arabic or malformed row.")
+          attribution = arabic_attribution_path.read_text(encoding="utf-8")
+          for required in ("Luraty", "Leipzig Corpora Collection", "CC BY 4.0", "7459e864b2bad4448b149f2a8b92b101156ca858"):
+              if required not in attribution:
+                  raise SystemExit(f"Arabic dictionary attribution missing required provenance: {required}")
+
+          theme_roots = [
+              root / "app/src/main/assets/extensions/org.deku.foundation.dekukeyboard.themes/stylesheets",
+              root / "app/src/main/assets/extensions/org.deku.foundation.dekukeyboard.themes.my/stylesheets",
+          ]
+          theme_files = sorted(path for theme_root in theme_roots for path in theme_root.glob("deku_*.json"))
+          if len(theme_files) < 12:
+              raise SystemExit(f"Expected the 12 built-in Deku stylesheets, found {len(theme_files)}.")
+          for theme_path in theme_files:
+              stylesheet = json.loads(theme_path.read_text(encoding="utf-8"))
+              for selector in ("key[code=10]", "key[code=10]:pressed"):
+                  if stylesheet.get(selector, {}).get("foreground") != "var(--on-primary)":
+                      raise SystemExit(
+                          f"{theme_path.relative_to(root)}: {selector} must use the accessible on-primary color role."
+                      )
+
+          def relative_luminance(color):
+              if not re.fullmatch(r"#[0-9A-Fa-f]{6}", color):
+                  raise SystemExit(f"Expected an opaque six-digit theme color for contrast checks, got {color!r}.")
+              channels = [int(color[offset:offset + 2], 16) / 255 for offset in (1, 3, 5)]
+              linear = [
+                  channel / 12.92 if channel <= 0.04045 else ((channel + 0.055) / 1.055) ** 2.4
+                  for channel in channels
+              ]
+              return sum(channel * weight for channel, weight in zip(linear, (0.2126, 0.7152, 0.0722)))
+
+          def contrast_ratio(foreground, background):
+              first = relative_luminance(foreground)
+              second = relative_luminance(background)
+              return (max(first, second) + 0.05) / (min(first, second) + 0.05)
+
+          static_theme_root = theme_roots[0]
+          contrast_pairs = (
+              ("--on-primary", "--primary"),
+              ("--on-primary", "--primary-variant"),
+              ("--on-background", "--background"),
+              ("--on-surface", "--surface"),
+              ("--on-surface-variant", "--surface"),
+          )
+          static_theme_files = sorted(path for path in static_theme_root.glob("deku_*.json"))
+          for theme_path in static_theme_files:
+              definitions = json.loads(theme_path.read_text(encoding="utf-8")).get("@defines", {})
+              for foreground_role, background_role in contrast_pairs:
+                  if foreground_role not in definitions or background_role not in definitions:
+                      raise SystemExit(
+                          f"{theme_path.relative_to(root)}: missing {foreground_role} or {background_role}."
+                      )
+                  ratio = contrast_ratio(definitions[foreground_role], definitions[background_role])
+                  if ratio < 4.5:
+                      raise SystemExit(
+                          f"{theme_path.relative_to(root)}: {foreground_role} on {background_role} "
+                          f"has contrast {ratio:.2f}:1, below 4.5:1."
+                      )
+
+          print(
+              f"Validated {len(theme_files)} built-in stylesheet JSON files and static contrast "
+              f"for {len(static_theme_files)} fixed-color themes."
+          )
+
+          keyboard_ui_path = root / "app/src/main/kotlin/org/deku/foundation/dekukeyboard/ime/keyboard3/ui/ImeKeyboardBox.kt"
+          keyboard_ui = keyboard_ui_path.read_text(encoding="utf-8")
+          key_ui_marker = "@Composable\nprivate fun ImeKeyboardKeyBox("
+          keyboard_ui_parts = keyboard_ui.split(key_ui_marker, maxsplit=1)
+          if len(keyboard_ui_parts) != 2:
+              raise SystemExit("Unable to locate the individual key composable for popup-coordinate validation.")
+          keyboard_layer_source, key_layer_source = keyboard_ui_parts
+          if keyboard_layer_source.count("LongPressBox(") != 1 or "LongPressBox(" in key_layer_source:
+              raise SystemExit(
+                  "Key preview/long-press surfaces must be rendered by the keyboard-root overlay, "
+                  "not inside a key-local coordinate space."
+              )
+          if "popupAboveHeight.toPx()" not in keyboard_layer_source:
+              raise SystemExit("Popup geometry must account for the measured Smartbar region above the key rows.")
+
+          popup_test_path = root / "app/src/test/kotlin/org/deku/foundation/dekukeyboard/ime/keyboard3/interaction/LongPressAnchorBoundsTest.kt"
+          popup_tests = popup_test_path.read_text(encoding="utf-8")
+          required_popup_cases = (
+              "keeps a top-row popup above the key when the IME root has space above the keyboard",
+              "fits the top-row preview into a short toolbar region instead of flipping below",
+              "clamps a wider popup to the viewport at the physical right edge",
+          )
+          missing_popup_cases = [case for case in required_popup_cases if case not in popup_tests]
+          if missing_popup_cases:
+              raise SystemExit("Popup geometry regression tests missing: " + "; ".join(missing_popup_cases))
+
+          print(f"Verified Deku package identity, {len(xml_files)} Android XML resources, {len(presets)} locale presets, and {len(arabic_words)} Arabic MSA dictionary rows.")
+          print(f"All {len({p.get('preferred', {}).get('characters', '').rsplit(':', 1)[-1] for p in presets})} referenced character layouts exist.")
+          print("Verified: no INTERNET permission, no prohibited cloud/analytics/Play Services ML dependencies, and popup overlays use keyboard-root coordinates.")
           print("No legacy package or upstream add-ons endpoint found in active source.")
           PY
 
-      - uses: gradle/actions/wrapper-validation@v4
+      - name: Set up Gradle with dependency caching
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-provider: basic
       - name: Set up JDK 17
         uses: actions/setup-java@v6
         with:
           java-version: 17
           distribution: temurin
-      - name: Set up CMake and Ninja
-        uses: lukka/get-cmake@v4.0.2
       - name: Build with Gradle
-        run: ./gradlew clean assembleDebug
+        run: ./gradlew clean testDebugUnitTest assembleDebug
+      - name: Verify merged app manifests stay offline
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+
+          app_build = Path("app/build/intermediates")
+          candidates = [
+              path for path in app_build.rglob("AndroidManifest.xml")
+              if "merged" in str(path).lower()
+              and ("debug" in path.parts or "debug" in str(path).lower())
+          ]
+          if not candidates:
+              raise SystemExit("No merged debug Android manifest found; offline policy could not be verified.")
+
+          android_ns = "{http://schemas.android.com/apk/res/android}"
+          checked = 0
+          for path in candidates:
+              try:
+                  manifest = ET.parse(path).getroot()
+              except ET.ParseError:
+                  continue
+              checked += 1
+              permissions = {
+                  item.attrib.get(android_ns + "name", "")
+                  for item in manifest.iter()
+                  if item.tag.rsplit("}", 1)[-1].startswith("uses-permission")
+              }
+              if "android.permission.INTERNET" in permissions:
+                  raise SystemExit(f"Network permission found in merged manifest: {path}")
+
+          if checked == 0:
+              raise SystemExit("Merged manifest candidates were found, but none could be parsed.")
+          print(f"Verified {checked} merged debug manifest(s) contain no INTERNET permission.")
+          PY
+      - name: Verify bundled language and layout assets are present in the APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          from zipfile import ZipFile
+
+          apk = Path("app/build/outputs/apk/debug/app-debug.apk")
+          if not apk.is_file():
+              raise SystemExit("Debug APK was not produced; bundled language assets could not be verified.")
+
+          locale_path = "assets/ime/keyboard/org.deku.foundation.dekukeyboard.localization/extension.json"
+          layout_manifest_path = "assets/ime/keyboard/org.deku.foundation.dekukeyboard.layouts/extension.json"
+          layout_root = "assets/ime/keyboard/org.deku.foundation.dekukeyboard.layouts/layouts/characters"
+
+          with ZipFile(apk) as archive:
+              names = set(archive.namelist())
+              missing_manifests = [path for path in (locale_path, layout_manifest_path) if path not in names]
+              if missing_manifests:
+                  raise SystemExit("Bundled catalog manifest(s) missing from APK: " + ", ".join(missing_manifests))
+
+              locale_manifest = json.loads(archive.read(locale_path))
+              layout_manifest = json.loads(archive.read(layout_manifest_path))
+              presets = locale_manifest.get("subtypePresets", [])
+              declared_layouts = {
+                  item.get("id")
+                  for item in layout_manifest.get("layouts", {}).get("characters", [])
+              }
+              if len(presets) < 50:
+                  raise SystemExit(f"Expected at least 50 bundled locale presets in APK, found {len(presets)}.")
+
+              missing_layouts = []
+              for preset in presets:
+                  language_tag = preset.get("languageTag", "<missing-language-tag>")
+                  layout_ref = preset.get("preferred", {}).get("characters", "")
+                  layout_id = layout_ref.rsplit(":", 1)[-1]
+                  asset_path = f"{layout_root}/{layout_id}.json"
+                  if not layout_id or layout_id not in declared_layouts or asset_path not in names:
+                      missing_layouts.append(f"{language_tag}: {asset_path}")
+
+              if missing_layouts:
+                  raise SystemExit("Bundled locale presets reference missing APK layouts:\\n" + "\\n".join(missing_layouts))
+
+              if f"{layout_root}/arabic.json" not in names:
+                  raise SystemExit("Arabic character layout is missing from the APK.")
+
+              print(f"Verified {len(presets)} locale presets and all referenced character layouts are packaged in the APK.")
+          PY
       - uses: actions/upload-artifact@v7
         with:
           name: app-debug.apk

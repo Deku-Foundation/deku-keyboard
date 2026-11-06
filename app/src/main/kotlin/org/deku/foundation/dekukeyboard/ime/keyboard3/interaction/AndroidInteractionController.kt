@@ -84,7 +84,7 @@ private class AndroidInteractionController(
         prefs.inputFeedback.audioEnabled.asFlow(),
         prefs.inputFeedback.audioVolume.asFlow(),
         prefs.inputFeedback.audioFeatKeyPress.asFlow(),
-        prefs.inputFeedback.audioFeatKeyPress.asFlow(), // TODO should be release
+        prefs.inputFeedback.audioFeatKeyRelease.asFlow(),
         prefs.inputFeedback.audioFeatKeyRepeatedAction.asFlow(),
         prefs.inputFeedback.audioFeatKeyLongPress.asFlow(),
         prefs.inputFeedback.audioFeatGestureSwipe.asFlow(),
@@ -92,7 +92,7 @@ private class AndroidInteractionController(
         // Haptic
         prefs.inputFeedback.hapticEnabled.asFlow(),
         prefs.inputFeedback.hapticFeatKeyPress.asFlow(),
-        prefs.inputFeedback.hapticFeatKeyPress.asFlow(), // TODO should be release
+        prefs.inputFeedback.hapticFeatKeyRelease.asFlow(),
         prefs.inputFeedback.hapticFeatKeyRepeatedAction.asFlow(),
         prefs.inputFeedback.hapticFeatKeyLongPress.asFlow(),
         prefs.inputFeedback.hapticFeatGestureSwipe.asFlow(),
@@ -166,7 +166,7 @@ private class AndroidInteractionController(
         val hfc = when (kind) {
             InteractionKind.KeyPress -> HFC_KEYBOARD_PRESS
             InteractionKind.KeyRelease -> HFC_KEYBOARD_RELEASE
-            InteractionKind.KeyRepeat -> HFC_TEXT_HANDLE_MOVE
+            InteractionKind.KeyRepeat -> HFC_KEYBOARD_PRESS
             InteractionKind.LongPress -> HFC_LONG_PRESS
             InteractionKind.GestureSwipe -> 0
             InteractionKind.TextHandleMove -> HFC_TEXT_HANDLE_MOVE
@@ -200,7 +200,7 @@ private class AndroidInteractionController(
 
         private const val HFC_LONG_PRESS: Int = HapticFeedbackConstants.LONG_PRESS
 
-        // TODO TEXT_HANDLE_MOVE is system-wise bound to normal touch haptics, not keyboard haptics
+        // Android exposes text-handle movement feedback separately from keyboard key feedback.
         private val HFC_TEXT_HANDLE_MOVE: Int = when {
             AndroidVersion.ATLEAST_API27_O_MR1 -> HapticFeedbackConstants.TEXT_HANDLE_MOVE
             else -> HapticFeedbackConstants.KEYBOARD_TAP

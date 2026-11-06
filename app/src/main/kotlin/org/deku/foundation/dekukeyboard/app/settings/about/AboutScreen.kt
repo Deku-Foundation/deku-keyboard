@@ -102,6 +102,12 @@ fun AboutScreen() = DekuScreen {
             onClick = { context.launchUrl(R.string.dekukeyboard__changelog_url, "version" to BuildConfig.VERSION_NAME) },
         )
         Preference(
+            icon = Icons.Outlined.Info,
+            title = stringRes(R.string.about__website__title),
+            summary = stringRes(R.string.about__website__summary),
+            onClick = { context.launchUrl(R.string.dekukeyboard__website_url) },
+        )
+        Preference(
             icon = Icons.Default.Code,
             title = stringRes(R.string.about__repository__title),
             summary = stringRes(R.string.about__repository__summary),

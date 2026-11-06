@@ -21,7 +21,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.AbstractComposeView
-import androidx.compose.ui.unit.LayoutDirection
 import org.deku.foundation.dekukeyboard.DekuImeService
 import org.deku.foundation.dekukeyboard.R
 import org.deku.foundation.dekukeyboard.app.DekuPreferenceStore
@@ -75,7 +74,6 @@ class ImeRootView(val ims: DekuImeService) : AbstractComposeView(ims) {
             ProvideLocalizedResources(
                 resourcesContext = ims.resourcesContext,
                 appName = R.string.app_name,
-                forceLayoutDirection = LayoutDirection.Ltr,
             ) {
                 DekuImeTheme {
                     ImeRootWindow()

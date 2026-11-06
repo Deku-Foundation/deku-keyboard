@@ -16,6 +16,9 @@
 
 package org.deku.foundation.dekukeyboard.ime.keyboard3.ui
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
@@ -34,6 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import org.deku.foundation.dekukeyboard.ime.keyboard3.LocalImeController
 import org.deku.foundation.dekukeyboard.ime.keyboard3.interaction.InteractionKind
@@ -89,6 +93,14 @@ fun ImeKeyButton(
 
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
+    val pressScale = animateFloatAsState(
+        targetValue = if (isPressed) 0.94f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessHigh,
+        ),
+        label = "ime-action-press-scale",
+    )
     val attributes = remember(output) {
         mapOf(
             DekuImeUi.Attr.Output to output.asAttrValue(),
@@ -104,7 +116,10 @@ fun ImeKeyButton(
         elementName = elementName,
         attributes = attributes,
         selector = selector,
-        modifier = modifier,
+        modifier = modifier.graphicsLayer {
+            scaleX = pressScale.value
+            scaleY = pressScale.value
+        },
         clickAndSemanticsModifier = Modifier
             .indication(interactionSource, ripple())
             .pointerInput(isEnabled) {
@@ -131,15 +146,17 @@ fun ImeKeyButton(
                     } else null
                     val up = waitForUpOrCancellation()
                     repeatJob?.cancel()
+                    if (up != null) {
+                        interactionSource.tryEmit(PressInteraction.Release(press))
+                        interactionController.performFeedback(InteractionKind.KeyRelease, output)
+                    } else {
+                        interactionSource.tryEmit(PressInteraction.Cancel(press))
+                    }
+                    val shouldEmitOnRelease = up != null && !didRepeatTrigger
                     scope.launch {
                         imeController.updateState {
-                            if (up != null) {
-                                interactionSource.tryEmit(PressInteraction.Release(press))
-                                if (!didRepeatTrigger) {
-                                    emit(output)
-                                }
-                            } else {
-                                interactionSource.tryEmit(PressInteraction.Cancel(press))
+                            if (shouldEmitOnRelease) {
+                                emit(output)
                             }
                         }
                     }

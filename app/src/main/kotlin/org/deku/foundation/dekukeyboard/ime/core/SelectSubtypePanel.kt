@@ -32,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import org.deku.foundation.dekukeyboard.R
+import org.deku.foundation.dekukeyboard.ime.keyboard3.LocalImeController
 import org.deku.foundation.dekukeyboard.ime.theme.DekuImeUi
 import org.deku.foundation.dekukeyboard.subtypeManager
 import org.deku.foundation.dekukeyboard.lib.compose.stringRes
@@ -45,11 +46,15 @@ import org.deku.foundation.dekukeyboard.lib.snygg.ui.SnyggText
 fun SelectSubtypePanel(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val subtypeManager by context.subtypeManager()
+    val imeController = LocalImeController.current
 
     val listState = rememberLazyListState()
     val subtypes by subtypeManager.subtypesFlow.collectAsState()
+    val activeSubtype by subtypeManager.activeSubtypeFlow.collectAsState()
 
-    val currentlySelected = subtypeManager.activeSubtype.id
+    // Observe activeSubtypeFlow instead of reading the current value once; otherwise the selected
+    // language indicator can remain stale after fast language switches.
+    val currentlySelected = activeSubtype.id
 
     SnyggColumn(DekuImeUi.SubtypePanel.elementName, modifier = modifier.safeDrawingPadding()) {
         SnyggRow(
@@ -79,13 +84,23 @@ fun SelectSubtypePanel(modifier: Modifier = Modifier) {
                         elementName = DekuImeUi.SubtypePanelListItem.elementName,
                         onClick = {
                             subtypeManager.switchToSubtypeById(it.id)
-                            // TODO keyboardManager.activeState.isSubtypeSelectionVisible = false
+                            imeController.updateStateAsync {
+                                state = state.copy(
+                                    flags = state.flags.withSubtypeSelectionVisible(false),
+                                )
+                            }
                         },
                         leadingImageVector = when {
                             currentlySelected == it.id -> Icons.Default.RadioButtonChecked
                             else -> Icons.Default.RadioButtonUnchecked
                         },
-                        text = it.primaryLocale.displayName(),
+                        text = buildString {
+                            append(it.primaryLocale.displayName())
+                            it.characterLayoutId?.let { layoutId ->
+                                append(" · ")
+                                append(layoutId.replace('_', ' '))
+                            }
+                        },
                     )
                 }
             }

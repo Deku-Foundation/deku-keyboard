@@ -18,7 +18,7 @@ This pack is released under the same license as Deku Keyboard.
 
 Chinese shape-based language pack based on fcitx5-table-extra.
 
-This pack is released under a separate license. Please visit to download: [TODO: add link to release page](https://)
+This pack is released under a separate license. Check the [Deku Keyboard releases page](https://github.com/Deku-Foundation/deku-keyboard/releases) for an explicitly published compatible archive. If no matching asset is listed, the full pack is not currently published; do not use an unverified mirror.
 
 :no_entry: :no_entry: **WARNING** :no_entry: :no_entry:
 
@@ -62,7 +62,7 @@ Third-party license: [https://github.com/fcitx/fcitx5-table-extra/blob/master/LI
 
 ## Fcitx5 中文形码语言包
 
-这一语言包由另一使用许可提供。下载请访问：[TODO: add link to release page](https://)
+这一语言包采用单独的许可证。请查看 [Deku Keyboard 发布页面](https://github.com/Deku-Foundation/deku-keyboard/releases) 是否有明确发布且兼容的压缩包。如果没有对应的发布附件，则表示完整语言包目前尚未发布；请勿使用未经验证的镜像。
 
 :no_entry: :no_entry: **注意** :no_entry: :no_entry:
 
@@ -107,7 +107,7 @@ Third-party license: [https://github.com/fcitx/fcitx5-table-extra/blob/master/LI
 
 ## Fcitx5 中文形碼語言包
 
-這一語言包由另一使用許可提供。下載請訪問：[TODO: add link to release page](https://)
+這一語言包採用單獨的授權條款。請查看 [Deku Keyboard 發佈頁面](https://github.com/Deku-Foundation/deku-keyboard/releases) 是否有明確發佈且相容的壓縮檔。如果沒有對應的發佈附件，表示完整語言包目前尚未發佈；請勿使用未經驗證的鏡像。
 
 :no_entry: :no_entry: **注意** :no_entry: :no_entry:
 

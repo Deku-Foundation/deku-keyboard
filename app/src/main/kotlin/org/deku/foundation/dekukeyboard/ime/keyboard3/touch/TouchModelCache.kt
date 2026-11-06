@@ -20,8 +20,16 @@ import io.github.reactivecircus.cache4k.Cache
 import kotlinx.coroutines.CoroutineScope
 import org.k3lp.model.K3Model
 
+private const val MAX_CACHED_TOUCH_MODELS = 8L
+
 class TouchModelCache {
-    private val byK3Model = Cache.Builder<Pair<K3Model, TouchModelOptions>, TouchModel>().build()
+    // Keyboard models change when language, layout, or modifiers change. Bound this cache so
+    // rapid language/layout experimentation cannot retain an unbounded number of touch models.
+    // The LRU policy keeps the most recently used layouts hot while allowing older ones to be
+    // reclaimed; eight entries matches the compiled K3-model cache in Loader.kt.
+    private val byK3Model = Cache.Builder<Pair<K3Model, TouchModelOptions>, TouchModel>()
+        .maximumCacheSize(MAX_CACHED_TOUCH_MODELS)
+        .build()
 
     fun getFor(
         model: K3Model,

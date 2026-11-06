@@ -17,21 +17,24 @@
 package org.deku.foundation.dekukeyboard.lib.compose
 
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import dev.patrickgold.jetpref.material.ui.JetPrefDropdownMenuDefaults
 import dev.patrickgold.jetpref.material.ui.JetPrefTextField
 import dev.patrickgold.jetpref.material.ui.JetPrefTextFieldAppearance
+import kotlinx.coroutines.flow.collect
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -47,10 +50,26 @@ fun DekuDropdownLikeButton(
         modifier = modifier.wrapContentSize(Alignment.TopStart)
     ) {
         val interactionSource = remember { MutableInteractionSource() }
-        val pressed by interactionSource.collectIsPressedAsState()
+        val currentOnClick by rememberUpdatedState(onClick)
 
-        if (pressed) {
-            onClick()
+        LaunchedEffect(interactionSource) {
+            var activePress: PressInteraction.Press? = null
+            interactionSource.interactions.collect { interaction ->
+                when (interaction) {
+                    is PressInteraction.Press -> activePress = interaction
+                    is PressInteraction.Release -> {
+                        if (activePress == interaction.press) {
+                            currentOnClick()
+                            activePress = null
+                        }
+                    }
+                    is PressInteraction.Cancel -> {
+                        if (activePress == interaction.press) {
+                            activePress = null
+                        }
+                    }
+                }
+            }
         }
 
         JetPrefTextField(

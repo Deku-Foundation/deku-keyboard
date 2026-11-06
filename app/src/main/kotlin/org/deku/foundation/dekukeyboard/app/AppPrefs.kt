@@ -325,6 +325,10 @@ abstract class DekuPreferenceModel : PreferenceModel() {
             key = "gestures__swipe_distance_threshold",
             default = 32,
         )
+        val flickKeyDistanceThresholdDp = int(
+            key = "gestures__flick_key_distance_threshold_dp",
+            default = 30,
+        )
         val swipeVelocityThreshold = int(
             key = "gestures__swipe_velocity_threshold",
             default = 1900,
@@ -373,6 +377,10 @@ abstract class DekuPreferenceModel : PreferenceModel() {
             key = "input_feedback__audio_feat_key_press",
             default = true,
         )
+        val audioFeatKeyRelease = boolean(
+            key = "input_feedback__audio_feat_key_release",
+            default = false,
+        )
         val audioFeatKeyLongPress = boolean(
             key = "input_feedback__audio_feat_key_long_press",
             default = false,
@@ -397,6 +405,10 @@ abstract class DekuPreferenceModel : PreferenceModel() {
         val hapticFeatKeyPress = boolean(
             key = "input_feedback__haptic_feat_key_press",
             default = true,
+        )
+        val hapticFeatKeyRelease = boolean(
+            key = "input_feedback__haptic_feat_key_release",
+            default = false,
         )
         val hapticFeatKeyLongPress = boolean(
             key = "input_feedback__haptic_feat_key_long_press",
@@ -469,7 +481,9 @@ abstract class DekuPreferenceModel : PreferenceModel() {
         )
         val landscapeInputUiMode = enum(
             key = "keyboard__landscape_input_ui_mode",
-            default = LandscapeInputUiMode.DYNAMICALLY_SHOW,
+            // Keep the keyboard anchored to the bottom by default. Full-screen extract mode is
+            // still available as an explicit preference for users who want it on landscape.
+            default = LandscapeInputUiMode.NEVER_SHOW,
         )
         val keySpacingVertical = int(
             key = "keyboard__key_spacing_vertical",

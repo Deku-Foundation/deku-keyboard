@@ -64,6 +64,47 @@ import org.deku.foundation.dekukeyboard.lib.compose.verticalTween
 
 private const val AnimationDuration = 200
 
+/**
+ * Bounds the settings-only keyboard preview field so repeatedly measuring a huge single-line
+ * buffer cannot make the settings UI or input method unresponsive.
+ */
+internal const val PREVIEW_FIELD_MAX_CODE_POINTS = 4_096
+
+internal fun boundPreviewFieldValue(
+    value: TextFieldValue,
+    maxCodePoints: Int = PREVIEW_FIELD_MAX_CODE_POINTS,
+): TextFieldValue {
+    require(maxCodePoints >= 0) { "maxCodePoints must not be negative" }
+    if (value.text.isEmpty()) return value
+    if (maxCodePoints == 0) {
+        return value.copy(
+            text = "",
+            selection = androidx.compose.ui.text.TextRange.Zero,
+            composition = null,
+        )
+    }
+
+    // Scan only up to the limit: calling codePointCount over the whole input on every keystroke
+    // would remain O(n) for large paste operations even though the resulting field is bounded.
+    // offsetByCodePoints also keeps the truncation boundary outside a UTF-16 surrogate pair.
+    val end = try {
+        value.text.offsetByCodePoints(0, maxCodePoints)
+    } catch (_: IndexOutOfBoundsException) {
+        return value
+    }
+    if (end == value.text.length) return value
+
+    return value.copy(
+        text = value.text.substring(0, end),
+        selection = androidx.compose.ui.text.TextRange(
+            value.selection.start.coerceIn(0, end),
+            value.selection.end.coerceIn(0, end),
+        ),
+        // Existing composition offsets may point beyond the truncated buffer.
+        composition = null,
+    )
+}
+
 private val PreviewEnterTransition = EnterTransition.verticalTween(AnimationDuration)
 private val PreviewExitTransition = ExitTransition.verticalTween(AnimationDuration)
 
@@ -109,7 +150,7 @@ fun PreviewKeyboardField(
                     }
                     .focusRequester(controller.focusRequester),
                 value = controller.text,
-                onValueChange = { controller.text = it },
+                onValueChange = { controller.text = boundPreviewFieldValue(it) },
                 textStyle = LocalTextStyle.current.copy(textDirection = TextDirection.ContentOrLtr),
                 placeholder = {
                     Text(

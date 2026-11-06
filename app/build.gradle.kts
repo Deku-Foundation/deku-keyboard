@@ -45,10 +45,6 @@ kotlin {
         freeCompilerArgs.set(listOf(
             "-opt-in=kotlin.contracts.ExperimentalContracts",
             "-jvm-default=enable",
-            "-Xwhen-guards",
-            "-Xexplicit-backing-fields",
-            "-Xcontext-parameters",
-            "-XXLanguage:+LocalTypeAliases",
         ))
     }
 }
@@ -57,7 +53,6 @@ configure<ApplicationExtension> {
     namespace = "org.deku.foundation.dekukeyboard"
     compileSdk = providers.gradleProperty("projectCompileSdk").get().toInt()
     buildToolsVersion = tools.versions.buildTools.get()
-    ndkVersion = tools.versions.ndk.get()
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -192,6 +187,7 @@ dependencies {
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.emoji2)
     implementation(libs.androidx.emoji2.views)
+    implementation(libs.androidx.emoji2.bundled)
     implementation(libs.androidx.exifinterface)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.profileinstaller)
@@ -215,7 +211,6 @@ dependencies {
     implementation(projects.lib.android)
     implementation(projects.lib.compose)
     implementation(projects.lib.kotlin)
-    implementation(projects.lib.native)
     implementation(projects.lib.snygg)
 
     testImplementation(libs.kotest.assertions.core)

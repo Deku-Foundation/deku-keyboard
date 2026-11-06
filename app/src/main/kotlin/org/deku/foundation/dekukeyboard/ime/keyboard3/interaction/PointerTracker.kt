@@ -17,6 +17,7 @@
 package org.deku.foundation.dekukeyboard.ime.keyboard3.interaction
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -30,6 +31,7 @@ import androidx.compose.ui.input.pointer.changedToUp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastAll
 import androidx.compose.ui.util.fastCoerceAtLeast
@@ -44,6 +46,7 @@ import org.deku.foundation.dekukeyboard.ime.keyboard3.touch.TouchKey
 import org.deku.foundation.dekukeyboard.ime.keyboard3.touch.TouchKeyboard
 import dev.patrickgold.jetpref.datastore.model.collectAsState
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
@@ -102,18 +105,60 @@ data class PeekLine(
     val end: Offset,
 )
 
+data class PopupGeometry(
+    val viewportBounds: Rect,
+    val layoutDirection: LayoutDirection,
+)
+
+internal fun calculateLongPressAnchorBounds(
+    keyBounds: Rect,
+    viewportBounds: Rect = Rect(0f, 0f, 1f, 1f),
+    layoutDirection: LayoutDirection = LayoutDirection.Ltr,
+): Rect {
+    if (
+        keyBounds.isEmpty || keyBounds.width <= 0f || keyBounds.height <= 0f ||
+        viewportBounds.isEmpty || viewportBounds.width <= 0f || viewportBounds.height <= 0f
+    ) {
+        return Rect.Zero
+    }
+
+    // Geometry stays normalized to the keyboard width/height. The viewport may extend above
+    // y=0 by exactly the area available in the containing IME root window.
+    val width = keyBounds.width.coerceAtMost(viewportBounds.width)
+        .coerceAtLeast(MIN_LONG_PRESS_ANCHOR_DIMENSION)
+    val preferredHeight = (keyBounds.height * 0.9f).coerceAtMost(viewportBounds.height)
+    val availableAbove = (keyBounds.top - viewportBounds.top).coerceAtLeast(0f)
+    val height = if (availableAbove >= MIN_LONG_PRESS_ANCHOR_DIMENSION * 1.2f) {
+        preferredHeight.coerceAtMost(availableAbove / 1.2f)
+            .coerceAtLeast(MIN_LONG_PRESS_ANCHOR_DIMENSION)
+    } else {
+        preferredHeight
+    }
+    return calculatePopupBounds(
+        keyBounds = keyBounds,
+        containerBounds = viewportBounds,
+        popupSize = Size(width, height),
+        layoutDirection = layoutDirection,
+    )
+}
+
+private const val MIN_LONG_PRESS_ANCHOR_DIMENSION = 0.01f
+
 private data class LastUpKey(
     val touchKey: TouchKey,
     val uptimeMillis: Long,
 )
 
-// TODO the sync of this class is a bit messy
-class PointerTracker(
+// All pointer-event mutations and the delayed long-press expansion are serialized by
+// mutationGuard. Keep launches UNDISPATCHED in trackPointerInput so events acquire the mutex
+// in dispatch order and the focused popup key cannot lag behind the user's release.
+class PointerTracker internal constructor(
     val touchKeyboard: TouchKeyboard,
     val imeController: ImeController,
     val interactionController: InteractionController,
     val showSimplePopups: Boolean,
     val peekDistanceSqMin: Float,
+    private val popupGeometry: State<PopupGeometry>,
 ) {
     private val mutationGuard = Mutex()
 
@@ -147,6 +192,7 @@ class PointerTracker(
 
         val downLayerId = imeController.snapshotState().touchLayerId
         val downKey = touchKeyboard.findKey(downLayerId, down.position.normalized(size)) ?: return
+        if (downKey.isShiftKey) imeController.setTouchShiftKeyPressed(true)
 
         val timingOptions = interactionController.activeTimingOptions.value
         val keyRepeatTimeout = timingOptions.getKeyRepeatTimeout(downKey.attrs.output)
@@ -189,23 +235,18 @@ class PointerTracker(
                 down = down,
                 downKey = downKey,
                 longPress = if (downKey.isSuitableForPopup) {
-                    val anchorBounds = downKey.bounds.let { bounds ->
-                        // TODO this is only tested for PHONE_PORTRAIT, test+fix other form factors!
-                        val w = 0.1f
-                        val h = bounds.height * 0.9f
-                        val x = bounds.bottomCenter.x - w / 2f
-                        val y = bounds.bottom - h * 2.3f
-                        Rect(
-                            offset = Offset(x, y),
-                            size = Size(w, h),
-                        )
-                    }
+                    val geometry = popupGeometry.value
+                    val anchorBounds = calculateLongPressAnchorBounds(
+                        keyBounds = downKey.bounds,
+                        viewportBounds = geometry.viewportBounds,
+                        layoutDirection = geometry.layoutDirection,
+                    )
                     LongPress(
                         anchorBounds = anchorBounds,
                         simpleBounds = if (showSimplePopups && downKey.isSuitableForSimplePopup) {
-                            anchorBounds.copy(
-                                bottom = anchorBounds.bottom + anchorBounds.height * 1.2f,
-                            )
+                            // The preview surface is exactly the popup rect. Extending its background
+                            // down through the key made the preview look vertically stretched/mirrored.
+                            anchorBounds
                         } else Rect.Zero,
                         simpleLabel = downKey.display,
                         simpleIndicateExtended = downKey.isSuitableForExtendedPopup,
@@ -215,6 +256,9 @@ class PointerTracker(
                         extendedJob = if (downKey.isSuitableForExtendedPopup) {
                             launchExtendedLongPressJob(longPressTimeout)
                         } else null,
+                        popupViewportBounds = geometry.viewportBounds,
+                        layoutDirection = geometry.layoutDirection,
+                        pointerDownPosition = down.position.normalized(size),
                     )
                 } else LongPress.None,
                 repeatJob = if (downKey.isRepeatable) {
@@ -285,19 +329,19 @@ class PointerTracker(
         trackedOutputPointer.value?.takeIf { it.id == move.id }?.let { trackedPointer ->
             val longPress = trackedPointer.longPress
             if (longPress.shouldShowExtendedPopup()) {
-                val position = move.position.normalized(size).let { position ->
-                    Offset(
-                        x = (position.x)
-                            .fastCoerceIn(longPress.extendedBounds.left, longPress.extendedBounds.right),
-                        y = (position.y - longPress.anchorBounds.height)
-                            .fastCoerceIn(longPress.extendedBounds.top, longPress.extendedBounds.bottom - 0.01f),
-                    )
-                }
-                val newFocusedIndex = longPress.getNearestKeyIndex(position)
-                if (newFocusedIndex != longPress.extendedFocusedIndex) {
-                    trackedOutputPointer.value = trackedPointer.copy(
-                        longPress = longPress.copy(extendedFocusedIndex = newFocusedIndex),
-                    )
+                val position = resolveLongPressPointerPosition(
+                    longPress = longPress,
+                    normalizedPosition = move.position.normalized(size),
+                )
+                if (position == null) {
+                    cancelOutput()
+                } else {
+                    val newFocusedIndex = longPress.getNearestKeyIndex(position)
+                    if (newFocusedIndex != longPress.extendedFocusedIndex) {
+                        trackedOutputPointer.value = trackedPointer.copy(
+                            longPress = longPress.copy(extendedFocusedIndex = newFocusedIndex),
+                        )
+                    }
                 }
             }
         }
@@ -319,7 +363,12 @@ class PointerTracker(
                 }
             }
             trackedPeekPointer.value = null
+            if (trackedPointer.downKey.isShiftKey) imeController.setTouchShiftKeyPressed(false)
             lastUpKeyState = LastUpKey(trackedPointer.downKey, up.uptimeMillis)
+            interactionController.performFeedback(
+                InteractionKind.KeyRelease,
+                trackedPointer.downKey.attrs.output,
+            )
         }
         trackedOutputPointer.value?.takeIf { it.id == up.id }?.let { trackedPointer ->
             trackedPointer.longPress.extendedJob?.cancel()
@@ -328,8 +377,15 @@ class PointerTracker(
                 val output = when {
                     trackedPointer.downKey == trackedMultiTapSeq.value?.touchKey -> null
                     trackedPointer.longPress.shouldShowExtendedPopup() -> {
-                        trackedPointer.longPress.extendedKeys.getOrNull(trackedPointer.longPress.extendedFocusedIndex)
-                            ?.data?.output
+                        val longPress = trackedPointer.longPress
+                        // Pointer-up can carry a newer coordinate than the last coalesced move event.
+                        // Resolve the release point before committing so the visible selection wins.
+                        val releasePosition = resolveLongPressPointerPosition(
+                            longPress = longPress,
+                            normalizedPosition = up.position.normalized(size),
+                        )
+                        val releaseIndex = releasePosition?.let(longPress::getNearestKeyIndex)
+                        releaseIndex?.let { longPress.extendedKeys.getOrNull(it)?.data?.output }
                     }
                     else -> trackedPointer.downKey.attrs.output
                 }
@@ -337,7 +393,12 @@ class PointerTracker(
             }
             trackedPeekPointer.update { it?.copy(peekMustSwitchBack = true) }
             trackedOutputPointer.value = null
+            if (trackedPointer.downKey.isShiftKey) imeController.setTouchShiftKeyPressed(false)
             lastUpKeyState = LastUpKey(trackedPointer.downKey, up.uptimeMillis)
+            interactionController.performFeedback(
+                InteractionKind.KeyRelease,
+                trackedPointer.downKey.attrs.output,
+            )
         }
         trackedMultiTapSeq.update { multiTapSeq ->
             if (multiTapSeq != null) {
@@ -387,6 +448,7 @@ class PointerTracker(
                 switchTouchLayer(trackedPointer.downLayerId)
             }
         }
+        if (trackedPointer.downKey.isShiftKey) imeController.setTouchShiftKeyPressed(false)
     }
 
     private suspend fun cancelOutput() {
@@ -394,6 +456,7 @@ class PointerTracker(
         val trackedPointer = trackedOutputPointer.getAndUpdate { null } ?: return
         trackedPointer.longPress.extendedJob?.cancel()
         trackedPointer.repeatJob?.cancel()
+        if (trackedPointer.downKey.isShiftKey) imeController.setTouchShiftKeyPressed(false)
     }
 
     private suspend fun cancelMultiTap() {
@@ -410,6 +473,8 @@ class PointerTracker(
         longPressTimeout: Duration,
     ): Job = scope.launch(Dispatchers.Default) {
         delay(longPressTimeout)
+        var showedPopup = false
+        var pressedOutput: org.k3lp.lib.text.K3StringOrDescriptor? = null
         mutateLocked {
             trackedMultiTapSeq.value?.let { multiTapSeq ->
                 multiTapSeq.commitJob?.cancel()
@@ -418,7 +483,12 @@ class PointerTracker(
             val trackedPointer = trackedOutputPointer.value ?: return@mutateLocked
             val longPress = trackedPointer.longPress
             val anchorBounds = longPress.anchorBounds
-            val extendedKeys = layoutExtendedLongPressKeys(longPress.extendedKeys, anchorBounds)
+            val extendedKeys = layoutExtendedLongPressKeys(
+                extendedKeys = longPress.extendedKeys,
+                anchorBounds = anchorBounds,
+                viewportBounds = longPress.popupViewportBounds,
+                layoutDirection = longPress.layoutDirection,
+            )
             val extendedBounds = anchorBounds.copy(
                 left = extendedKeys.fastFold(anchorBounds.left) { acc, key -> minOf(acc, key.bounds.left) },
                 top = extendedKeys.fastFold(anchorBounds.top) { acc, key -> minOf(acc, key.bounds.top) },
@@ -432,13 +502,23 @@ class PointerTracker(
                     extendedKeys = extendedKeys,
                 ),
             )
+            pressedOutput = trackedPointer.downKey.attrs.output
+            showedPopup = true
+        }
+        if (showedPopup) {
+            // View/audio feedback must execute on the main thread, outside mutationGuard so pointer
+            // release cannot deadlock waiting for the long-press job to finish.
+            withContext(Dispatchers.Main.immediate) {
+                interactionController.performFeedback(InteractionKind.LongPress, pressedOutput)
+            }
         }
     }
 }
 
 @Composable
-fun rememberPointerTracker(
+internal fun rememberPointerTracker(
     touchKeyboard: TouchKeyboard,
+    popupGeometry: State<PopupGeometry>,
 ): PointerTracker {
     val prefs by DekuPreferenceStore
     val density = LocalDensity.current
@@ -446,11 +526,11 @@ fun rememberPointerTracker(
     val interactionController = LocalInteractionController.current
 
     val showSimplePopups by prefs.keyboard.popupEnabled.collectAsState()
-    // TODO make configurable
-    val peekDistanceSqMin = with(density) { 30.dp.toPx().pow(2) }
+    val flickKeyDistanceThresholdDp by prefs.gestures.flickKeyDistanceThresholdDp.collectAsState()
+    val peekDistanceSqMin = with(density) { flickKeyDistanceThresholdDp.dp.toPx().pow(2) }
 
-    val pointerTracker = remember(touchKeyboard, showSimplePopups) {
-        PointerTracker(touchKeyboard, imeController, interactionController, showSimplePopups, peekDistanceSqMin)
+    val pointerTracker = remember(touchKeyboard, showSimplePopups, peekDistanceSqMin) {
+        PointerTracker(touchKeyboard, imeController, interactionController, showSimplePopups, peekDistanceSqMin, popupGeometry)
     }
 
     return pointerTracker
@@ -467,26 +547,33 @@ fun Modifier.trackPointerInput(
                 while (true) {
                     val event = awaitPointerEvent()
                     val sizeAtEvent = size
-                    scope.launch {
+
+                    // Register state-mutating handlers in dispatch order. With default launch start,
+                    // a later PointerUp may be scheduled before a preceding PointerMove acquires the
+                    // mutex, causing the selected long-press popup key to differ from the visible
+                    // focused key at release. UNDISPATCHED runs each handler through its first
+                    // suspension immediately, preserving FIFO Mutex acquisition order while later
+                    // suspensions still resume on the scope's original dispatcher.
+                    scope.launch(start = CoroutineStart.UNDISPATCHED) {
                         pointerTracker.mutateLocked {
                             cancelNonPresent(event.changes)
                         }
                     }
                     event.changes.fastForEach { change ->
                         if (change.changedToDown()) {
-                            scope.launch {
+                            scope.launch(start = CoroutineStart.UNDISPATCHED) {
                                 pointerTracker.mutateLocked {
                                     handleDown(change, sizeAtEvent)
                                 }
                             }
                         } else if (change.changedToUp()) {
-                            scope.launch {
+                            scope.launch(start = CoroutineStart.UNDISPATCHED) {
                                 pointerTracker.mutateLocked {
                                     handleUp(change, sizeAtEvent)
                                 }
                             }
                         } else if (!change.isConsumed) {
-                            scope.launch {
+                            scope.launch(start = CoroutineStart.UNDISPATCHED) {
                                 pointerTracker.mutateLocked {
                                     handleMove(change, sizeAtEvent)
                                 }

@@ -581,7 +581,11 @@ class MultiTextKeyData(
                 append(label)
             } else {
                 for (codePoint in codePoints) {
-                    try { appendCodePoint(codePoint) } catch (_: Throwable) { }
+                    if (Character.isValidCodePoint(codePoint)) {
+                        appendCodePoint(codePoint)
+                    } else {
+                        appendCodePoint(0xFFFD) // Unicode replacement character
+                    }
                 }
             }
         }
@@ -600,7 +604,11 @@ internal fun asString(data: KeyData, isForDisplay: Boolean) : String {
             }
             append(data.label)
         } else {
-            try { appendCodePoint(data.code) } catch (_: Throwable) { }
+            if (Character.isValidCodePoint(data.code)) {
+                appendCodePoint(data.code)
+            } else {
+                appendCodePoint(0xFFFD) // Unicode replacement character
+            }
         }
     }
 }

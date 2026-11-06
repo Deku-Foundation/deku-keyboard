@@ -16,23 +16,74 @@
 
 package org.deku.foundation.dekukeyboard.ime.io
 
+import kotlinx.io.IOException
 import kotlinx.io.RawSink
 import kotlinx.io.RawSource
 import kotlinx.io.files.FileNotFoundException
 import kotlinx.io.files.FileSystem
 import kotlinx.io.files.Path
 import kotlinx.io.files.SystemFileSystem
+import kotlinx.io.files.SystemPathSeparator
 
 abstract class FileStorage(
     val fs: FileSystem = SystemFileSystem,
 ) : Storage {
     abstract fun getBasePath(): Path
 
-    fun resolveCanonicalPath(ref: DekuRef): Path {
-        val basePath = fs.resolve(getBasePath())
-        val path = fs.resolve(Path(basePath, ref.relativePath))
-        // TODO startsWith check
+    fun resolveCanonicalPath(ref: DekuRef): Path = resolveCanonicalPath(ref.relativePath)
+
+    internal fun resolveCanonicalPath(relativePath: String): Path {
+        if (
+            relativePath.startsWith("/") ||
+            relativePath.startsWith("\\") ||
+            relativePath.split('/', '\\').any { it == "." || it == ".." } ||
+            '\u0000' in relativePath
+        ) {
+            throw IOException("Invalid relative storage path: $relativePath")
+        }
+
+        // Targets may not exist yet. Canonicalize the deepest existing ancestor and append only
+        // validated path segments so new cache files/directories can be resolved safely.
+        val basePath = resolveAllowingMissing(getBasePath())
+        val path = if (relativePath.isEmpty()) {
+            basePath
+        } else {
+            resolveAllowingMissing(Path(basePath, relativePath))
+        }
+        if (!path.isWithin(basePath)) {
+            throw IOException("Storage path escapes its base directory: $relativePath")
+        }
         return path
+    }
+
+    private fun resolveAllowingMissing(path: Path): Path {
+        if (fs.exists(path)) return fs.resolve(path)
+
+        val missingSegments = mutableListOf<String>()
+        var ancestor = path
+        while (!fs.exists(ancestor)) {
+            val parent = ancestor.parent ?: return path
+            missingSegments += ancestor.name
+            ancestor = parent
+        }
+
+        var resolved = fs.resolve(ancestor)
+        for (segment in missingSegments.asReversed()) {
+            resolved = Path(resolved, segment)
+        }
+        return resolved
+    }
+
+    private fun Path.isWithin(base: Path): Boolean {
+        val baseString = base.toString()
+        val candidateString = toString()
+        if (candidateString == baseString) return true
+        val prefix = if (baseString.endsWith(SystemPathSeparator)) {
+            baseString
+        } else {
+            "$baseString$SystemPathSeparator"
+        }
+        return candidateString.startsWith(prefix)
     }
 
     override fun delete(ref: DekuRef, mustExist: Boolean) {
@@ -59,7 +110,6 @@ abstract class FileStorage(
     }
 
     override fun mkdirs(ref: DekuRef) {
-        // TODO resolveCanonicalPath will fail
         val path = resolveCanonicalPath(ref)
         fs.createDirectories(path)
     }

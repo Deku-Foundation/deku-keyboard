@@ -29,6 +29,7 @@ import org.deku.foundation.dekukeyboard.lib.DekuLocale
 import org.deku.foundation.dekukeyboard.lib.devtools.LogTopic
 import org.deku.foundation.dekukeyboard.lib.devtools.flogInfo
 import kotlinx.coroutines.async
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.deku.foundation.dekukeyboard.lib.kotlin.map
 
@@ -89,7 +90,7 @@ class DekuSpellCheckerService : SpellCheckerService() {
             spellingSubtype: Subtype,
             textInfos: Array<out TextInfo>,
             suggestionsLimit: Int,
-        ): Array<SpellingResult> = runBlocking {
+        ): Array<SpellingResult> = runBlocking(Dispatchers.Default) {
             val retInfos = Array(textInfos.size) { n ->
                 val word = textInfos[n].text ?: ""
                 async { nlpManager.spell(spellingSubtype, word, emptyList(), emptyList(), suggestionsLimit) }
@@ -108,7 +109,7 @@ class DekuSpellCheckerService : SpellCheckerService() {
             setupSpellingIfNecessary()
             val spellingSubtype = cachedSpellingSubtype ?: return SpellingResult.unspecified().suggestionsInfo
 
-            return runBlocking {
+            return runBlocking(Dispatchers.Default) {
                 nlpManager
                     .spell(spellingSubtype, textInfo.text, emptyList(), emptyList(), suggestionsLimit)
                     .sendToDebugOverlayIfEnabled(textInfo)

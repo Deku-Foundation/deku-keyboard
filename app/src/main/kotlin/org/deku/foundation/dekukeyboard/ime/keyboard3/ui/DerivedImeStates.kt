@@ -16,9 +16,15 @@
 
 package org.deku.foundation.dekukeyboard.ime.keyboard3.ui
 
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
+import androidx.core.content.ContextCompat
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -52,8 +58,42 @@ fun rememberDerivedEnabledState(
     val androidKeyguardManager = remember {
         context.systemService(AndroidKeyguardManager::class)
     }
-    // TODO observe it.isDeviceLocked || it.isKeyguardLocked
-    val isDeviceLocked by remember { mutableStateOf(false) }
+    val isDeviceLockedState = remember(androidKeyguardManager) {
+        mutableStateOf(
+            isImeClipboardRestricted(
+                isDeviceLocked = androidKeyguardManager.isDeviceLocked,
+                isKeyguardLocked = androidKeyguardManager.isKeyguardLocked,
+            ),
+        )
+    }
+    DisposableEffect(context, androidKeyguardManager) {
+        val filter = IntentFilter().apply {
+            addAction(Intent.ACTION_SCREEN_OFF)
+            addAction(Intent.ACTION_SCREEN_ON)
+            addAction(Intent.ACTION_USER_PRESENT)
+        }
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(receiverContext: Context?, intent: Intent?) {
+                isDeviceLockedState.value = when (intent?.action) {
+                    Intent.ACTION_SCREEN_OFF -> true
+                    else -> isImeClipboardRestricted(
+                        isDeviceLocked = androidKeyguardManager.isDeviceLocked,
+                        isKeyguardLocked = androidKeyguardManager.isKeyguardLocked,
+                    )
+                }
+            }
+        }
+        ContextCompat.registerReceiver(
+            context,
+            receiver,
+            filter,
+            ContextCompat.RECEIVER_NOT_EXPORTED,
+        )
+        onDispose {
+            context.unregisterReceiver(receiver)
+        }
+    }
+    val isDeviceLocked by isDeviceLockedState
 
     return remember(output) {
         derivedStateOf {
@@ -64,11 +104,15 @@ fun rememberDerivedEnabledState(
             val isDeviceLocked = isDeviceLocked
             when (output) {
                 is K3Descriptor -> when (output.name) {
-                    ImeActions.ClipboardCopy.name, ImeActions.ClipboardCut.name -> {
-                        !isSelectionCollapsed
+                    ImeActions.ClipboardCopy.name,
+                    ImeActions.ClipboardCut.name -> {
+                        !isDeviceLocked && !isSelectionCollapsed
                     }
                     ImeActions.ClipboardPaste.name -> {
                         !isDeviceLocked && isPrimaryClipPastable
+                    }
+                    ImeActions.ShowClipboardPanel.name -> {
+                        !isDeviceLocked
                     }
                     ImeActions.ClipboardClearPrimaryClip.name -> {
                         isPrimaryClipPastable
@@ -86,3 +130,8 @@ fun rememberDerivedEnabledState(
         }
     }
 }
+
+internal fun isImeClipboardRestricted(
+    isDeviceLocked: Boolean,
+    isKeyguardLocked: Boolean,
+): Boolean = isDeviceLocked || isKeyguardLocked
