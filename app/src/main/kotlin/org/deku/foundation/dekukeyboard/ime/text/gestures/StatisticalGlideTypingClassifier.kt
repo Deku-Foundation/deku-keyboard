@@ -113,7 +113,7 @@ class StatisticalGlideTypingClassifier(context: Context) : GlideTypingClassifier
         }
     }
 
-    override fun setLayout(keyViews: List<TextKey>, subtype: Subtype) {
+    override suspend fun setLayout(keyViews: List<TextKey>, subtype: Subtype) {
         setWordData(subtype)
         // stop duplicate calls
         if (layoutSubtype == subtype && keys == keyViews) {
@@ -141,7 +141,7 @@ class StatisticalGlideTypingClassifier(context: Context) : GlideTypingClassifier
         }
     }
 
-    override fun setWordData(subtype: Subtype) {
+    override suspend fun setWordData(subtype: Subtype) {
         // stop duplicate calls..
         if (wordDataSubtype == subtype) {
             return
@@ -181,7 +181,7 @@ class StatisticalGlideTypingClassifier(context: Context) : GlideTypingClassifier
     }
 
     private val lruSuggestionCache = LruCache<Pair<Gesture, Int>, List<String>>(SUGGESTION_CACHE_SIZE)
-    override fun getSuggestions(maxSuggestionCount: Int, gestureCompleted: Boolean): List<String> {
+    override suspend fun getSuggestions(maxSuggestionCount: Int, gestureCompleted: Boolean): List<String> {
         return when (val cached = lruSuggestionCache.get(Pair(this.gesture, maxSuggestionCount))) {
             null -> {
                 val suggestions = unCachedGetSuggestions(maxSuggestionCount)
@@ -195,7 +195,7 @@ class StatisticalGlideTypingClassifier(context: Context) : GlideTypingClassifier
         }
     }
 
-    private fun unCachedGetSuggestions(maxSuggestionCount: Int): List<String> {
+    private suspend fun unCachedGetSuggestions(maxSuggestionCount: Int): List<String> {
         val candidates = arrayListOf<String>()
         val candidateWeights = arrayListOf<Float>()
         val key = keys.firstOrNull() ?: return listOf()

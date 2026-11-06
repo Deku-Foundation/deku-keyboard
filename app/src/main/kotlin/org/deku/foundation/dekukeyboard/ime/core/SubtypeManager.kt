@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import org.deku.foundation.dekukeyboard.lib.kotlin.collectLatestIn
+import java.util.UUID
 
 val SubtypeJsonConfig = Json {
     encodeDefaults = true
@@ -95,7 +96,9 @@ class SubtypeManager(context: Context) {
      *  that the subtype already exists.
      */
     fun addSubtype(subtype: Subtype): Boolean {
-        val subtypeToAdd = subtype.copy(id = System.currentTimeMillis())
+        // Use a UUID-based id instead of wall-clock time to avoid id collisions when two subtypes
+        // are added within the same millisecond (which would break getSubtypeById / persistence).
+        val subtypeToAdd = subtype.copy(id = UUID.randomUUID().leastSignificantBits)
         val subtypeList = subtypes
         if (subtypeList.find { it.equalsExcludingId(subtype) } != null) {
             return false
@@ -206,8 +209,9 @@ class SubtypeManager(context: Context) {
     }
 
     fun switchToSubtypeById(id: Long) = scope.launch {
-        if (subtypes.any { it.id == id }) {
-            activeSubtype = getSubtypeById(id)!!
+        val subtype = getSubtypeById(id)
+        if (subtype != null) {
+            activeSubtype = subtype
             prefs.localization.activeSubtypeId.set(id)
         }
     }

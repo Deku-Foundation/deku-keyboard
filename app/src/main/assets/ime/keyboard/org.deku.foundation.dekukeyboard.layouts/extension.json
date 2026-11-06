@@ -205,7 +205,7 @@
         "id": "german2",
         "label": "German (GBoard)",
         "authors": [ "M-Koushan" ],
-        "direction": "rtl"
+        "direction": "ltr"
       },
       {
         "id": "greek",

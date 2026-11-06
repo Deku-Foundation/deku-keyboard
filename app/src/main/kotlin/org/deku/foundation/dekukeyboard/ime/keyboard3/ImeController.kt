@@ -131,7 +131,12 @@ class ImeController(
 
         // TODO proper stateful compilation
         scope.launch {
-            loadFoundationKeyboard(this@ImeController, storageController.activeStorage.value)
+            val layoutAsset = when (val language = subtypeManager.activeSubtype.primaryLocale.languageTag().takeWhile { it != '-' }.lowercase()) {
+                "ar" -> "keyboard/arabic.xml"
+                "he" -> "keyboard/hebrew.xml"
+                else -> "keyboard/qwertz.xml"
+            }
+            loadFoundationKeyboard(this@ImeController, storageController.activeStorage.value, layoutAsset)
         }
     }
 
@@ -378,8 +383,8 @@ class ImeController(
                 ImeActions.SwitchToPrevInputMethod -> DekuImeService.switchToPrevInputMethod()
                 ImeActions.SwitchToNextInputMethod -> DekuImeService.switchToNextInputMethod()
                 ImeActions.ShowSubtypePicker -> {} // TODO
-                ImeActions.SwitchToPrevSubtype -> {} // TODO
-                ImeActions.SwitchToNextSubtype -> {} // TODO
+                ImeActions.SwitchToPrevSubtype -> switchToPreviousSubtype()
+                ImeActions.SwitchToNextSubtype -> switchToNextSubtype()
                 ImeActions.ToggleActionsEditor -> {
                     state = state.copy(
                         flags = state.flags
@@ -401,6 +406,31 @@ class ImeController(
                 else -> super.emitDescriptor(descriptor)
             }
             reevaluateInputShiftState()
+        }
+
+        private fun switchToPreviousSubtype() {
+            subtypeManager.switchToPrevSubtype()
+            reloadKeyboardForActiveSubtype()
+        }
+
+        private fun switchToNextSubtype() {
+            subtypeManager.switchToNextSubtype()
+            reloadKeyboardForActiveSubtype()
+        }
+
+        /**
+         * Reloads the K3 keyboard model and NLP provider for the currently active subtype so that
+         * the layout, key labels and prediction language stay in sync after a language switch.
+         */
+        private fun reloadKeyboardForActiveSubtype() {
+            val layoutAsset = when (val language = subtypeManager.activeSubtype.primaryLocale.languageTag().takeWhile { it != '-' }.lowercase()) {
+                "ar" -> "keyboard/arabic.xml"
+                "he" -> "keyboard/hebrew.xml"
+                else -> "keyboard/qwertz.xml"
+            }
+            scope.launch {
+                loadFoundationKeyboard(this@ImeController, storageController.activeStorage.value, layoutAsset)
+            }
         }
 
         override fun emitBackspace() {
@@ -464,9 +494,6 @@ class ImeController(
         }
 
         fun emitCandidate(candidate: SuggestionCandidate) {
-//            scope.launch {
-//                candidate.sourceProvider?.notifySuggestionAccepted(subtypeManager.activeSubtype, candidate)
-//            }
             when (candidate) {
                 is ClipboardSuggestionCandidate -> emitClipboardItem(candidate.clipboardItem)
                 else -> emitCompletion(candidate)
@@ -499,22 +526,7 @@ class ImeController(
         fun emitCompletion(candidate: SuggestionCandidate): Boolean {
             val text = candidate.text.toString()
             if (text.isEmpty() || state.editor.info.isRawInputEditor) return false
-//            val content = activeContent
-//            return if (content.composing.isValid) {
-//                phantomSpace.setActive(showComposingRegion = false, candidate = candidate)
-//                super.finalizeComposingText(text)
-//            } else {
-//                val isPhantomSpaceActive = phantomSpace.determine(text)
-//                phantomSpace.setActive(showComposingRegion = false, candidate = candidate)
-//                return if (isPhantomSpaceActive) {
-//                    super.commitText("$SPACE$text")
-//                } else {
-//                    super.commitText(text)
-//                }.also {
-//                    // handled in finalizeComposingText if content.composing.isValid
-//                    updateLastCommitPosition()
-//                }
-//            }
+            // Completion path not yet implemented; candidate commit is handled by emitText instead.
             return false
         }
 

@@ -24,6 +24,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.res.Configuration
 import android.os.Handler
+import android.os.StrictMode
 import android.util.Log
 import androidx.core.os.UserManagerCompat
 import org.deku.foundation.dekukeyboard.app.DekuPreferenceModel
@@ -91,6 +92,9 @@ class DekuApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         DekuApplicationReference = WeakReference(this)
+        if (BuildConfig.DEBUG) {
+            setupStrictMode()
+        }
 
         try {
             Flog.install(
@@ -132,8 +136,29 @@ class DekuApplication : Application() {
         themeController.activeSystemThemeMode.value = newConfig.determineSystemThemeMode()
     }
 
+    /**
+     * StrictMode for debug builds only. Catches main-thread disk I/O and leaked
+     * closables/registered components early, which is critical for an IME service
+     * that must stay responsive on every keystroke.
+     */
+    private fun setupStrictMode() {
+        StrictMode.setThreadPolicy(
+            StrictMode.ThreadPolicy.Builder()
+                .detectAll()
+                .penaltyLog()
+                .penaltyDialog() // surface violations visibly during debug
+                .build()
+        )
+        StrictMode.setVmPolicy(
+            StrictMode.VmPolicy.Builder()
+                .detectLeakedClosableObjects()
+                .detectLeakedRegisteredObjects()
+                .penaltyLog()
+                .build()
+        )
+    }
+
     fun init() {
-        cacheDir?.deleteContentsRecursively()
         scope.launch {
             val result = DekuPreferenceStore.initAndroid(
                 context = this@DekuApplication,

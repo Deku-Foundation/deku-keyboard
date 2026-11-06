@@ -21,7 +21,10 @@ import kotlin.contracts.contract
 
 inline fun <R> tryOrNull(block: () -> R): R? {
     contract {
-        callsInPlace(block, InvocationKind.EXACTLY_ONCE)
+        // block() is invoked exactly once in the try block, but because it is wrapped in
+        // try/catch the compiler can only guarantee AT_MOST_ONCE; keep the contract truthful
+        // to avoid a misleading compiler warning.
+        callsInPlace(block, InvocationKind.AT_MOST_ONCE)
     }
     return try {
         block()

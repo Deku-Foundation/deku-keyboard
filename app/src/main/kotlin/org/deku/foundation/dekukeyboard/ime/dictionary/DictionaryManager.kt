@@ -153,7 +153,7 @@ class DictionaryManager private constructor(context: Context) {
                 context,
                 DekuUserDictionaryDatabase::class.java,
                 DekuUserDictionaryDatabase.DB_FILE_NAME
-            ).allowMainThreadQueries().build()
+            ).build()
         }
         if (systemUserDictionaryDatabase == null && prefs.dictionary.enableSystemUserDictionary.get()) {
             systemUserDictionaryDatabase = SystemUserDictionaryDatabase(context)

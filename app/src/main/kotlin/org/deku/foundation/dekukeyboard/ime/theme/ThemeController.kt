@@ -76,21 +76,12 @@ class ThemeController(
         ThemeIndex(themeExtensions, mutableListOf())
     }.stateIn(scope, SharingStarted.Eagerly, ThemeIndex(emptyMap(), mutableListOf()))
 
-    private val effectiveLocalTime = flow {
-        while (true) {
-            val now = LocalTime.now()
-            emit(now)
-            delay(1.minutes - now.second.seconds)
-        }
-    }
-
     private val effectiveThemeMode = combine(
         prefs.theme.mode.asFlow(),
         activeSystemThemeMode,
         prefs.theme.sunriseTime.asFlow(),
         prefs.theme.sunsetTime.asFlow(),
-        effectiveLocalTime,
-    ) { themeMode, systemThemeMode, sunriseTime, sunsetTime, localTime ->
+    ) { themeMode, systemThemeMode, sunriseTime, sunsetTime ->
         when (themeMode) {
             PreferredThemeMode.ALWAYS_DAY -> EffectiveThemeMode.DAY
             PreferredThemeMode.ALWAYS_NIGHT -> EffectiveThemeMode.NIGHT
@@ -99,6 +90,7 @@ class ThemeController(
                 else -> EffectiveThemeMode.DAY
             }
             PreferredThemeMode.FOLLOW_TIME -> {
+                val localTime = LocalTime.now()
                 val sunrise = sunriseTime.javaLocalTime
                 val sunset = sunsetTime.javaLocalTime
                 if (localTime in sunrise..sunset) {
@@ -151,7 +143,14 @@ class ThemeController(
         }.fold(
             onSuccess = { newStylesheet ->
                 val newInfo = Theme(themeName, themeConfig, newStylesheet, themeExtRef, storage, null)
-                themeIndex.cachedThemes.add(newInfo)
+                // Keep the theme cache bounded so repeated theme switches do not leak memory.
+                val cache = themeIndex.cachedThemes
+                cache.removeAll { it.name == newInfo.name }
+                cache.add(0, newInfo)
+                val maxCachedThemes = 8
+                while (cache.size > maxCachedThemes) {
+                    cache.removeAt(cache.size - 1)
+                }
                 newInfo
             },
             onFailure = { cause ->

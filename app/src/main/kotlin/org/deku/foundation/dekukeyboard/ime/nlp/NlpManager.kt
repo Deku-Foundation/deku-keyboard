@@ -157,6 +157,7 @@ class NlpManager(context: Context) {
         precedingWords: List<String>,
         followingWords: List<String>,
         maxSuggestionCount: Int,
+        isPrivateSession: Boolean = false,
     ): SpellingResult {
         return getSpellingProvider(subtype).spell(
             subtype = subtype,
@@ -165,7 +166,7 @@ class NlpManager(context: Context) {
             followingWords = followingWords,
             maxSuggestionCount = maxSuggestionCount,
             allowPossiblyOffensive = !prefs.suggestion.blockPossiblyOffensive.get(),
-            isPrivateSession = false// TODO keyboardManager.activeState.isIncognitoMode,
+            isPrivateSession = isPrivateSession,
         )
     }
 
@@ -191,7 +192,11 @@ class NlpManager(context: Context) {
             || prefs.emoji.suggestionEnabled.get()
             || providerForcesSuggestionOn(subtypeManager.activeSubtype)
 
-    fun suggest(subtype: Subtype, content: K3Content) {
+    fun suggest(
+        subtype: Subtype,
+        content: K3Content,
+        isPrivateSession: Boolean = false,
+    ) {
         val reqTime = SystemClock.uptimeMillis()
         scope.launch {
             val emojiSuggestions = when {
@@ -201,7 +206,7 @@ class NlpManager(context: Context) {
                         content = content,
                         maxCandidateCount = prefs.emoji.suggestionCandidateMaxCount.get(),
                         allowPossiblyOffensive = !prefs.suggestion.blockPossiblyOffensive.get(),
-                        isPrivateSession = false // TODO keyboardManager.activeState.isIncognitoMode,
+                        isPrivateSession = isPrivateSession,
                     )
                 }
                 else -> emptyList()
@@ -216,7 +221,7 @@ class NlpManager(context: Context) {
                         content = content,
                         maxCandidateCount = 8,
                         allowPossiblyOffensive = !prefs.suggestion.blockPossiblyOffensive.get(),
-                        isPrivateSession = false // TODO keyboardManager.activeState.isIncognitoMode,
+                        isPrivateSession = isPrivateSession,
                     )
                 }
             }
@@ -255,24 +260,26 @@ class NlpManager(context: Context) {
                 scope.launch {
                     // Need to re-trigger the suggestions algorithm
                     if (candidate is ClipboardSuggestionCandidate) {
-                        assembleCandidates()
+                        val isPrivate = imeController.snapshotState().flags.isIncognitoMode
+                        assembleCandidates(isPrivate)
                     } else {
-                        suggest(subtypeManager.activeSubtype, imeController.snapshotState().content)
+                        val isPrivate = imeController.snapshotState().flags.isIncognitoMode
+                        suggest(subtypeManager.activeSubtype, imeController.snapshotState().content, isPrivate)
                     }
                 }
             }
         }
     }
 
-    fun getListOfWords(subtype: Subtype): List<String> {
-        return runBlocking { getSuggestionProvider(subtype).getListOfWords(subtype) }
+    suspend fun getListOfWords(subtype: Subtype): List<String> {
+        return getSuggestionProvider(subtype).getListOfWords(subtype)
     }
 
-    fun getFrequencyForWord(subtype: Subtype, word: String): Double {
-        return runBlocking { getSuggestionProvider(subtype).getFrequencyForWord(subtype, word) }
+    suspend fun getFrequencyForWord(subtype: Subtype, word: String): Double {
+        return getSuggestionProvider(subtype).getFrequencyForWord(subtype, word)
     }
 
-    private fun assembleCandidates() {
+    private fun assembleCandidates(isPrivateSession: Boolean = false) {
         runBlocking {
             val candidates = when {
                 isSuggestionOn() -> {
@@ -281,7 +288,7 @@ class NlpManager(context: Context) {
                         content = imeController.snapshotState().content,
                         maxCandidateCount = 8,
                         allowPossiblyOffensive = !prefs.suggestion.blockPossiblyOffensive.get(),
-                        isPrivateSession = false // TODO keyboardManager.activeState.isIncognitoMode,
+                        isPrivateSession = isPrivateSession,
                     ).ifEmpty {
                         buildList {
                             internalSuggestionsGuard.withLock {
@@ -364,6 +371,9 @@ class NlpManager(context: Context) {
             allowPossiblyOffensive: Boolean,
             isPrivateSession: Boolean,
         ): List<SuggestionCandidate> {
+            // Never surface clipboard-derived suggestions in private/incognito fields
+            // (password, payment, OTP, TYPE_TEXT_FLAG_NO_SUGGESTIONS, etc.).
+            if (isPrivateSession) return emptyList()
             // Check if enabled
             if (!prefs.clipboard.suggestionEnabled.get()) return emptyList()
 

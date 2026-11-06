@@ -279,7 +279,7 @@ class DekuImeService : LifecycleInputMethodService() {
         DekuImeServiceReference = WeakReference(this)
         systemLocalesFlow.value = resources.configuration.locales
 
-        WindowCompat.setDecorFitsSystemWindows(window.window!!, false)
+        window?.window?.let { WindowCompat.setDecorFitsSystemWindows(it, false) }
         windowController.onConfigurationChanged(resources.configuration)
         windowController.activeWindowConfig.collectLatestIn(lifecycleScope) {
             // TODO update inputMethod state
@@ -313,8 +313,9 @@ class DekuImeService : LifecycleInputMethodService() {
 
     override fun onCreateInputView(): View? {
         super.installViewTreeOwners()
-        val content = window.window!!.findViewById<ViewGroup>(android.R.id.content)
-        content.addView(ImeRootView(this))
+        window?.window?.findViewById<ViewGroup>(android.R.id.content)?.let { content ->
+            content.addView(ImeRootView(this))
+        }
         // Disable the default input view placement
         return null
     }
@@ -388,8 +389,11 @@ class DekuImeService : LifecycleInputMethodService() {
             end = cursorAnchorInfo.selectionEnd,
         )
         flogInfo { "new=$newSelection" }
-        imeController.updateStateBlocking {
-            handleUpdateSelection(newSelection)
+        // Do not block the cursor-move thread: update IME state asynchronously.
+        lifecycleScope.launch {
+            imeController.updateState {
+                handleUpdateSelection(newSelection)
+            }
         }
     }
 
@@ -397,8 +401,11 @@ class DekuImeService : LifecycleInputMethodService() {
         flogInfo { "finishing=$finishingInput" }
         super.onFinishInputView(finishingInput)
         currentInputConnection?.requestCursorUpdates(0)
-        imeController.updateStateBlocking {
-            handleFinishInputView()
+        // Do not block: finish input view asynchronously.
+        lifecycleScope.launch {
+            imeController.updateState {
+                handleFinishInputView()
+            }
         }
     }
 
