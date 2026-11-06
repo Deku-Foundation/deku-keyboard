@@ -315,9 +315,46 @@ class ImeController(
         }
 
         override fun emitText(value: K3String) {
-            super.emitText(value)
+            val processed = applyTextConventions(value)
+            super.emitText(processed)
             expectedContentQueue.push(state.content)
             reevaluateInputShiftState()
+        }
+
+        /**
+         * Applies standard text-entry conventions before committing text to the editor:
+         * - Double-space period: two consecutive spaces become ". " (period + space)
+         * - Smart punctuation spacing: no space before `.,!?:;`, no space after opening brackets
+         */
+        private fun applyTextConventions(value: K3String): K3String {
+            val text = value.toString()
+            if (text.isEmpty()) return value
+
+            val surrounding = state.content.surroundingText
+            val before = surrounding.textBefore
+            var result = text
+
+            // Double-space period: if we're emitting a space and the preceding char is a space,
+            // replace "  " with ". "
+            if (result == " " && before.endsWith(" ")) {
+                // Remove the trailing space from surrounding text via backspace, then emit ". "
+                state.editor.deleteSurroundingText(charsBefore = 1, charsAfter = 0)
+                result = ". "
+            }
+
+            // Smart punctuation: remove space before sentence punctuation
+            val punctBefore = listOf('.', ',', '!', '?', ':', ';')
+            if (result.isNotEmpty() && result[0] in punctBefore && before.endsWith(" ")) {
+                state.editor.deleteSurroundingText(charsBefore = 1, charsAfter = 0)
+            }
+
+            // No space after opening brackets
+            val openBrackets = listOf('(', '[', '{', '«')
+            if (result.isNotEmpty() && result[0] in openBrackets && before.endsWith(" ")) {
+                state.editor.deleteSurroundingText(charsBefore = 1, charsAfter = 0)
+            }
+
+            return result.asK3String()
         }
 
         override fun emitDescriptor(descriptor: K3Descriptor) {

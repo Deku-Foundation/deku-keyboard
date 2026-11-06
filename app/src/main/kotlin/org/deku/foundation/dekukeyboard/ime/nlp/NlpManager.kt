@@ -404,11 +404,11 @@ class NlpManager(context: Context) {
         }
 
         val clipboardCandidates = clipboardSuggestionProvider.suggest(
-            subtype = Subtype.DEFAULT,
+            subtype = subtypeManager.activeSubtype,
             content = imeSnapshot.content,
             maxCandidateCount = 8,
             allowPossiblyOffensive = !prefs.suggestion.blockPossiblyOffensive.get(),
-            isPrivateSession = false,
+            isPrivateSession = isPrivateSession,
         )
         val candidates = if (isSuggestionOn()) {
             internalSuggestionsGuard.withLock {

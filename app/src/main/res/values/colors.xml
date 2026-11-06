@@ -5,7 +5,7 @@
     <color name="colorPrimaryDark">#0C8278</color>
     <color name="colorAccent">#A78BFA</color>
     <color name="colorAccentDark">#7C3AED</color>
-    <color name="colorSuccess">@color/colorPrimary</color>
+    <color name="colorSuccess">#0E7C76</color>
     <color name="textColorSuccess">#FFFFFF</color>
     <color name="colorWarning">#FFFF00</color>
     <color name="textColorWarning">#000000</color>
