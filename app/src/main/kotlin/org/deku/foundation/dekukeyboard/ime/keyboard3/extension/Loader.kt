@@ -79,7 +79,6 @@ suspend fun loadFoundationKeyboard(
         keys = listOf("flex://$FOUNDATION_EXTENSION_ID/keys-implied.xml"),
     )
 
-    val baseKeyboardXml = loadAssetText("extensions/$FOUNDATION_EXTENSION_ID/keyboard/qwertz.xml")
     val localizationManifest = loadAssetText("ime/keyboard/$LOCALIZATION_EXTENSION_ID/extension.json")
     val layoutManifest = loadAssetText("ime/keyboard/$LAYOUT_EXTENSION_ID/extension.json")
     val availableCharacterLayoutIds = parseCharacterLayoutIds(layoutManifest)
@@ -108,6 +107,14 @@ suspend fun loadFoundationKeyboard(
                 switchModel(cachedModel)
             }
             return@collectLatest
+        }
+
+        // Load the base keyboard XML appropriate for the target layout. Tries a layout-specific
+        // base file (e.g. qwerty.xml for QWERTY layouts) and falls back to the bundled QWERTZ base.
+        val baseKeyboardXml = runCatching {
+            loadAssetText("extensions/$FOUNDATION_EXTENSION_ID/keyboard/$layoutId.xml")
+        }.getOrElse {
+            loadAssetText("extensions/$FOUNDATION_EXTENSION_ID/keyboard/qwertz.xml")
         }
 
         val layoutJson = if (layoutId == DEFAULT_CHARACTER_LAYOUT) {

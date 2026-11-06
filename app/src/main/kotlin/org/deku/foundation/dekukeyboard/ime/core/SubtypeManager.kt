@@ -56,6 +56,13 @@ class SubtypeManager(context: Context) {
         get() = subtypesFlow.value
         private set(v) { subtypesFlow.value = v }
 
+    /**
+     * Monotonically increasing counter for assigning unique subtype IDs. Initialized from the
+     * maximum existing ID plus one so that IDs never collide, even when subtypes are added in
+     * rapid succession within the same millisecond.
+     */
+    private var nextSubtypeId: Long = 0L
+
     val activeSubtypeFlow: StateFlow<Subtype>
         field = MutableStateFlow(Subtype.DEFAULT)
     inline var activeSubtype
@@ -79,6 +86,7 @@ class SubtypeManager(context: Context) {
                 emptyList()
             }
             subtypes = list
+            nextSubtypeId = (list.maxOfOrNull { it.id } ?: 0L) + 1L
             evaluateActiveSubtype(list)
             isInitializedFlow.value = true
         }
@@ -153,18 +161,16 @@ class SubtypeManager(context: Context) {
         // English is the default fallback keyboard, so make it an ordinary selectable subtype when
         // the user adds their first non-English language. This preserves English instead of silently
         // replacing it with the first language the user configures.
-        var nextId = maxOf(
-            System.currentTimeMillis(),
-            (subtypeList.maxOfOrNull { it.id } ?: -1L) + 1L,
-        )
+        val englishId = nextSubtypeId++
+        val subtypeId = nextSubtypeId++
         val defaultEnglish = if (
             subtypeList.isEmpty() && subtype.primaryLocale != Subtype.DEFAULT.primaryLocale
         ) {
-            Subtype.DEFAULT.copy(id = nextId++)
+            Subtype.DEFAULT.copy(id = englishId)
         } else {
             null
         }
-        val subtypeToAdd = subtype.copy(id = nextId)
+        val subtypeToAdd = subtype.copy(id = subtypeId)
         val newSubtypeList = subtypeList + listOfNotNull(defaultEnglish, subtypeToAdd)
         persistNewSubtypeList(newSubtypeList)
         return true
@@ -263,7 +269,11 @@ class SubtypeManager(context: Context) {
     }
 
     fun switchToSubtypeById(id: Long): Job {
-        val subtype = subtypes.firstOrNull { it.id == id } ?: return scope.launch { }
+        val subtype = subtypes.firstOrNull { it.id == id }
+        if (subtype == null) {
+            flogWarning { "Attempted to switch to non-existent subtype id=$id" }
+            return scope.launch { }
+        }
         activeSubtype = subtype
         return queueActiveSubtypePersistence()
     }
