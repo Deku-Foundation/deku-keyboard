@@ -285,7 +285,9 @@ class DekuImeService : LifecycleInputMethodService() {
         DekuImeServiceReference = WeakReference(this)
         systemLocalesFlow.value = resources.configuration.locales
 
-        WindowCompat.setDecorFitsSystemWindows(window.window!!, false)
+        // The window may not be attached yet when onCreate() runs; defer the layout
+        // configuration until the window is available.
+        window.window?.let { WindowCompat.setDecorFitsSystemWindows(it, false) }
         windowController.onConfigurationChanged(resources.configuration)
         combine(
             systemLocalesFlow,
@@ -321,7 +323,8 @@ class DekuImeService : LifecycleInputMethodService() {
 
     override fun onCreateInputView(): View? {
         super.installViewTreeOwners()
-        val content = window.window!!.findViewById<ViewGroup>(android.R.id.content)
+        val window = window.window ?: return null
+        val content = window.findViewById<ViewGroup>(android.R.id.content)
 
         // Android may recreate the input view while this service is still alive. Because the
         // custom root is attached directly to the window content (and the default input view is
