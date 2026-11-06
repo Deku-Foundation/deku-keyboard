@@ -135,7 +135,7 @@ fun BackupScreen() {
 
         androidx.compose.material3.Text(
             text = stringRes(R.string.backup_and_restore__back_up__coming_soon),
-            modifier = androidx.compose.foundation.layout.fillMaxSize(),
+            modifier = Modifier.fillMaxSize(),
         )
     }
 }

@@ -87,7 +87,7 @@ fun RestoreScreen() {
 
         androidx.compose.material3.Text(
             text = stringRes(R.string.backup_and_restore__restore__coming_soon),
-            modifier = androidx.compose.foundation.layout.fillMaxSize(),
+            modifier = Modifier.fillMaxSize(),
         )
     }
 }
