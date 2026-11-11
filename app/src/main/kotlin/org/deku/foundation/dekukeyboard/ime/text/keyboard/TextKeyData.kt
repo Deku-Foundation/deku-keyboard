@@ -66,9 +66,8 @@ data class TextKeyData(
                     type = KeyType.CHARACTER,
                     code = code,
                     label = buildString {
-                        try {
+                        if (Character.isValidCodePoint(code)) {
                             appendCodePoint(code)
-                        } catch (_: Throwable) {
                         }
                     },
                 )

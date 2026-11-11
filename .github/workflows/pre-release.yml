@@ -18,6 +18,7 @@ jobs:
   build-and-publish:
     name: Build and publish a testing pre-release
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - name: Check out tagged source
         uses: actions/checkout@v7
@@ -51,6 +52,18 @@ jobs:
           java-version: 17
           distribution: temurin
 
+      - name: Install required Android SDK packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdk_root="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          sdk_manager="${sdk_root}/cmdline-tools/latest/bin/sdkmanager"
+          if [[ ! -x "${sdk_manager}" ]]; then
+            sdk_manager="$(command -v sdkmanager)"
+          fi
+          # compileSdk 37 is newer than the packages preinstalled on the hosted runner.
+          yes | "${sdk_manager}" --licenses > /dev/null 2>&1 || true
+          "${sdk_manager}" "platform-tools" "platforms;android-37.0" "build-tools;36.0.0"
 
       - name: Build candidate APK
         run: ./gradlew clean assembleDebug

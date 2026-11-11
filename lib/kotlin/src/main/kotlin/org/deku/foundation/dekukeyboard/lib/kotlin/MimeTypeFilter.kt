@@ -46,11 +46,31 @@ class MimeTypeFilter {
             require(filterTypeParts[0].isNotEmpty() && filterTypeParts[1].isNotEmpty()) {
                 "Ill-formatted MIME type filter '$filterType'. Type or subtype empty."
             }
-            val filter0 = filterTypeParts[0].replace("*", "[^\\s]+").toRegex()
-            val filter1 = filterTypeParts[1].replace("*", "[^\\s]+").toRegex()
+            val filter0 = filterTypeParts[0].toWildcardRegex()
+            val filter1 = filterTypeParts[1].toWildcardRegex()
             filter0 to filter1
         }
-        println(filters)
+    }
+
+    /**
+     * Compiles one MIME type segment into an anchored regex where `*` matches one or more
+     * non-whitespace characters and every other character matches literally. Escaping the
+     * literal characters matters: an unescaped `.` or `+` in a filter would otherwise match
+     * unrelated MIME types.
+     */
+    private fun String.toWildcardRegex(): Regex {
+        val pattern = buildString {
+            append('^')
+            for (char in this@toWildcardRegex) {
+                if (char == '*') {
+                    append("[^\\s]+")
+                } else {
+                    append(Regex.escape(char.toString()))
+                }
+            }
+            append('$')
+        }
+        return Regex(pattern)
     }
 
     private fun matchMimeTypeAgainstFilters(mimeType: String): Boolean {
