@@ -3,7 +3,9 @@ name: Deku Keyboard CI
 on:
   workflow_dispatch:
   push:
-    branches: [ main, dev, pre-release ]
+    # Feature branches get the same build/test gate as the integration branches,
+    # so a pushed commit can be validated before it is proposed for dev.
+    branches: [ main, dev, pre-release, "freebuff/**" ]
     paths-ignore:
       - ".github/ISSUE_TEMPLATE/**"
       - ".github/PULL_REQUEST_TEMPLATE.md"
