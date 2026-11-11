@@ -16,7 +16,9 @@
 
 package org.deku.foundation.dekukeyboard.ime.keyboard3.ui
 
-import androidx.compose.foundation.background
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
@@ -34,10 +36,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastRoundToInt
@@ -49,6 +54,7 @@ import org.deku.foundation.dekukeyboard.ime.keyboard3.ImeIcons
 import org.deku.foundation.dekukeyboard.ime.keyboard3.ImeLayerIds
 import org.deku.foundation.dekukeyboard.ime.keyboard3.LocalImeController
 import org.deku.foundation.dekukeyboard.ime.keyboard3.interaction.LongPress
+import org.deku.foundation.dekukeyboard.ime.keyboard3.interaction.PopupGeometry
 import org.deku.foundation.dekukeyboard.ime.keyboard3.interaction.rememberPointerTracker
 import org.deku.foundation.dekukeyboard.ime.keyboard3.interaction.trackPointerInput
 import org.deku.foundation.dekukeyboard.ime.keyboard3.touch.TouchKey
@@ -64,6 +70,8 @@ import org.deku.foundation.dekukeyboard.lib.compose.toMm
 import org.deku.foundation.dekukeyboard.lib.snygg.SnyggQueryAttributes
 import org.deku.foundation.dekukeyboard.lib.snygg.SnyggSelector
 import org.deku.foundation.dekukeyboard.lib.snygg.ui.SnyggBox
+import org.deku.foundation.dekukeyboard.lib.snygg.ui.rememberSnyggThemeQuery
+import org.deku.foundation.dekukeyboard.lib.snygg.value.SnyggStaticColorValue
 import org.k3lp.lib.text.K3String
 import org.k3lp.lib.text.K3StringOrDescriptor
 import org.k3lp.lib.text.asK3String
@@ -71,6 +79,7 @@ import org.k3lp.lib.text.asK3String
 @Composable
 fun ImeKeyboardBox(
     modifier: Modifier = Modifier,
+    popupAboveHeight: Dp = 0.dp,
 ) {
     val prefs by DekuPreferenceStore
     val density = LocalDensity.current
@@ -105,7 +114,6 @@ fun ImeKeyboardBox(
         when (spaceBarMode) {
             SpaceBarMode.NOTHING -> K3String.Empty
             SpaceBarMode.CURRENT_LANGUAGE -> {
-                // TODO this might not be the right locale, get from new suntypes once impl
                 val locale = DekuLocale.from(model.locales.getOrElse(0) { "en" })
                 when (displayLanguageNamesIn) {
                     DisplayLanguageNamesIn.SYSTEM_LOCALE -> locale.displayName()
@@ -118,6 +126,11 @@ fun ImeKeyboardBox(
 
     val devtoolsEnabled by prefs.devtools.enabled.collectAsState()
     val debugShowTouchBoundaries by prefs.devtools.showKeyTouchBoundaries.collectAsState()
+    // Read the glide-trail foreground from the active Snygg keyboard theme so system/dynamic
+    // accents and user-selected palettes apply to peek feedback as well.
+    val glideTrailStyle = rememberSnyggThemeQuery(DekuImeUi.GlideTrail.elementName)
+    val glideTrailColor = (glideTrailStyle.foreground as? SnyggStaticColorValue)?.color
+        ?: Color(0xFF18C7B4)
 
     BoxWithConstraints {
         val deviceWidthMm = remember(constraints.maxWidth) {
@@ -126,7 +139,7 @@ fun ImeKeyboardBox(
         val activeTouchKeyboard = remember(activeTouchModel, deviceWidthMm) {
             activeTouchModel.selectKeyboard(deviceWidthMm)
         }
-        // TODO this launched effect is a hack, there must be a better way
+        // The effective row count controls IME window height and follows the width-selected layout.
         LaunchedEffect(activeTouchKeyboard) {
             imeController.updateState {
                 state = state.copy(effRowCount = activeTouchKeyboard.rowCount)
@@ -144,12 +157,37 @@ fun ImeKeyboardBox(
             } ?: TouchLayer.Empty
         }
 
-        val pointerTracker = rememberPointerTracker(activeTouchKeyboard)
+        val keyboardRowHeightDp = DekuImeSizing.keyboardRowBaseHeight
+        val popupViewportBounds = remember(
+            popupAboveHeight,
+            keyboardRowHeightDp,
+            activeTouchKeyboard.rowCount,
+        ) {
+            val keyboardHeightPx = with(density) {
+                (keyboardRowHeightDp * activeTouchKeyboard.rowCount).toPx()
+            }
+            // TextInputLayout places Smartbar immediately above the keyboard. Use that measured
+            // layout height as the drawable/touchable budget: including the unused area above the
+            // IME window would allow popups to escape the service's reported touchable region.
+            val smartbarHeightPx = with(density) { popupAboveHeight.toPx() }
+            val viewportTop = if (keyboardHeightPx > 0f) {
+                -(smartbarHeightPx / keyboardHeightPx)
+            } else {
+                0f
+            }
+            Rect(0f, viewportTop.coerceAtMost(0f), 1f, 1f)
+        }
+        val popupGeometryState = rememberUpdatedState(
+            PopupGeometry(
+                viewportBounds = popupViewportBounds,
+                layoutDirection = imeState.flags.layoutDirection,
+            ),
+        )
+        val pointerTracker = rememberPointerTracker(activeTouchKeyboard, popupGeometryState)
         val trackedOutputPointer by pointerTracker.trackedOutputPointer.collectAsState()
         val trackedPeekPointer by pointerTracker.trackedPeekPointer.collectAsState()
         val trackedMultiTapSeq by pointerTracker.trackedMultiTapSeq.collectAsState()
 
-        val keyboardRowHeightDp = DekuImeSizing.keyboardRowBaseHeight
         val peekLineWidthPx = with(density) { 8.dp.toPx() }
 
         Box(
@@ -171,7 +209,7 @@ fun ImeKeyboardBox(
                         val peekLine = trackedPeekPointer.peekLine
                         if (peekLine != null) {
                             drawLine(
-                                color = Color.Red, // TODO customizable
+                                color = glideTrailColor,
                                 start = peekLine.start,
                                 end = peekLine.end,
                                 strokeWidth = peekLineWidthPx,
@@ -194,11 +232,6 @@ fun ImeKeyboardBox(
                             } == true
                     }
                 }
-                val longPress by remember {
-                    derivedStateOf {
-                        trackedOutputPointer?.takeIf { it.downKey == touchKey }?.longPress ?: LongPress.None
-                    }
-                }
                 val multiTapIndex by remember {
                     derivedStateOf {
                         trackedMultiTapSeq?.takeIf { it.touchKey == touchKey }?.multiTapIndex ?: -1
@@ -211,7 +244,6 @@ fun ImeKeyboardBox(
                         else -> null
                     },
                     isPressed = isPressed,
-                    longPress = longPress,
                     multiTapIndex = multiTapIndex,
                     modifier = Modifier
                         .layout { measurable, constraints ->
@@ -241,6 +273,28 @@ fun ImeKeyboardBox(
                     )
                 }
             }
+
+            val activePopupKey = trackedOutputPointer?.downKey
+            val activePopupOutput = activePopupKey?.attrs?.output
+            val popupAttributes: SnyggQueryAttributes = remember(activePopupOutput) {
+                buildMap {
+                    if (activePopupOutput != null) {
+                        put(DekuImeUi.Attr.Output, activePopupOutput.asAttrValue())
+                    }
+                }
+            }
+            val activePopupMultiTapIndex = trackedMultiTapSeq
+                ?.takeIf { it.touchKey == activePopupKey }
+                ?.multiTapIndex ?: -1
+
+            LongPressBox(
+                longPress = trackedOutputPointer?.longPress ?: LongPress.None,
+                longPressSimpleDisplayOverride = activePopupKey
+                    ?.multiTapKeys
+                    ?.getOrNull(activePopupMultiTapIndex)
+                    ?.display,
+                attributes = popupAttributes,
+            )
         }
     }
 }
@@ -250,7 +304,6 @@ private fun ImeKeyboardKeyBox(
     touchKey: TouchKey,
     displayOverride: K3StringOrDescriptor?,
     isPressed: Boolean,
-    longPress: LongPress,
     multiTapIndex: Int,
     modifier: Modifier = Modifier,
 ) {
@@ -263,7 +316,16 @@ private fun ImeKeyboardKeyBox(
             }
         }
     }
-    // TODO some keys an be disabled (copy cut etc)
+    // Use a draw-layer transform for press feedback so the key grid is not remeasured
+    // on each animation frame.
+    val pressScale = animateFloatAsState(
+        targetValue = if (isPressed) 0.94f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessHigh,
+        ),
+        label = "ime-key-press-scale",
+    )
     val selector = if (isPressed) SnyggSelector.PRESSED else SnyggSelector.NONE
     val multiTapKeys = touchKey.multiTapKeys
 
@@ -271,7 +333,10 @@ private fun ImeKeyboardKeyBox(
         DekuImeUi.Key.elementName,
         attributes = attributes,
         selector = selector,
-        modifier = modifier,
+        modifier = modifier.graphicsLayer {
+            scaleX = pressScale.value
+            scaleY = pressScale.value
+        },
     ) {
         Row(
             modifier = Modifier
@@ -280,12 +345,18 @@ private fun ImeKeyboardKeyBox(
         ) {
             if (touchKey.shouldOverrideDisplayWithMultiTapKeys) {
                 for ((index, multiTapKey) in multiTapKeys.withIndex()) {
-                    Display3(
-                        modifier = if (touchKey.shouldHighlightPendingMultiTapKey && index == multiTapIndex) {
-                            Modifier.background(Color.Red) // TODO customizable
-                        } else Modifier,
-                        display = multiTapKey.display,
-                    )
+                    if (touchKey.shouldHighlightPendingMultiTapKey && index == multiTapIndex) {
+                        SnyggBox(
+                            elementName = DekuImeUi.KeyPopupElement.elementName,
+                            attributes = attributes,
+                            selector = SnyggSelector.FOCUS,
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Display3(multiTapKey.display)
+                        }
+                    } else {
+                        Display3(multiTapKey.display)
+                    }
                 }
             } else {
                 Display3(display)
@@ -300,11 +371,5 @@ private fun ImeKeyboardKeyBox(
                 display = touchKey.longPressKeyHint,
             )
         }
-        // TODO flick hints
     }
-    LongPressBox(
-        longPress = longPress,
-        longPressSimpleDisplayOverride = multiTapKeys.getOrNull(multiTapIndex)?.display,
-        attributes = attributes,
-    )
 }

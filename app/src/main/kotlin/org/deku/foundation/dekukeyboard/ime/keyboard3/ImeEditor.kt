@@ -17,14 +17,15 @@
 package org.deku.foundation.dekukeyboard.ime.keyboard3
 
 import android.content.ClipDescription
+import android.content.Context
 import android.content.ContentUris
+import android.os.Build
 import android.os.SystemClock
 import android.view.KeyCharacterMap
 import android.view.KeyEvent
 import android.view.inputmethod.InputConnection
 import androidx.core.view.inputmethod.InputConnectionCompat
 import androidx.core.view.inputmethod.InputContentInfoCompat
-import org.deku.foundation.dekukeyboard.DekuApplication
 import org.deku.foundation.dekukeyboard.ime.clipboard.provider.ClipboardFileStorage
 import org.deku.foundation.dekukeyboard.ime.clipboard.provider.ClipboardItem
 import org.deku.foundation.dekukeyboard.ime.editor.DekuEditorInfo
@@ -36,27 +37,85 @@ import java.lang.ref.WeakReference
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 
+/**
+ * Read selected text at the point of action. A missing connection or unsupported selection query
+ * is represented as null; callers must not fall back to a cached selection for clipboard writes.
+ */
+internal fun readSelectedText(inputConnection: InputConnection?): String? {
+    return inputConnection?.getSelectedText(0)?.toString()
+}
+
+/**
+ * Removes one Unicode code point, not one UTF-16 code unit. Android's text APIs count
+ * surrounding text in different units depending on the API, so keep the optimistic local
+ * surrounding-text update consistent with code-point-aware forward deletion.
+ */
+internal fun removeLeadingCodePoint(text: String): String {
+    if (text.isEmpty()) return text
+    return text.substring(text.offsetByCodePoints(0, 1))
+}
+
+/** Returns the UTF-16 code-unit length of the first Unicode code point, or zero for empty text. */
+internal fun firstCodePointUtf16Length(text: String): Int =
+    if (text.isEmpty()) 0 else Character.charCount(text.codePointAt(0))
+
+/**
+ * Splits the text and selection indices returned by InputConnection.getSurroundingText().
+ * Invalid indices are rejected so callers can safely fall back to individual cursor queries.
+ */
+internal fun splitSurroundingText(
+    text: String,
+    selectionStart: Int,
+    selectionEnd: Int,
+): K3SurroundingText? {
+    if (selectionStart !in 0..text.length || selectionEnd !in 0..text.length) {
+        return null
+    }
+    // InputConnection permits reversed selections; split by the actual text offsets rather than
+    // assuming the selection anchor is always the lower index.
+    val selectionMin = minOf(selectionStart, selectionEnd)
+    val selectionMax = maxOf(selectionStart, selectionEnd)
+    return K3SurroundingText(
+        textBefore = text.substring(0, selectionMin),
+        textSelected = text.substring(selectionMin, selectionMax),
+        textAfter = text.substring(selectionMax),
+    )
+}
+
 open class ImeEditor(
     val ic: WeakReference<InputConnection>,
     val info: DekuEditorInfo,
+    private val applicationContext: Context? = null,
 ) : K3Editor {
+    /**
+     * Reads the current selection from the live InputConnection rather than from the cached
+     * K3 surrounding-text snapshot. Editors can change selection text independently and may
+     * expose large selections that must not be copied from a stale/truncated state snapshot.
+     */
+    fun getSelectedText(): String? = readSelectedText(ic.get())
+
     fun getSurroundingText(charsBefore: Int, charsAfter: Int): K3SurroundingText {
         val ic = ic.get() ?: return K3SurroundingText.Empty
-        // TODO maybe use eet for getSurroundingText??
-//        val eet = ic.getExtractedText(
-//            ExtractedTextRequest().apply {
-//                token = -1
-//                flags = 0
-//                hintMaxLines = 10
-//                hintMaxChars = 10000
-//            },
-//            0,
-//        )
-//        eet.
-        val textBeforeCursor = ic.getTextBeforeCursor(charsBefore, 0) ?: return K3SurroundingText.Empty
-        val textAfterCursor = ic.getTextAfterCursor(charsAfter, 0) ?: return K3SurroundingText.Empty
+        // Android 12+ can return one consistent surrounding-text snapshot in one IPC call.
+        // Some host InputConnections do not implement the protocol, so retain the legacy fallback.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val snapshot = runCatching {
+                ic.getSurroundingText(charsBefore, charsAfter, 0)
+            }.getOrNull()
+            snapshot?.let {
+                splitSurroundingText(
+                    text = it.text.toString(),
+                    selectionStart = it.selectionStart,
+                    selectionEnd = it.selectionEnd,
+                )
+            }?.let { return it }
+        }
+
+        val textBeforeCursor = ic.getTextBeforeCursor(charsBefore, 0)
+            ?: return K3SurroundingText.Empty
+        val textAfterCursor = ic.getTextAfterCursor(charsAfter, 0)
+            ?: return K3SurroundingText.Empty
         val textSelected = ic.getSelectedText(0) ?: ""
-        //val surroundingText = TextUtils.concat(textBeforeCursor, textSelected, textAfterCursor)
         return K3SurroundingText(
             textBefore = textBeforeCursor.toString(),
             textSelected = textSelected.toString(),
@@ -64,10 +123,6 @@ open class ImeEditor(
         )
     }
 
-    // TODO this function is very heavy => we need to optimize k3lp to provide:
-    //  insertAtSelection() (for simple appends)
-    //  deleteAroundSelection() for bksp/fw delete
-    //  in some cases replaceText() is needed due to the transform rules, but we abuse it waaaay too much
     override fun replaceText(
         range: IntRange,
         text: String,
@@ -83,9 +138,29 @@ open class ImeEditor(
         ic.endBatchEdit()
     }
 
+    /**
+     * Commits accepted text through the active editor connection.
+     *
+     * Android replaces the current composing region when one is active; otherwise it inserts at
+     * the current selection. The call must stay on the IME interaction path.
+     */
+    fun commitText(text: String, newCursorPosition: Int = 1): Boolean {
+        val inputConnection = ic.get() ?: return false
+        return inputConnection.commitText(text, newCursorPosition)
+    }
+
     fun deleteSurroundingText(charsBefore: Int, charsAfter: Int) {
         val ic = ic.get() ?: return
         ic.deleteSurroundingText(charsBefore, charsAfter)
+    }
+
+    /**
+     * Deletes surrounding Unicode code points. The app's minSdk is 26, so the API 24 method is
+     * available on every supported device.
+     */
+    fun deleteSurroundingTextInCodePoints(charsBefore: Int, charsAfter: Int): Boolean {
+        val ic = ic.get() ?: return false
+        return ic.deleteSurroundingTextInCodePoints(charsBefore, charsAfter)
     }
 
     fun performClipboardCopy(): Boolean {
@@ -108,7 +183,7 @@ open class ImeEditor(
         val uri = item.uri ?: return false
         val mimeTypes = item.mimeTypes
         val id = ContentUris.parseId(uri)
-        val appContext = DekuApplication.getHack() // TODO this is a hack
+        val appContext = applicationContext ?: return false
         val file = ClipboardFileStorage.getFileForId(appContext, id)
         if (!file.exists()) return false
         val inputContentInfo = InputContentInfoCompat(

@@ -220,11 +220,13 @@ data class ClipboardItem(
     }
 
     /**
-     * Instructs the content provider to delete this URI. If not an image, is a noop
+     * Instructs the content provider to delete this URI and its backing file. For text items
+     * this is a noop.
      */
     fun close(context: Context) {
-        if (type == ItemType.IMAGE) {
-            tryOrNull { context.contentResolver.delete(this.uri!!, null, null) }
+        val mediaUri = uri
+        if ((type == ItemType.IMAGE || type == ItemType.VIDEO) && mediaUri != null) {
+            tryOrNull { context.contentResolver.delete(mediaUri, null, null) }
         }
     }
 

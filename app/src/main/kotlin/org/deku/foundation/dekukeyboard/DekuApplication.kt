@@ -49,31 +49,17 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
-import org.deku.foundation.dekukeyboard.lib.kotlin.io.deleteContentsRecursively
 import org.deku.foundation.dekukeyboard.lib.kotlin.tryOrNull
-import org.deku.foundation.dekukeyboard.libnative.dummyAdd
 import java.lang.ref.WeakReference
 
 /**
  * Global weak reference for the [DekuApplication] class. This is needed as in certain scenarios an application
  * reference is needed, but the Android framework hasn't finished setting up
  */
-private var DekuApplicationReference = WeakReference<DekuApplication?>(null)
+private var dekuApplicationReference = WeakReference<DekuApplication?>(null)
 
-// TODO this class is a mess
 @Suppress("unused")
 class DekuApplication : Application() {
-    companion object {
-        init {
-            try {
-                System.loadLibrary("deku_native")
-            } catch (_: Exception) {
-            }
-        }
-
-        fun getHack(): DekuApplication = DekuApplicationReference.get()!!
-    }
-
     private val mainHandler by lazy { Handler(mainLooper) }
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     val preferenceStoreLoaded = MutableStateFlow(false)
@@ -90,7 +76,7 @@ class DekuApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        DekuApplicationReference = WeakReference(this)
+        dekuApplicationReference = WeakReference(this)
 
         try {
             Flog.install(
@@ -103,8 +89,12 @@ class DekuApplication : Application() {
             CrashUtility.install(this)
 
             storageController = AndroidStorageController(this)
-            extensionController = ExtensionController(storageController)
-            imeController = ImeController(storageController, clipboardManager.value)
+            extensionController = ExtensionController(this, storageController)
+            imeController = ImeController(
+                storageController = storageController,
+                clipboardManager = clipboardManager.value,
+                application = this,
+            )
             themeController = ThemeController(
                 storageController,
                 extensionController,
@@ -112,10 +102,8 @@ class DekuApplication : Application() {
             )
 
             DekuEmojiCompat.init(this)
-            flogError { "dummy result: ${dummyAdd(3,4)}" }
 
             if (!UserManagerCompat.isUserUnlocked(this)) {
-                cacheDir?.deleteContentsRecursively()
                 registerReceiver(BootComplete(), IntentFilter(Intent.ACTION_USER_UNLOCKED))
                 return
             }
@@ -133,7 +121,9 @@ class DekuApplication : Application() {
     }
 
     fun init() {
-        cacheDir?.deleteContentsRecursively()
+        // cacheDir is disposable and managed by Android. Avoid a recursive synchronous purge
+        // during Application initialization; components that own temporary caches should manage
+        // those entries asynchronously and within their own cache subdirectories.
         scope.launch {
             val result = DekuPreferenceStore.initAndroid(
                 context = this@DekuApplication,
@@ -172,14 +162,19 @@ class DekuApplication : Application() {
     }
 }
 
+private fun requireDekuApplication(): DekuApplication =
+    checkNotNull(dekuApplicationReference.get()) {
+        "DekuApplication must be initialized before resolving application-scoped services."
+    }
+
 tailrec fun Context.inferDekuApplication(): DekuApplication {
     return when (this) {
         is DekuApplication -> this
         is ContextWrapper -> when {
             this.baseContext != null -> this.baseContext.inferDekuApplication()
-            else -> DekuApplicationReference.get()!!
+            else -> requireDekuApplication()
         }
-        else -> tryOrNull { this.applicationContext as DekuApplication } ?: DekuApplicationReference.get()!!
+        else -> tryOrNull { this.applicationContext as DekuApplication } ?: requireDekuApplication()
     }
 }
 

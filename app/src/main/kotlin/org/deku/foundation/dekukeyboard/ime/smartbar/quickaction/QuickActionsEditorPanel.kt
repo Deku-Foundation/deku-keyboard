@@ -55,6 +55,7 @@ import org.deku.foundation.dekukeyboard.ime.keyboard3.ImeActions
 import org.deku.foundation.dekukeyboard.ime.keyboard3.LocalImeController
 import org.deku.foundation.dekukeyboard.ime.theme.DekuImeUi
 import org.deku.foundation.dekukeyboard.lib.toIntOffset
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.deku.foundation.dekukeyboard.lib.compose.stringRes
 import org.deku.foundation.dekukeyboard.lib.snygg.ui.SnyggBox
@@ -230,7 +231,7 @@ fun QuickActionsEditorPanel() {
                 dynamicActions.filter { it != NoopAction && it != DragMarkerAction },
                 hiddenActions.filter { it != NoopAction && it != DragMarkerAction },
             )
-            runBlocking {
+            runBlocking(Dispatchers.Default) {
                 prefs.smartbar.actionArrangement.set(newActionArrangement)
                 imeController.updateState {
                     state = state.copy(
@@ -254,7 +255,7 @@ fun QuickActionsEditorPanel() {
                     elementName = DekuImeUi.SmartbarActionsEditorHeaderButton.elementName,
                     modifier = Modifier.fillMaxHeight().aspectRatio(1f),
                     onClick = {
-                        imeController.updateStateBlocking {
+                        imeController.updateStateAsync {
                             state = state.copy(
                                 flags = state.flags
                                     .withActionsEditorVisible(false),

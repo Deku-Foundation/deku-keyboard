@@ -42,6 +42,22 @@ data class NlpInlineAutofillSuggestion(
     val view: InlineContentView?,
 )
 
+/**
+ * Chooses a requested inline-suggestion height that is legal for the provider's presentation spec.
+ * A non-positive or out-of-range height means the chip has not been measured yet or the measured
+ * value is stale; Android's WRAP_CONTENT lets the platform size the remote view within its own bounds.
+ */
+internal fun resolveInlineSuggestionHeight(
+    requestedHeight: Int,
+    minHeight: Int,
+    maxHeight: Int,
+): Int = when {
+    requestedHeight <= 0 -> ViewGroup.LayoutParams.WRAP_CONTENT
+    minHeight < 0 || maxHeight < minHeight -> ViewGroup.LayoutParams.WRAP_CONTENT
+    requestedHeight < minHeight || requestedHeight > maxHeight -> ViewGroup.LayoutParams.WRAP_CONTENT
+    else -> requestedHeight
+}
+
 object NlpInlineAutofill {
     private val currentSequenceId = AtomicInteger(0)
 
@@ -63,15 +79,36 @@ object NlpInlineAutofill {
             return false
         }
 
+        // Capture this UI-owned value before switching to the background scope.
+        val requestedChipHeightPx = suggestionsChipHeightPx
         scope.launch {
-            val size = Size(ViewGroup.LayoutParams.WRAP_CONTENT, suggestionsChipHeightPx)
             val latch = CountDownLatch(rawSuggestions.size)
             val suggestionsArray = Array<NlpInlineAutofillSuggestion?>(rawSuggestions.size) { null }
 
             flogInfo { "showInlineSuggestions: [${sequenceId}] start inflating suggestions" }
             for ((index, rawSuggestion) in rawSuggestions.withIndex()) {
-                rawSuggestion.inflate(context, size, context.mainExecutor) { view ->
-                    suggestionsArray[index] = NlpInlineAutofillSuggestion(rawSuggestion.info, view)
+                val presentationSpec = rawSuggestion.info.inlinePresentationSpec
+                val height = resolveInlineSuggestionHeight(
+                    requestedHeight = requestedChipHeightPx,
+                    minHeight = presentationSpec.minSize.height,
+                    maxHeight = presentationSpec.maxSize.height,
+                )
+                val size = Size(ViewGroup.LayoutParams.WRAP_CONTENT, height)
+
+                try {
+                    rawSuggestion.inflate(context, size, context.mainExecutor) { view ->
+                        suggestionsArray[index] = NlpInlineAutofillSuggestion(rawSuggestion.info, view)
+                        latch.countDown()
+                    }
+                } catch (e: IllegalArgumentException) {
+                    flogWarning {
+                        "showInlineSuggestions: [${sequenceId}] invalid inline-suggestion size/payload; skipping: ${e.message}"
+                    }
+                    latch.countDown()
+                } catch (e: IllegalStateException) {
+                    flogWarning {
+                        "showInlineSuggestions: [${sequenceId}] inline suggestion could not be inflated; skipping: ${e.message}"
+                    }
                     latch.countDown()
                 }
             }

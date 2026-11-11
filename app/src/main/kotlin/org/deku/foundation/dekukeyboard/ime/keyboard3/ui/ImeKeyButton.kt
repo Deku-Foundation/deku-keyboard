@@ -16,6 +16,9 @@
 
 package org.deku.foundation.dekukeyboard.ime.keyboard3.ui
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
@@ -34,7 +37,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import org.deku.foundation.dekukeyboard.ime.keyboard3.LocalImeController
 import org.deku.foundation.dekukeyboard.ime.keyboard3.interaction.InteractionKind
 import org.deku.foundation.dekukeyboard.ime.keyboard3.interaction.LocalInteractionController
@@ -81,6 +89,7 @@ fun ImeKeyButton(
     val imeState by imeController.activeState.collectAsState()
     val model by remember { derivedStateOf { imeState.model } }
     val display = remember(model, output) { model.displays.byOutput[output]?.display ?: output }
+    val keyLabel = remember(output) { readableKeyLabel(output) }
 
     val isRepeatable = output.isRepeatable()
     val timingOptions by interactionController.activeTimingOptions.collectAsState()
@@ -89,6 +98,14 @@ fun ImeKeyButton(
 
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
+    val pressScale = animateFloatAsState(
+        targetValue = if (isPressed) 0.94f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessHigh,
+        ),
+        label = "ime-action-press-scale",
+    )
     val attributes = remember(output) {
         mapOf(
             DekuImeUi.Attr.Output to output.asAttrValue(),
@@ -104,9 +121,22 @@ fun ImeKeyButton(
         elementName = elementName,
         attributes = attributes,
         selector = selector,
-        modifier = modifier,
+        modifier = modifier.graphicsLayer {
+            scaleX = pressScale.value
+            scaleY = pressScale.value
+        },
         clickAndSemanticsModifier = Modifier
             .indication(interactionSource, ripple())
+            .then(
+                if (keyLabel != null) {
+                    Modifier.semantics {
+                        contentDescription = keyLabel
+                        role = Role.Button
+                    }
+                } else {
+                    Modifier
+                },
+            )
             .pointerInput(isEnabled) {
                 if (!isEnabled) return@pointerInput
                 awaitEachGesture {
@@ -131,15 +161,17 @@ fun ImeKeyButton(
                     } else null
                     val up = waitForUpOrCancellation()
                     repeatJob?.cancel()
+                    if (up != null) {
+                        interactionSource.tryEmit(PressInteraction.Release(press))
+                        interactionController.performFeedback(InteractionKind.KeyRelease, output)
+                    } else {
+                        interactionSource.tryEmit(PressInteraction.Cancel(press))
+                    }
+                    val shouldEmitOnRelease = up != null && !didRepeatTrigger
                     scope.launch {
                         imeController.updateState {
-                            if (up != null) {
-                                interactionSource.tryEmit(PressInteraction.Release(press))
-                                if (!didRepeatTrigger) {
-                                    emit(output)
-                                }
-                            } else {
-                                interactionSource.tryEmit(PressInteraction.Cancel(press))
+                            if (shouldEmitOnRelease) {
+                                emit(output)
                             }
                         }
                     }
@@ -156,4 +188,30 @@ fun K3StringOrDescriptor.asAttrValue(): String {
         is K3String -> normalize(NormalizationForm.NFC).toText()
         is K3Descriptor -> toString()
     }
+}
+
+/**
+ * Human-readable TalkBack label for one keyboard key. Character keys use their visible text,
+ * action/icon keys get a readable name derived from the descriptor instead of the raw internal
+ * identifier. Returns null when there is nothing useful to announce.
+ */
+internal fun readableKeyLabel(output: K3StringOrDescriptor): String? {
+    return when (output) {
+        is K3String -> output.toText().trim().ifEmpty { null }
+        is K3Descriptor -> readableDescriptorLabel(output.name)
+    }
+}
+
+internal fun readableDescriptorLabel(name: String): String? {
+    return name
+        .substringAfterLast('.')
+        .substringAfterLast('/')
+        .split('-', '_', ' ')
+        .filter { it.isNotBlank() }
+        .joinToString(" ") { word ->
+            word.replaceFirstChar { char ->
+                if (char.isLowerCase()) char.titlecaseChar() else char
+            }
+        }
+        .ifEmpty { null }
 }

@@ -36,7 +36,6 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withContext
 import org.deku.foundation.dekukeyboard.lib.android.AndroidClipboardManager
 import org.deku.foundation.dekukeyboard.lib.android.AndroidClipboardManager_OnPrimaryClipChangedListener
 import org.deku.foundation.dekukeyboard.lib.android.clearPrimaryClipAnyApi
@@ -124,10 +123,11 @@ class ClipboardManager(
         ioScope.launch {
             if (clipHistoryDb == null) {
                 clipHistoryDb = ClipboardHistoryDatabase.new(context.applicationContext)
-                withContext(Dispatchers.Main) {
-                    clipHistoryDao?.getAllAsFlow()?.collect { items ->
-                        updateHistory(items)
-                    }
+                // Sorting the history and enforcing its limits are O(n log n) and were previously
+                // executed on the main thread for every database emission. StateFlow is safe to
+                // update from a background dispatcher, so keep this work off the UI thread.
+                clipHistoryDao?.getAllAsFlow()?.collect { items ->
+                    updateHistory(items)
                 }
             }
         }
@@ -374,14 +374,8 @@ class ClipboardManager(
 
     fun pasteItem(item: ClipboardItem) {
         val imeController = appContext.imeController
-        // TODO this asks for a deadlock from ImeController update scope
-        imeController.updateStateBlocking {
-            emitClipboardItem(item).also { result ->
-                if (!result) {
-                    // TODO we have no access to interactionController here
-                    //appContext.showShortToastSync("Failed to paste item.")
-                }
-            }
+        imeController.updateStateAsync {
+            emitClipboardItem(item)
         }
     }
 

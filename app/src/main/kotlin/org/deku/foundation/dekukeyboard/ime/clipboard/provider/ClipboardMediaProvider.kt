@@ -139,13 +139,15 @@ class ClipboardMediaProvider : ContentProvider() {
                 return try {
                     values as ContentValues
                     val mediaUri = Uri.parse(values.getAsString(Columns.MediaUri))
-                    // Get the orientation of the image
-                    val exifInterface = ExifInterface(context!!.contentResolver.openInputStream(mediaUri)!!)
+                    // Get the orientation of the image. The stream must be closed: this runs for
+                    // every copied image and leaking it can exhaust the provider's file handles.
+                    val orientation = context!!.contentResolver.openInputStream(mediaUri)?.use { stream ->
+                        ExifInterface(stream).getAttributeInt(
+                            ExifInterface.TAG_ORIENTATION,
+                            ExifInterface.ORIENTATION_NORMAL,
+                        )
+                    } ?: ExifInterface.ORIENTATION_NORMAL
                     var rotation = 0
-                    val orientation = exifInterface.getAttributeInt(
-                        ExifInterface.TAG_ORIENTATION,
-                        ExifInterface.ORIENTATION_NORMAL
-                    )
                     when (orientation) {
                         ExifInterface.ORIENTATION_ROTATE_90 -> rotation = 90
                         ExifInterface.ORIENTATION_ROTATE_180 -> rotation = 180

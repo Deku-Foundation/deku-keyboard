@@ -22,24 +22,44 @@ import kotlinx.io.files.SystemFileSystem
 import org.deku.foundation.dekukeyboard.lib.snygg.value.SnyggAssetResolver
 import java.net.URI
 
-// TODO this class needs a proper rewrite
+internal fun parseThemeAssetRelativePath(uri: String): String {
+    val parsed = URI.create(uri)
+    require(parsed.scheme == "flex") { "Theme assets must use the flex scheme" }
+    require(parsed.rawAuthority.isNullOrEmpty()) { "Theme asset URIs must not include an authority" }
+    require(parsed.rawQuery == null && parsed.rawFragment == null) {
+        "Theme asset URIs must not include a query or fragment"
+    }
+
+    val path = parsed.path?.removePrefix("/")?.takeIf { it.isNotBlank() }
+        ?: throw IllegalArgumentException("Theme asset URI must include a relative path")
+    require('\\' !in path && '\u0000' !in path) { "Invalid theme asset path" }
+    require(path.split('/').all { segment ->
+        segment.isNotBlank() && segment != "." && segment != ".."
+    }) { "Theme asset path must not contain traversal segments" }
+    return path
+}
+
+/** Resolves a theme-relative asset only within the selected theme extension. */
 class DekuAssetResolver(val theme: ThemeController.Theme) : SnyggAssetResolver {
     override fun resolveAbsolutePath(uri: String) = runCatching {
-        val uri = URI.create(uri)
-        require(uri.scheme == "flex")
-        require(uri.authority.isNullOrEmpty())
-        val extensionRef = checkNotNull(theme.extensionRef) { "Loaded directory was null" }
-        check(extensionRef.isCache || extensionRef.isInternal)
-        val storage = checkNotNull(theme.storage) { "Storage was null" }
-        check(storage is AndroidStorage)
-        val effStorage = if (extensionRef.isCache) storage.cacheStorage else storage.internalStorage
-        // resolve implies within storage bounds & exists
-        val canonicalPath = effStorage.resolveCanonicalPath(extensionRef)
+        val relativePath = parseThemeAssetRelativePath(uri)
+        val extensionRef = checkNotNull(theme.extensionRef) { "Loaded theme extension is unavailable" }
+        check(extensionRef.isCache || extensionRef.isInternal) {
+            "Theme assets must be stored in app-managed storage"
+        }
+        val storage = checkNotNull(theme.storage) { "Theme storage is unavailable" }
+        check(storage is AndroidStorage) { "Unsupported theme storage implementation" }
+
+        val effectiveStorage = if (extensionRef.isCache) storage.cacheStorage else storage.internalStorage
+        val assetRef = extensionRef.subRef(relativePath)
+        val canonicalPath = effectiveStorage.resolveCanonicalPath(assetRef)
         check(SystemFileSystem.metadataOrNull(canonicalPath)?.isRegularFile == true) {
-            "Calculated path '$canonicalPath' is not a file"
+            "Theme asset '$relativePath' does not exist or is not a regular file"
         }
         canonicalPath.toString()
     }.onFailure { exception ->
-        flogError { "DekuAssetResolver failed to resolve URI '$uri'\n  error: ${exception.message}\n  with:  $theme" }
+        flogError {
+            "DekuAssetResolver could not resolve URI '$uri': ${exception.message}"
+        }
     }
 }

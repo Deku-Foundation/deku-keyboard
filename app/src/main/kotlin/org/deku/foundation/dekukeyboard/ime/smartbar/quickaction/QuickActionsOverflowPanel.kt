@@ -81,7 +81,7 @@ fun QuickActionsOverflowPanel() {
                 SnyggButton(
                     elementName = DekuImeUi.SmartbarActionsOverflowCustomizeButton.elementName,
                     onClick = {
-                        imeController.updateStateBlocking {
+                        imeController.updateStateAsync {
                             emitDescriptor(ImeActions.ToggleActionsEditor)
                         }
                     },

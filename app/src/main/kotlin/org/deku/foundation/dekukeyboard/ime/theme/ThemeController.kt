@@ -28,19 +28,15 @@ import org.deku.foundation.dekukeyboard.lib.util.TimeUtils.javaLocalTime
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import org.deku.foundation.dekukeyboard.lib.snygg.SnyggStylesheet
 import org.deku.foundation.dekukeyboard.lib.snygg.value.SnyggStaticColorValue
 import java.time.LocalTime
-import kotlin.time.Duration.Companion.minutes
-import kotlin.time.Duration.Companion.seconds
 
 /**
  * Provides the [ThemeController] instance this composition tree is associated with.
@@ -76,21 +72,13 @@ class ThemeController(
         ThemeIndex(themeExtensions, mutableListOf())
     }.stateIn(scope, SharingStarted.Eagerly, ThemeIndex(emptyMap(), mutableListOf()))
 
-    private val effectiveLocalTime = flow {
-        while (true) {
-            val now = LocalTime.now()
-            emit(now)
-            delay(1.minutes - now.second.seconds)
-        }
-    }
-
     private val effectiveThemeMode = combine(
         prefs.theme.mode.asFlow(),
         activeSystemThemeMode,
         prefs.theme.sunriseTime.asFlow(),
         prefs.theme.sunsetTime.asFlow(),
-        effectiveLocalTime,
-    ) { themeMode, systemThemeMode, sunriseTime, sunsetTime, localTime ->
+    ) { themeMode, systemThemeMode, sunriseTime, sunsetTime ->
+        val now = LocalTime.now()
         when (themeMode) {
             PreferredThemeMode.ALWAYS_DAY -> EffectiveThemeMode.DAY
             PreferredThemeMode.ALWAYS_NIGHT -> EffectiveThemeMode.NIGHT
@@ -101,7 +89,7 @@ class ThemeController(
             PreferredThemeMode.FOLLOW_TIME -> {
                 val sunrise = sunriseTime.javaLocalTime
                 val sunset = sunsetTime.javaLocalTime
-                if (localTime in sunrise..sunset) {
+                if (now in sunrise..sunset) {
                     EffectiveThemeMode.DAY
                 } else {
                     EffectiveThemeMode.NIGHT
@@ -164,7 +152,6 @@ class ThemeController(
 
     data class ThemeIndex(
         val extensions: Map<String, ThemeExtension>,
-        // TODO review this cache mechanism
         val cachedThemes: MutableList<Theme>,
     )
 

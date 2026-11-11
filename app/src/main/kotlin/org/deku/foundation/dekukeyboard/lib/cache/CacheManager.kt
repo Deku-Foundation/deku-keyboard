@@ -33,7 +33,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.deku.foundation.dekukeyboard.lib.android.query
@@ -127,9 +126,11 @@ class CacheManager(context: Context) {
             }
         }
 
-        fun getWorkspaceByUuid(uuid: String) = runBlocking { getWorkspaceByUuidAsync(uuid).await() }
+        fun getWorkspaceByUuid(uuid: String): T? = workspacesGuard.withLock {
+            workspaces.find { it.uuid == uuid }
+        }
 
-        fun getWorkspaceByUuidAsync(uuid: String): Deferred<T?> = scope.async {
+        internal fun getWorkspaceByUuidAsync(uuid: String): Deferred<T?> = scope.async {
             workspacesGuard.withLock {
                 workspaces.find { it.uuid == uuid }
             }

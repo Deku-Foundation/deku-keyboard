@@ -236,11 +236,14 @@ fun DevtoolsScreen() = DekuScreen {
         }
 
         if (showDialog) {
+            val scope = rememberCoroutineScope()
             DekuConfirmDeleteDialog(
                 onConfirm = {
-                    DictionaryManager.default().let {
-                        it.loadUserDictionariesIfNecessary()
-                        it.dekuUserDictionaryDao()?.deleteAll()
+                    scope.launch {
+                        DictionaryManager.default().let {
+                            it.loadUserDictionariesIfNecessary()
+                            it.dekuUserDictionaryDao()?.deleteAll()
+                        }
                     }
                     setShowDialog(false)
                 },

@@ -168,7 +168,7 @@ private fun SmartbarMainRow(modifier: Modifier = Modifier) {
             elementName = DekuImeUi.SmartbarSharedActionsToggle.elementName,
             onClick = {
                 if (/* was */ sharedActionsExpanded) {
-                    imeController.updateStateBlocking {
+                    imeController.updateStateAsync {
                         state = state.copy(
                             flags = state.flags
                                 .withActionsOverflowVisible(false),
@@ -253,7 +253,7 @@ private fun SmartbarMainRow(modifier: Modifier = Modifier) {
             DekuImeUi.SmartbarExtendedActionsToggle.elementName,
             onClick = {
                 if (/* was */ extendedActionsExpanded) {
-                    imeController.updateStateBlocking {
+                    imeController.updateStateAsync {
                         state = state.copy(
                             flags = state.flags
                                 .withActionsOverflowVisible(false),

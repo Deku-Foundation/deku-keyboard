@@ -50,19 +50,54 @@ fun EditorInfo.debugSummarize(): String {
     }
 }
 
+private const val MAX_VALUE_LENGTH = 120
+
 private fun Bundle.debugSummarize(): String {
-    val bundle = this
     return buildString {
         append("[")
-        for ((i, key) in bundle.keySet().withIndex()) {
+        for ((i, key) in keySet().withIndex()) {
             if (i > 0) {
                 append(",")
             }
             append(key)
             append("=")
-            // TODO: classcastexception append(bundle.getString(key))
+            append(summarizeBundleValue(get(key)))
         }
         append("]")
+    }
+}
+
+/**
+ * Safely summarizes an arbitrary [Bundle] value for debug output. Reading values through
+ * `getString` would throw a [ClassCastException] for non-string extras, so the runtime type is
+ * inspected instead and unknown values fall back to their class name. Values are bounded and
+ * single-line so large or multi-line extras cannot flood or break the debug output.
+ */
+internal fun summarizeBundleValue(value: Any?): String {
+    val raw = when (value) {
+        null -> "null"
+        is String, is CharSequence, is Number, is Boolean -> value.toString()
+        is Array<*> -> value.joinToString(prefix = "[", postfix = "]") { summarizeBundleValue(it) }
+        is IntArray -> value.contentToString()
+        is LongArray -> value.contentToString()
+        is ShortArray -> value.contentToString()
+        is ByteArray -> value.contentToString()
+        is CharArray -> value.contentToString()
+        is FloatArray -> value.contentToString()
+        is DoubleArray -> value.contentToString()
+        is BooleanArray -> value.contentToString()
+        is Collection<*> -> value.joinToString(prefix = "[", postfix = "]") { summarizeBundleValue(it) }
+        is Map<*, *> -> value.entries.joinToString(prefix = "{", postfix = "}") { (k, v) ->
+            "${summarizeBundleValue(k)}=${summarizeBundleValue(v)}"
+        }
+        is Bundle -> value.toString()
+        else -> value::class.java.name
+    }
+    val singleLine = raw.replace('\n', ' ').replace('\r', ' ')
+    return if (singleLine.length > MAX_VALUE_LENGTH) {
+        singleLine.take(MAX_VALUE_LENGTH) + "…"
+    } else {
+        singleLine
     }
 }
 

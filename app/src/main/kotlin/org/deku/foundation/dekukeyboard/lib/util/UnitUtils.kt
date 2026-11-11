@@ -16,6 +16,8 @@
 
 package org.deku.foundation.dekukeyboard.lib.util
 
+import java.util.Locale
+
 object UnitUtils {
     private const val KiB = (1024).toFloat()
     private const val MiB = (1024 * 1024).toFloat()
@@ -23,10 +25,12 @@ object UnitUtils {
 
     fun formatMemorySize(sizeBytes: Long): String {
         return when {
-            sizeBytes >= GiB -> String.format("%.2f GiB", sizeBytes / GiB)
-            sizeBytes >= MiB -> String.format("%.2f MiB", sizeBytes / MiB)
-            sizeBytes >= KiB -> String.format("%.2f KiB", sizeBytes / KiB)
-            else -> String.format("%d bytes")
+            sizeBytes >= GiB -> String.format(Locale.ROOT, "%.2f GiB", sizeBytes / GiB)
+            sizeBytes >= MiB -> String.format(Locale.ROOT, "%.2f MiB", sizeBytes / MiB)
+            sizeBytes >= KiB -> String.format(Locale.ROOT, "%.2f KiB", sizeBytes / KiB)
+            // The previous call had a format specifier but no argument, which threw
+            // MissingFormatArgumentException for sizes below 1 KiB.
+            else -> String.format(Locale.ROOT, "%d bytes", sizeBytes)
         }
     }
 }

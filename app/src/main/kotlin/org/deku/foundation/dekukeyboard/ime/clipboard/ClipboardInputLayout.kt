@@ -17,8 +17,6 @@
 package org.deku.foundation.dekukeyboard.ime.clipboard
 
 import android.content.ContentUris
-import android.graphics.BitmapFactory
-import android.media.MediaMetadataRetriever
 import android.media.ThumbnailUtils
 import android.provider.MediaStore
 import android.util.Size
@@ -31,6 +29,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -73,6 +72,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableStateSetOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -80,6 +80,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
@@ -107,8 +108,10 @@ import org.deku.foundation.dekukeyboard.ime.theme.DekuImeUi
 import org.deku.foundation.dekukeyboard.lib.observeAsTransformingState
 import org.deku.foundation.dekukeyboard.lib.util.NetworkUtils
 import dev.patrickgold.jetpref.datastore.model.collectAsState
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.deku.foundation.dekukeyboard.lib.android.AndroidKeyguardManager
 import org.deku.foundation.dekukeyboard.lib.android.AndroidVersion
 import org.deku.foundation.dekukeyboard.lib.android.systemService
@@ -194,7 +197,7 @@ fun ClipboardInputLayout(
             SnyggIconButton(
                 elementName = DekuImeUi.ClipboardHeaderButton.elementName,
                 onClick = {
-                    imeController.updateStateBlocking {
+                    imeController.updateStateAsync {
                         state = state.copy(
                             flags = state.flags.withImeUiMode(ImeUiMode.TEXT),
                         )
@@ -286,52 +289,71 @@ fun ClipboardInputLayout(
             if (item.type == ItemType.IMAGE) {
                 val id = ContentUris.parseId(item.uri!!)
                 val file = ClipboardFileStorage.getFileForId(context, id)
-                val bitmap = remember(id) {
-                    runCatching {
-                        check(file.exists()) { "Unable to resolve image at ${file.absolutePath}" }
-                        val rawBitmap = BitmapFactory.decodeFile(file.absolutePath)
-                        checkNotNull(rawBitmap) { "Unable to decode image at ${file.absolutePath}" }
-                        rawBitmap.asImageBitmap()
+                // Decoding a multi-megabyte photo on the main thread stalls the IME, and the
+                // full-resolution bitmap can exhaust the heap. Decode a bounded preview off the
+                // main thread; the underlying ClipboardItem is untouched and still pastes in full.
+                val bitmap by produceState<Result<ImageBitmap>?>(initialValue = null, id) {
+                    value = withContext(Dispatchers.IO) {
+                        runCatching {
+                            check(file.exists()) { "Unable to resolve image at ${file.absolutePath}" }
+                            val rawBitmap = decodeSampledBitmap(file, IMAGE_PREVIEW_MAX_DIMENSION)
+                            checkNotNull(rawBitmap) { "Unable to decode image at ${file.absolutePath}" }
+                            rawBitmap.asImageBitmap()
+                        }
                     }
                 }
-                if (bitmap.isSuccess) {
+                val imageResult = bitmap
+                if (imageResult == null) {
+                    Box(modifier = Modifier.fillMaxWidth().height(80.dp))
+                } else if (imageResult.isSuccess) {
                     Image(
                         modifier = Modifier.fillMaxWidth(),
-                        bitmap = bitmap.getOrThrow(),
-                        contentDescription = null,
+                        bitmap = imageResult.getOrThrow(),
+                        contentDescription = stringRes(R.string.clipboard__item_image),
                         contentScale = ContentScale.FillWidth,
                     )
                 } else {
                     SnyggText(
                         modifier = Modifier.fillMaxWidth(),
-                        text = bitmap.exceptionOrNull()?.message ?: "Unknown error",
+                        text = imageResult.exceptionOrNull()?.message ?: "Unknown error",
                     )
                 }
             } else if (item.type == ItemType.VIDEO) {
                 val id = ContentUris.parseId(item.uri!!)
                 val file = ClipboardFileStorage.getFileForId(context, id)
-                val bitmap = remember(id) {
-                    runCatching {
-                        check(file.exists()) { "Unable to resolve video at ${file.absolutePath}" }
-                        val rawBitmap = if (AndroidVersion.ATLEAST_API29_Q) {
-                            val dataRetriever = MediaMetadataRetriever()
-                            dataRetriever.setDataSource(file.absolutePath)
-                            val width = dataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)
-                            val height = dataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)
-                            ThumbnailUtils.createVideoThumbnail(file, Size(width!!.toInt(), height!!.toInt()), null)
-                        } else {
-                            @Suppress("DEPRECATION")
-                            ThumbnailUtils.createVideoThumbnail(file.absolutePath, MediaStore.Video.Thumbnails.MINI_KIND)
+                // A fixed thumbnail size bounds memory for 4K clips. The previous implementation
+                // also leaked a MediaMetadataRetriever per cell and crashed when width/height
+                // metadata was missing.
+                val bitmap by produceState<Result<ImageBitmap>?>(initialValue = null, id) {
+                    value = withContext(Dispatchers.IO) {
+                        runCatching {
+                            check(file.exists()) { "Unable to resolve video at ${file.absolutePath}" }
+                            val rawBitmap = if (AndroidVersion.ATLEAST_API29_Q) {
+                                ThumbnailUtils.createVideoThumbnail(
+                                    file,
+                                    Size(VIDEO_THUMBNAIL_WIDTH, VIDEO_THUMBNAIL_HEIGHT),
+                                    null,
+                                )
+                            } else {
+                                @Suppress("DEPRECATION")
+                                ThumbnailUtils.createVideoThumbnail(
+                                    file.absolutePath,
+                                    MediaStore.Video.Thumbnails.MINI_KIND,
+                                )
+                            }
+                            checkNotNull(rawBitmap) { "Unable to decode video at ${file.absolutePath}" }
+                            rawBitmap.asImageBitmap()
                         }
-                        checkNotNull(rawBitmap) { "Unable to decode video at ${file.absolutePath}" }
-                        rawBitmap.asImageBitmap()
                     }
                 }
-                if (bitmap.isSuccess) {
+                val videoResult = bitmap
+                if (videoResult == null) {
+                    Box(modifier = Modifier.fillMaxWidth().height(80.dp))
+                } else if (videoResult.isSuccess) {
                     Image(
                         modifier = Modifier.fillMaxWidth(),
-                        bitmap = bitmap.getOrThrow(),
-                        contentDescription = null,
+                        bitmap = videoResult.getOrThrow(),
+                        contentDescription = stringRes(R.string.clipboard__item_video),
                         contentScale = ContentScale.FillWidth,
                     )
                     Icon(
@@ -340,28 +362,36 @@ fun ClipboardInputLayout(
                             .padding(start = 4.dp, bottom = 4.dp)
                             .background(Color.White, CircleShape),
                         imageVector = Icons.Default.Videocam,
-                        contentDescription = null,
+                        contentDescription = stringRes(R.string.clipboard__item_video),
                         tint = Color.Black,
                     )
                 } else {
                     SnyggText(
                         modifier = Modifier.fillMaxWidth(),
-                        text = bitmap.exceptionOrNull()?.message ?: "Unknown error",
+                        text = videoResult.exceptionOrNull()?.message ?: "Unknown error",
                     )
                 }
             } else {
-                val text = item.stringRepresentation()
+                // Rendering arbitrarily large clipboard payloads in every grid cell can stall the
+                // IME and trigger memory pressure. Keep the actual ClipboardItem untouched so taps
+                // and Paste still deliver the full content; bound only the non-interactive preview.
+                val displayText = item.displayText()
+                val previewText = if (contentScrollInsteadOfClip) {
+                    displayText
+                } else {
+                    clipboardTextPreview(displayText)
+                }
                 Column {
                     ClipTextItemDescription(
                         elementName = DekuImeUi.ClipboardItemDescription.elementName,
                         attributes = attributes,
-                        text = text,
+                        text = previewText,
                     )
                     SnyggText(
                         modifier = Modifier
                             .fillMaxWidth()
                             .run { if (contentScrollInsteadOfClip) this.dekuVerticalScroll() else this },
-                        text = item.displayText(),
+                        text = previewText,
                     )
                 }
             }

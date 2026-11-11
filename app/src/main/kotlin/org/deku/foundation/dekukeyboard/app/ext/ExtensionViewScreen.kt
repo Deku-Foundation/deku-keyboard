@@ -139,8 +139,6 @@ private fun ViewScreen(extension: Extension<*>) = DekuScreen {
                 }
             }
             ExtensionMetaRowSimpleText(label = stringRes(R.string.ext__meta__license)) {
-                // TODO: display human-readable License name instead of
-                //  SPDX identifier
                 Text(text = meta.license)
             }
             Row(modifier = Modifier.fillMaxWidth()) {
@@ -180,32 +178,17 @@ private fun ViewScreen(extension: Extension<*>) = DekuScreen {
                     )
                 }
             }
-            /* TODO:
-            is LanguagePackExtension -> {
-                ExtensionComponentListView(
-                    title = stringRes(R.string.ext__meta__components_language_pack),
-                    components = ext.items,
-                ) { component ->
-                    ExtensionComponentView(
-                        modifier = Modifier.defaultDekuOutlinedBox(),
-                        meta = ext.meta,
-                        component = component,
-                    )
-                }
-            }
-             */
-            else -> {
-                // Render nothing
-            }
+            else -> Unit
         }
 
-        if (extToDelete != null) {
+        val extensionToDelete = extToDelete
+        if (extensionToDelete != null) {
             val snackbarMsg = stringRes(R.string.error__snackbar_message)
             DekuConfirmDeleteDialog(
                 onConfirm = {
                     scope.launch {
                         runCatching {
-                            extensionController.delete(extToDelete!!)
+                            extensionController.delete(extensionToDelete)
                         }.onSuccess {
                             navController.popBackStack()
                         }.onFailure { error ->
@@ -218,7 +201,7 @@ private fun ViewScreen(extension: Extension<*>) = DekuScreen {
                     }
                 },
                 onDismiss = { extToDelete = null },
-                what = extToDelete!!.manifest.meta.title,
+                what = extensionToDelete.manifest.meta.title,
             )
         }
     }

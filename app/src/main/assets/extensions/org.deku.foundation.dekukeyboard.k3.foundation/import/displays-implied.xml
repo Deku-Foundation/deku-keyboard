@@ -35,8 +35,8 @@ the mapping to a different display value.
     <display output="@fl:action/clipboard_copy" display="@fl:icon/clipboard_copy" />
     <display output="@fl:action/clipboard_cut" display="@fl:icon/clipboard_cut" />
     <display output="@fl:action/clipboard_paste" display="@fl:icon/clipboard_paste" />
-    <display output="@fl:action/clipboard_clear_history" display="TODO" />
-    <display output="@fl:action/clipboard_clear_full_history" display="TODO" />
+    <display output="@fl:action/clipboard_clear_history" display="@fl:icon/clipboard_clear_history" />
+    <display output="@fl:action/clipboard_clear_full_history" display="@fl:icon/clipboard_clear_full_history" />
     <display output="@fl:action/clipboard_clear_primary_clip" display="@fl:icon/clipboard_clear_primary_clip" />
     <display output="@fl:action/select_all" display="@fl:icon/select_all" />
 
@@ -44,10 +44,10 @@ the mapping to a different display value.
     <display output="@fl:action/hide_ime_window" display="@fl:icon/hide_keyboard" />
     <display output="@fl:action/toggle_floating_window" display="@fl:icon/toggle_floating_window" />
     <display output="@fl:action/toggle_compact_layout" display="@fl:icon/toggle_compact_layout" />
-    <display output="@fl:action/compact_layout_to_left" display="TODO" />
-    <display output="@fl:action/compact_layout_to_right" display="TODO" />
-    <display output="@fl:action/split_layout" display="TODO" />
-    <display output="@fl:action/merge_layout" display="TODO" />
+    <display output="@fl:action/compact_layout_to_left" display="@fl:icon/compact_layout_to_left" />
+    <display output="@fl:action/compact_layout_to_right" display="@fl:icon/compact_layout_to_right" />
+    <display output="@fl:action/split_layout" display="@fl:icon/split_layout" />
+    <display output="@fl:action/merge_layout" display="@fl:icon/merge_layout" />
     <display output="@fl:action/toggle_resize_mode" display="@fl:icon/toggle_resize_mode" />
 
     <display output="@fl:action/show_text_panel" display="@fl:icon/text_panel" />
@@ -60,10 +60,10 @@ the mapping to a different display value.
 
     <display output="@fl:action/switch_to_next_subtype" display="@fl:icon/language_switch" />
 
-    <display output="@fl:action/toggle_actions_editor" display="TODO" />
+    <display output="@fl:action/toggle_actions_editor" display="@fl:icon/toggle_actions_editor" />
     <display output="@fl:action/toggle_actions_overflow" display="@fl:icon/toggle_actions_overflow" />
     <display output="@fl:action/toggle_autocorrect" display="@fl:icon/toggle_autocorrect" />
-    <display output="@fl:action/toggle_personalized_learning" display="TODO" />
+    <display output="@fl:action/toggle_personalized_learning" display="@fl:icon/toggle_personalized_learning" />
 
     <display output="@fl:action/external_voice_input" display="@fl:icon/voice" />
 

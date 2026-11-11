@@ -38,7 +38,15 @@ sealed interface ExtensionIndexViolation : ExtensionViolation {
         override val sourceRange: SourceRange,
     ) : ExtensionIndexViolation {
         override val message: String
-            get() = "Unexpected fatal error: ${cause.message}"
+            get() = "Unexpected error: ${cause.message}"
+    }
+
+    data class ManifestReadFailure(
+        override val cause: Throwable,
+        override val sourceRange: SourceRange,
+    ) : ExtensionIndexViolation {
+        override val message: String
+            get() = "Could not read or parse extension manifest: ${cause.message}"
     }
 
     data class DuplicateExtension(

@@ -166,6 +166,14 @@ fun GesturesScreen() = DekuScreen {
                 max = 72,
                 stepIncrement = 1,
             )
+            DialogSliderPreference(
+                prefs.gestures.flickKeyDistanceThresholdDp,
+                title = stringRes(R.string.pref__gestures__flick_key_distance_threshold__label),
+                valueLabel = { stringRes(R.string.unit__display_pixel__symbol, "v" to it) },
+                min = 8,
+                max = 64,
+                stepIncrement = 1,
+            )
         }
     }
 }

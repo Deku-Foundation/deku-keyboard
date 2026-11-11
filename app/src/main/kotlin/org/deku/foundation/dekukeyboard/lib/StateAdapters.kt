@@ -21,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisallowComposableCalls
 import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.remember
 import dev.patrickgold.jetpref.datastore.model.PreferenceData
 import kotlinx.coroutines.flow.map
 
@@ -29,7 +30,9 @@ import kotlinx.coroutines.flow.map
 inline fun <V : Any, R : Any> PreferenceData<V>.observeAsTransformingState(
     crossinline transform: @DisallowComposableCalls (V) -> R,
 ): State<R> {
-    return asFlow().let { flow ->
-        flow.map { transform(it) }.collectAsState(transform(flow.value))
-    }
+    // Building the mapped flow outside remember created a new flow object on every
+    // recomposition, which resubscribed the collector and defeated flow equality.
+    val initialValue = remember(this) { transform(asFlow().value) }
+    val transformedFlow = remember(this) { asFlow().map { transform(it) } }
+    return transformedFlow.collectAsState(initialValue)
 }

@@ -52,9 +52,6 @@ enum class ImeWindowMode {
          */
         COMPACT,
 
-        /**
-         * TODO Placeholder, to be implemented in the future.
-         */
         THUMBS;
     }
 

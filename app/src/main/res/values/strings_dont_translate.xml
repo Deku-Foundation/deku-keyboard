@@ -3,6 +3,7 @@
     <item name="deku_app_name" translatable="false" type="string">@string/app_name</item>
 
     <string name="dekukeyboard__repo_url" translatable="false">https://github.com/Deku-Foundation/deku-keyboard</string>
+    <string name="dekukeyboard__website_url" translatable="false">https://deku-foundation.github.io/</string>
     <string name="dekukeyboard__issue_tracker_url" translatable="false">https://github.com/Deku-Foundation/deku-keyboard/issues</string>
     <string name="dekukeyboard__privacy_policy_url" translatable="false">https://github.com/Deku-Foundation/deku-keyboard/blob/main/PRIVACY.md</string>
     <string name="dekukeyboard__changelog_url" translatable="false">https://github.com/Deku-Foundation/deku-keyboard/releases/tag/v{version}</string>

@@ -68,6 +68,7 @@ import org.deku.foundation.dekukeyboard.app.settings.keyboard.KeyboardScreen
 import org.deku.foundation.dekukeyboard.app.settings.localization.LanguagePackManagerScreen
 import org.deku.foundation.dekukeyboard.app.settings.localization.LanguagePackManagerScreenAction
 import org.deku.foundation.dekukeyboard.app.settings.localization.LocalizationScreen
+import org.deku.foundation.dekukeyboard.app.settings.localization.SelectCharacterLayoutScreen
 import org.deku.foundation.dekukeyboard.app.settings.localization.SelectLocaleScreen
 import org.deku.foundation.dekukeyboard.app.settings.localization.SubtypeEditorScreen
 import org.deku.foundation.dekukeyboard.app.settings.media.MediaScreen
@@ -116,6 +117,10 @@ object Routes {
         @Serializable
         @Deeplink("settings/localization/select-locale")
         object SelectLocale
+
+        @Serializable
+        @Deeplink("settings/localization/select-character-layout")
+        object SelectCharacterLayout
 
         @Serializable
         @Deeplink("settings/localization/language-pack-manage")
@@ -284,6 +289,7 @@ object Routes {
 
             composableWithDeepLink(Settings.Localization::class) { LocalizationScreen() }
             composableWithDeepLink(Settings.SelectLocale::class) { SelectLocaleScreen() }
+            composableWithDeepLink(Settings.SelectCharacterLayout::class) { SelectCharacterLayoutScreen() }
             composableWithDeepLink(Settings.LanguagePackManager::class) { navBackStack ->
                 val payload = navBackStack.toRoute<Settings.LanguagePackManager>()
                 LanguagePackManagerScreen(payload.action)
