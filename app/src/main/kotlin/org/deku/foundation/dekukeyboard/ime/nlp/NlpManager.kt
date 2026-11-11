@@ -17,6 +17,8 @@
 package org.deku.foundation.dekukeyboard.ime.nlp
 
 import android.content.Context
+import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 import android.util.LruCache
 import org.deku.foundation.dekukeyboard.app.DekuPreferenceStore
@@ -29,12 +31,18 @@ import org.deku.foundation.dekukeyboard.ime.editor.InputAttributes
 import org.deku.foundation.dekukeyboard.ime.media.emoji.EmojiSuggestionProvider
 import org.deku.foundation.dekukeyboard.ime.nlp.arabic.ArabicLanguageProvider
 import org.deku.foundation.dekukeyboard.ime.nlp.latin.LatinLanguageProvider
+import org.deku.foundation.dekukeyboard.ime.nlp.local.LocalNgramModel
+import org.deku.foundation.dekukeyboard.ime.nlp.local.LocalNgramStore
+import org.deku.foundation.dekukeyboard.ime.nlp.local.LocalPredictionText
 import org.deku.foundation.dekukeyboard.inferDekuApplication
 import org.deku.foundation.dekukeyboard.lib.util.NetworkUtils
 import org.deku.foundation.dekukeyboard.subtypeManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -68,6 +76,8 @@ internal fun <T> selectSuggestionsForSession(
 }
 
 private const val BLANK_STR_PATTERN = "^\\s*$"
+private const val LOCAL_SUGGESTION_LIMIT = 4
+private const val LOCAL_SAVE_DEBOUNCE_MS = 1_500L
 
 class NlpManager(context: Context) {
     private val blankStrRegex = Regex(BLANK_STR_PATTERN)
@@ -85,6 +95,12 @@ class NlpManager(context: Context) {
         LatinLanguageProvider.ProviderId to ProviderInstanceWrapper(LatinLanguageProvider(context)),
         ArabicLanguageProvider.ProviderId to ProviderInstanceWrapper(ArabicLanguageProvider(context)),
     )
+
+    // Per-language local learners. They contain only word-pair counts and never leave the device.
+    private val localModelStore = LocalNgramStore(context)
+    private val localModels = ConcurrentHashMap<String, LocalNgramModel>()
+    private val localModelMutex = Mutex()
+    private val localSaveJobs = ConcurrentHashMap<String, Job>()
 
     private val nextSuggestionRevision = AtomicLong()
     private val nextAssemblyRevision = AtomicLong()
@@ -295,6 +311,7 @@ class NlpManager(context: Context) {
                     )
                 }
             }
+            val localSuggestions = buildLocalSuggestions(subtype, content, isPrivateSession)
             // A field may become a password field while an off-main-thread provider is
             // running. Never publish results after that transition.
             if (isNlpRestrictedEditor()) return@launch
@@ -305,10 +322,65 @@ class NlpManager(context: Context) {
                         candidates = buildList {
                             addAll(emojiSuggestions)
                             addAll(suggestions)
-                        },
+                            addAll(localSuggestions)
+                        }.distinctBy { it.text.toString().lowercase(Locale.ROOT) }.take(8),
                         isPrivateSession = isPrivateSession,
                     )
                 }
+            }
+        }
+    }
+
+    /**
+     * Learns completed words and produces next-word suggestions from the on-device model.
+     *
+     * Private/incognito sessions may read already-learned data but never update it. The model is
+     * skipped while composing a word so it cannot compete with the current-word providers.
+     */
+    private suspend fun buildLocalSuggestions(
+        subtype: Subtype,
+        content: K3Content,
+        isPrivateSession: Boolean,
+    ): List<SuggestionCandidate> {
+        if (!prefs.suggestion.enabled.get()) return emptyList()
+        val languageKey = subtype.primaryLocale.languageTag()
+        val model = getLocalModel(languageKey)
+        if (!isPrivateSession) {
+            model.observeCompletedWords(
+                LocalPredictionText.completedWords(content.surroundingText.textBefore),
+            )
+            scheduleLocalSave(languageKey, model)
+        }
+        if (content.compositionText?.toString().isNullOrBlank()) return emptyList()
+        return model.predict(
+            context = LocalPredictionText.contextWords(content.surroundingText.textBefore),
+            max = LOCAL_SUGGESTION_LIMIT,
+        ).map { prediction ->
+            WordSuggestionCandidate(
+                text = prediction.word,
+                confidence = prediction.confidence,
+                isEligibleForAutoCommit = false,
+                isEligibleForUserRemoval = false,
+                sourceProvider = null,
+            )
+        }
+    }
+
+    private suspend fun getLocalModel(languageKey: String): LocalNgramModel {
+        localModels[languageKey]?.let { return it }
+        return localModelMutex.withLock {
+            localModels[languageKey] ?: withContext(Dispatchers.IO) {
+                localModelStore.load(languageKey)
+            }.also { localModels[languageKey] = it }
+        }
+    }
+
+    private fun scheduleLocalSave(languageKey: String, model: LocalNgramModel) {
+        localSaveJobs.remove(languageKey)?.cancel()
+        localSaveJobs[languageKey] = scope.launch {
+            delay(LOCAL_SAVE_DEBOUNCE_MS)
+            withContext(Dispatchers.IO) {
+                localModelStore.save(languageKey, model)
             }
         }
     }

@@ -319,6 +319,20 @@ class ImeController(
             super.emitText(processed)
             expectedContentQueue.push(state.content)
             reevaluateInputShiftState()
+            requestSuggestions()
+        }
+
+        /**
+         * Hands the current editor content to the suggestion engine. This used to be missing
+         * entirely, so no provider was ever asked for candidates and suggestion settings had no
+         * visible effect.
+         */
+        private fun requestSuggestions() {
+            val app = application ?: return
+            app.nlpManager.value.suggest(
+                subtype = app.subtypeManager.value.activeSubtype,
+                content = state.content,
+            )
         }
 
         /**
@@ -477,6 +491,7 @@ class ImeController(
                 super.emitBackspace()
             }
             expectedContentQueue.push(state.content)
+            requestSuggestions()
         }
 
         override fun emitEnter() {
@@ -675,6 +690,7 @@ class ImeController(
         override fun resetContent(newSelection: K3TextRange, newSurrounding: K3SurroundingText) {
             super.resetContent(newSelection, newSurrounding)
             reevaluateInputShiftState()
+            requestSuggestions()
         }
 
         override fun resetContent() {

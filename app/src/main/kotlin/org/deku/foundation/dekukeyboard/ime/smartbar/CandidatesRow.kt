@@ -30,6 +30,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,6 +38,11 @@ import androidx.compose.ui.input.pointer.PointerEventTimeoutCancellationExceptio
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.onLongClick
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import org.deku.foundation.dekukeyboard.app.DekuPreferenceStore
 import org.deku.foundation.dekukeyboard.ime.keyboard3.LocalImeController
@@ -151,6 +157,10 @@ private fun CandidateItem(
     longPressTimeout: Duration,
 ) {
     var isPressed by remember { mutableStateOf(false) }
+    // The gesture handler is installed once per candidate; reading the callbacks through
+    // rememberUpdatedState prevents it from invoking a stale candidate after the row updates.
+    val currentOnClick by rememberUpdatedState(onClick)
+    val currentOnLongPress by rememberUpdatedState(onLongPress)
 
     val elementName = if (candidate is ClipboardSuggestionCandidate) {
         DekuImeUi.SmartbarCandidateClip
@@ -165,7 +175,19 @@ private fun CandidateItem(
         attributes = attributes,
         selector = selector,
         modifier = modifier
-            .pointerInput(Unit) {
+            .semantics(mergeDescendants = true) {
+                role = Role.Button
+                onClick {
+                    currentOnClick()
+                    true
+                }
+                if (candidate.isEligibleForUserRemoval) {
+                    onLongClick {
+                        currentOnLongPress()
+                    }
+                }
+            }
+            .pointerInput(longPressTimeout) {
                 awaitEachGesture {
                     val down = awaitFirstDown()
                     isPressed = true
@@ -177,14 +199,14 @@ private fun CandidateItem(
                         }
                         upOrCancel?.let { if (it.pressed != it.previousPressed) it.consume() }
                     } catch (_: PointerEventTimeoutCancellationException) {
-                        if (onLongPress()) {
+                        if (currentOnLongPress()) {
                             upOrCancel = null
                             isPressed = false
                         }
                         waitForUpOrCancellation()?.let { if (it.pressed != it.previousPressed) it.consume() }
                     }
                     if (upOrCancel != null) {
-                        onClick()
+                        currentOnClick()
                     }
                     isPressed = false
                 }
