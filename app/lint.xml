@@ -1,3 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <lint>
+    <!--
+      Translated resources are managed by the translation workflow. CONTRIBUTING.md and the
+      validate-strings-no-translations workflow forbid editing app/src/main/res/values-*<lang>
+      directly, so translation-only defects cannot be repaired in this repository.
+    -->
     <issue id="ExtraTranslation" severity="warning"/>
+
+    <!--
+      Base plurals use the app's own {v} curly formatter rather than Android's
+      Resources.getQuantityString. Lint's ImpliedQuantity heuristic therefore reports a
+      missing %d for every locale, which is a false positive for this architecture.
+    -->
+    <issue id="ImpliedQuantity" severity="warning"/>
+
+    <!--
+      This translated hint contains a literal "50%", which lint reads as a broken format
+      conversion. The base string has no format arguments and the translated files cannot be
+      edited here, so ignore only this known resource instead of weakening the check globally.
+    -->
+    <issue id="StringFormatInvalid">
+        <ignore regexp="ext__validation__hint_value_above_50_percent"/>
+    </issue>
 </lint>

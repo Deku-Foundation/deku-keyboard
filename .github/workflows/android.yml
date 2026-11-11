@@ -366,7 +366,7 @@ jobs:
           cache-provider: basic
 
       - name: Build with Gradle
-        run: ./gradlew clean testDebugUnitTest :lib:kotlin:test assembleDebug
+        run: ./gradlew clean lintDebug testDebugUnitTest :lib:kotlin:test assembleDebug
       - name: Verify merged app manifests stay offline
         shell: bash
         run: |

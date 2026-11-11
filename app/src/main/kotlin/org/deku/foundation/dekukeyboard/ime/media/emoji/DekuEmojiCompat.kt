@@ -101,7 +101,10 @@ object DekuEmojiCompat {
             registerInitCallback(initCallback)
         }
 
-        // Despite its name, `EmojiCompat.reset()` actually creates a new instance, exactly what we need
+        // Despite its name, `EmojiCompat.reset()` actually creates a new instance, exactly what we
+        // need for the two replaceAll variants. The public API only supports one process-wide
+        // instance, so this restriction is deliberate and contained to this factory.
+        @SuppressLint("RestrictedApi")
         private val instance: EmojiCompat? = if (config != null) EmojiCompat.reset(config) else null
         val publishedInstanceFlow = MutableStateFlow<EmojiCompat?>(null)
 

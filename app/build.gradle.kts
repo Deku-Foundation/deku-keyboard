@@ -132,7 +132,9 @@ configure<ApplicationExtension> {
     }
 
     lint {
-        baseline = file("lint.xml")
+        // lint.xml above is the configuration; the baseline is a separate file. Pointing the
+        // baseline at the config made every finding unsuppressed and hid the misconfiguration.
+        baseline = file("lint-baseline.xml")
     }
 
     testOptions {
