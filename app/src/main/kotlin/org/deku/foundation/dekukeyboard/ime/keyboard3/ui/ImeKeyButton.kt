@@ -39,6 +39,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import org.deku.foundation.dekukeyboard.ime.keyboard3.LocalImeController
 import org.deku.foundation.dekukeyboard.ime.keyboard3.interaction.InteractionKind
 import org.deku.foundation.dekukeyboard.ime.keyboard3.interaction.LocalInteractionController
@@ -85,6 +89,7 @@ fun ImeKeyButton(
     val imeState by imeController.activeState.collectAsState()
     val model by remember { derivedStateOf { imeState.model } }
     val display = remember(model, output) { model.displays.byOutput[output]?.display ?: output }
+    val keyLabel = remember(output) { readableKeyLabel(output) }
 
     val isRepeatable = output.isRepeatable()
     val timingOptions by interactionController.activeTimingOptions.collectAsState()
@@ -122,6 +127,16 @@ fun ImeKeyButton(
         },
         clickAndSemanticsModifier = Modifier
             .indication(interactionSource, ripple())
+            .then(
+                if (keyLabel != null) {
+                    Modifier.semantics {
+                        contentDescription = keyLabel
+                        role = Role.Button
+                    }
+                } else {
+                    Modifier
+                },
+            )
             .pointerInput(isEnabled) {
                 if (!isEnabled) return@pointerInput
                 awaitEachGesture {
@@ -173,4 +188,30 @@ fun K3StringOrDescriptor.asAttrValue(): String {
         is K3String -> normalize(NormalizationForm.NFC).toText()
         is K3Descriptor -> toString()
     }
+}
+
+/**
+ * Human-readable TalkBack label for one keyboard key. Character keys use their visible text,
+ * action/icon keys get a readable name derived from the descriptor instead of the raw internal
+ * identifier. Returns null when there is nothing useful to announce.
+ */
+internal fun readableKeyLabel(output: K3StringOrDescriptor): String? {
+    return when (output) {
+        is K3String -> output.toText().trim().ifEmpty { null }
+        is K3Descriptor -> readableDescriptorLabel(output.name)
+    }
+}
+
+internal fun readableDescriptorLabel(name: String): String? {
+    return name
+        .substringAfterLast('.')
+        .substringAfterLast('/')
+        .split('-', '_', ' ')
+        .filter { it.isNotBlank() }
+        .joinToString(" ") { word ->
+            word.replaceFirstChar { char ->
+                if (char.isLowerCase()) char.titlecaseChar() else char
+            }
+        }
+        .ifEmpty { null }
 }
