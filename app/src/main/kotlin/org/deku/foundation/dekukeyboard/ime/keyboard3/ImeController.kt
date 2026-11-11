@@ -325,36 +325,21 @@ class ImeController(
          * Applies standard text-entry conventions before committing text to the editor:
          * - Double-space period: two consecutive spaces become ". " (period + space)
          * - Smart punctuation spacing: no space before `.,!?:;`, no space after opening brackets
+         *
+         * The emitted [K3String] is already a structured value, so its text must be read with
+         * [K3String.toText]. Using `toString()` here leaks the data-class representation
+         * (`K3String(atoms=[104])`) into the editor on every key press.
          */
         private fun applyTextConventions(value: K3String): K3String {
-            val text = value.toString()
+            val text = value.toText()
             if (text.isEmpty()) return value
 
-            val surrounding = state.content.surroundingText
-            val before = surrounding.textBefore
-            var result = text
-
-            // Double-space period: if we're emitting a space and the preceding char is a space,
-            // replace "  " with ". "
-            if (result == " " && before.endsWith(" ")) {
-                // Remove the trailing space from surrounding text via backspace, then emit ". "
-                state.editor.deleteSurroundingText(charsBefore = 1, charsAfter = 0)
-                result = ". "
-            }
-
-            // Smart punctuation: remove space before sentence punctuation
-            val punctBefore = listOf('.', ',', '!', '?', ':', ';')
-            if (result.isNotEmpty() && result[0] in punctBefore && before.endsWith(" ")) {
+            val before = state.content.surroundingText.textBefore
+            val adjustment = applyTextConventionsTo(text, before)
+            if (adjustment.deleteTrailingSpace) {
                 state.editor.deleteSurroundingText(charsBefore = 1, charsAfter = 0)
             }
-
-            // No space after opening brackets
-            val openBrackets = listOf('(', '[', '{', '«')
-            if (result.isNotEmpty() && result[0] in openBrackets && before.endsWith(" ")) {
-                state.editor.deleteSurroundingText(charsBefore = 1, charsAfter = 0)
-            }
-
-            return result.asK3String()
+            return if (adjustment.text == text) value else adjustment.text.asK3String()
         }
 
         override fun emitDescriptor(descriptor: K3Descriptor) {
@@ -773,4 +758,36 @@ fun K3Content.cursorCapsMode(inputAttributes: InputAttributes): InputAttributes.
     return InputAttributes.CapsMode.fromFlags(
         TextUtils.getCapsMode(surroundingText.textBefore, surroundingText.textBefore.length, inputAttributes.raw)
     )
+}
+
+/**
+ * Result of applying the text-entry conventions to one emitted chunk. [deleteTrailingSpace]
+ * tells the caller to remove the space before the cursor before committing [text].
+ */
+internal data class TextConventionAdjustment(
+    val text: String,
+    val deleteTrailingSpace: Boolean,
+)
+
+// Pre-allocated so the per-key path does not build throw-away lists on every press.
+private val SENTENCE_PUNCTUATION = setOf('.', ',', '!', '?', ':', ';')
+private val OPENING_BRACKETS = setOf('(', '[', '{', '«')
+
+/**
+ * Pure decision logic for the text-entry conventions. Kept free of editor state so it can be
+ * unit-tested without an InputConnection.
+ */
+internal fun applyTextConventionsTo(text: String, textBefore: String): TextConventionAdjustment {
+    if (text.isEmpty()) {
+        return TextConventionAdjustment(text, deleteTrailingSpace = false)
+    }
+    // Double-space period: "  " becomes ". ".
+    if (text == " " && textBefore.endsWith(" ")) {
+        return TextConventionAdjustment(". ", deleteTrailingSpace = true)
+    }
+    val first = text[0]
+    if (textBefore.endsWith(" ") && (first in SENTENCE_PUNCTUATION || first in OPENING_BRACKETS)) {
+        return TextConventionAdjustment(text, deleteTrailingSpace = true)
+    }
+    return TextConventionAdjustment(text, deleteTrailingSpace = false)
 }
